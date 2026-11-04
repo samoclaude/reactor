@@ -107,6 +107,11 @@ button:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
 .digits { display: grid; grid-template-columns: repeat(11, 1fr); gap: 4px; }
 .digits button { height: 40px; border-radius: 8px; border: 1px solid var(--grid); background: #102A48; font-family: var(--font-head); font-size: 15px; cursor: pointer; padding: 0; }
 .digits button:active { background: #1B3F66; }
+.pingrow { display: flex; justify-content: center; }
+.pingbtn { display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 14px; border-radius: 10px; cursor: pointer; border: 1px solid var(--cyan); background: #0B2A47; color: var(--cyan); font: 700 13px var(--font-mono); }
+.pingbtn b { font-family: var(--font-head); font-weight: 400; color: var(--fg); }
+.pingbtn:disabled { opacity: .4; cursor: default; }
+.pingbtn:not(:disabled):active { transform: scale(.96); }
 .legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 12px; font-size: 11px; color: var(--muted); }
 
 /* dossier screens */
@@ -175,7 +180,7 @@ button:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
 .big.green { color: #1E7A3E; }
 .role-line { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; background: #F6EBC8; }
 .role-line .e { font-size: 30px; }
-.role-line b { font-family: var(--font-head); font-weight: 400; font-size: 18px; letter-spacing: .04em; }
+.role-line > div > b { font-family: var(--font-head); font-weight: 400; font-size: 18px; letter-spacing: .04em; }
 .role-line p { margin: 2px 0 0; font-size: 12.5px; line-height: 1.4; color: #4A3F2C; }
 .newbox { padding: 9px 12px; border-left: 4px solid #C4302B; background: rgba(196,48,43,.08); font-size: 13px; line-height: 1.45; }
 .newbox b { color: #A3221D; }
@@ -220,7 +225,8 @@ button:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
       <button class="key" data-e="r" aria-label="Повернуть направо">⟳<small>направо</small></button>
       <button class="key wait" data-e="w" aria-label="Ждать">⏸<small>ждать</small></button>
     </div>
-    <div class="legend" id="legend" hidden><span>💂 видит 2 клетки вперёд</span><span>📹 видит 3 клетки</span><span><b style="color:#FF3B3B">━</b> лазер горит всегда</span><span><b style="color:#FF5EDB">━</b> мигает, пунктир = выключен</span><span>Всё двигается только с ходом вора</span></div>
+    <div class="pingrow" id="pingRow" hidden><button class="pingbtn" id="btnPing">📡 Пеленг: показать вора <b id="pingLeft">2</b></button></div>
+    <div class="legend" id="legend" hidden><span>💂 видит 2 клетки вперёд</span><span>📹 видит 3 клетки</span><span><b style="color:#FF3B3B">━</b> лазер горит всегда</span><span><b style="color:#FF5EDB">━</b> мигает, пунктир = выключен</span><span>☕ под пятном план не виден</span><span>Всё двигается только с ходом вора</span></div>
   </section>
 </div>
 
@@ -229,24 +235,29 @@ button:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
     <div class="stamp">СОВ. СЕКРЕТНО</div>
     <div class="lbl">Досье</div>
     <h1>ОГРАБЛЕНИЕ</h1>
-    <p class="lead">Один видит план здания: охрану, камеры, лазеры. Другой идёт вслепую и находит коды. Созвонитесь, и вперёд. Каждый уровень роли меняются.</p>
+    <p class="lead">Штурман видит план здания с охраной, камерами и лазерами, но не видит, где вор. Вор видит только то, что рядом, и рассказывает, что вокруг. Созвонитесь, и вперёд. Каждое дело роли меняются.</p>
     <div class="f-col" id="vMain">
       <label class="lbl" for="inName">Твоя кличка</label>
       <input class="inp" id="inName" maxlength="12" autocomplete="nickname" placeholder="Как тебя звать">
       <button class="btn" id="btnCreate">Создать комнату</button>
       <div class="join"><input class="inp code" id="inCode" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="КОД" aria-label="Код комнаты"><button class="btn alt" id="btnJoin">Войти</button></div>
-      <button class="btn alt" id="btnSolo">Тренировка одному</button>
+      <button class="btn y" id="btnBlind">Вором вслепую: штурман — Claude в чате</button>
+      <button class="btn alt" id="btnSolo">Тренировка: видно всё</button>
       <div class="sep"></div>
       <details class="rules">
         <summary>Как играть</summary>
         <ul>
           <li><b>Вор</b> видит только клетки рядом с собой. Охрану, камеры и лазеры он не видит. Задача: найти добычу 💎 и уйти через выход 🚪.</li>
-          <li><b>Штурман</b> видит весь план, но сам не ходит. Он ведёт вора голосом: «два вверх, стой, жди ход, теперь направо».</li>
+          <li><b>Штурман</b> видит план: охрану, камеры, лазеры, картины на стенах. Но <b>где вор, он не видит</b>. Вор описывает, что рядом («слева гитара, впереди тупик»), а штурман по ориентирам находит его клетку и ведёт голосом: «два вверх, стой, жди ход, теперь направо».</li>
+          <li>📡 <b>Пеленг</b> у штурмана показывает вора на 3 секунды. Его мало: от 3 раз за попытку в начале до 1 на поздних делах. Ещё вора выдаёт, когда он берёт 💎 или читает записку.</li>
+          <li>С 8-го дела на чертеже <b>кофейное пятно ☕</b>: что под ним, штурман не видит, и эту часть описывает вор. Охраны и лазеров под пятном нет. С 11-го здание больше, дальше больше охраны и камер.</li>
           <li>Охранники, камеры и мигающие лазеры двигаются, только когда вор делает шаг или ждёт. Можно спокойно думать.</li>
           <li>Дверь к добыче открывается кодом. Код написан на записке 📝, и прочитать её может только вор. Вводит код штурман.</li>
           <li>Картины, статуи, фикусы на стенах видят оба. По ним удобно ориентироваться: «ты у статуи? теперь налево».</li>
           <li>С 6-го дела бывает «компас сломан»: у вора только «повернуть» и «вперёд», а картинка у него крутится вместе с ним.</li>
           <li>Попались: пробуйте это же дело снова, но коды будут новые. Прошли: роли меняются, дальше новое дело.</li>
+          <li><b>Вором вслепую</b>: играешь один за вора, а штурманом будет Claude в чате. Пришли ему код дела из верхней строки.</li>
+          <li><b>Тренировка</b>: видно всё сразу, чтобы просто посмотреть уровни.</li>
         </ul>
       </details>
       <div class="foot"><span id="bestLine">Лучшее дело: —</span></div>
@@ -322,29 +333,36 @@ const sess = {
    ===================================================================== */
 const DX = [0, 1, 0, -1], DY = [-1, 0, 1, 0];
 const VR = 2, CAM_R = 3;
-const LM = [['🖼️', 'картина'], ['🪴', 'фикус'], ['🗿', 'статуя'], ['📚', 'книги'], ['🏺', 'ваза'], ['🕰️', 'часы'], ['🎷', 'саксофон'], ['🧸', 'мишка'], ['🪞', 'зеркало'], ['🎸', 'гитара'], ['🐠', 'аквариум'], ['🦁', 'лев'], ['🛡️', 'щит'], ['🎻', 'скрипка'], ['🌵', 'кактус'], ['⚓', 'якорь']];
+const LM = [['🖼️', 'картина'], ['🪴', 'фикус'], ['🗿', 'статуя'], ['📚', 'книги'], ['🏺', 'ваза'], ['🕰️', 'часы'], ['🎷', 'саксофон'], ['🧸', 'мишка'], ['🪞', 'зеркало'], ['🎸', 'гитара'], ['🐠', 'аквариум'], ['🦁', 'лев'], ['🛡️', 'щит'], ['🎻', 'скрипка'], ['🌵', 'кактус'], ['⚓', 'якорь'],
+  ['🏆', 'кубок'], ['🎹', 'пианино'], ['🦉', 'сова'], ['🌻', 'подсолнух'], ['🎭', 'маски'], ['🕯️', 'свеча'], ['📺', 'телевизор'], ['☎️', 'телефон'], ['🧯', 'огнетушитель'], ['🦖', 'динозавр'], ['🚲', 'велосипед'], ['🎯', 'мишень'], ['🦜', 'попугай'], ['🍷', 'вино']];
 const PLACES = ['Ювелирка', 'Галерея', 'Казино', 'Музей', 'Банк', 'Особняк', 'Аукцион', 'Обсерватория', 'Казначейство', 'Пентхаус', 'Хранилище', 'Дворец', 'Яхт-клуб', 'Библиотека', 'Посольство', 'Ломбард', 'Ипподром', 'Театр'];
 function hashStr(s) { let h = 2166136261 | 0; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h | 0; }
 function RNG(s) { let h = hashStr(s); return () => { h = (h + 0x6D2B79F5) | 0; let t = Math.imul(h ^ (h >>> 15), h | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 const isRotate = L => L >= 5 && (L % 5 === 0 || L % 5 === 3);
 function diff(L) {
   return {
-    cw: L < 1 ? 3 : L < 4 ? 4 : 5, ch: L < 1 ? 5 : L < 4 ? 6 : 7,
-    lasers: L === 0 ? 2 : L < 3 ? 3 : 4,
-    blink: L === 0 ? 0 : L < 3 ? 2 : Math.min(4, 2 + Math.floor(L / 4)),
+    cw: L < 1 ? 3 : L < 4 ? 4 : L < 10 ? 5 : L < 14 ? 6 : 7, ch: L < 1 ? 5 : L < 4 ? 6 : L < 10 ? 7 : L < 14 ? 8 : 9,
+    lasers: L === 0 ? 2 : L < 3 ? 3 : L < 10 ? 4 : 6,
+    blink: L === 0 ? 0 : L < 3 ? 2 : L < 10 ? Math.min(4, 2 + Math.floor(L / 4)) : 5,
     lock: L >= 2,
-    guards: L < 3 ? 0 : L < 5 ? 1 : L < 9 ? 2 : 3,
-    cams: L < 4 ? 0 : L < 7 ? 1 : 2,
+    guards: L < 3 ? 0 : L < 5 ? 1 : L < 9 ? 2 : L < 14 ? 3 : 4,
+    cams: L < 4 ? 0 : L < 7 ? 1 : L < 14 ? 2 : 3,
+    stains: L < 7 ? 0 : L < 12 ? 1 : 2,
+    pings: L < 3 ? 3 : L < 8 ? 2 : 1,
     rotate: isRotate(L)
   };
 }
 const NEWS = {
-  0: 'Лазеры ⚡. Вор их не видит, штурман видит. Найдите 💎 и уходите через 🚪.',
+  0: 'Штурман не видит вора! Вор рассказывает, что рядом: картины, статуи, тупики, повороты. Штурман по ориентирам находит его клетку. Старт отмечен на плане. Лазеры ⚡ видит только штурман.',
   1: 'Мигающие лазеры (розовые у штурмана): горят через ход. Сплошной — включён, пунктир — выключен. Можно переждать на месте кнопкой ⏸.',
   2: 'Дверь с кодом 🔒. Код на записке 📝: вор встаёт на неё и читает код вслух, штурман вводит.',
   3: 'Охранник 💂. Ходит туда-сюда и видит на 2 клетки вперёд. Стрелка показывает, куда он шагнёт.',
   4: 'Камера 📹. Поворачивается каждые 2 хода и видит на 3 клетки по прямой.',
-  5: 'Компас сломан! У вора только «налево», «вперёд», «направо», а его картинка крутится вместе с ним. Штурман, говори от его лица.'
+  5: 'Компас сломан! У вора только «налево», «вперёд», «направо», а его картинка крутится вместе с ним. Штурман, говори от его лица.',
+  7: 'Кофейное пятно ☕ на чертеже: штурман не видит, что под ним. Вор, эту часть описывай сам. Охраны и лазеров под пятном нет.',
+  10: 'Здание стало больше, лазеров тоже. Пеленг теперь один на попытку.',
+  12: 'На чертеже уже два кофейных пятна.',
+  14: 'Самое большое здание: четыре охранника и три камеры.'
 };
 const levelCache = new Map();
 function getLevel(seed, L) {
@@ -366,7 +384,7 @@ function bfs(lv, src, blocked, doorOpen) {
 }
 function tryGen(seed, L, tr, easy) {
   const r = RNG(seed + '|' + L + '|' + tr), d = diff(L);
-  if (easy) { d.guards = Math.min(d.guards, easy > 1 ? 0 : 1); d.cams = Math.min(d.cams, easy > 1 ? 0 : 1); d.blink = Math.min(d.blink, easy > 1 ? 1 : 2); }
+  if (easy) { d.stains = Math.min(d.stains, 1); d.guards = Math.min(d.guards, easy > 1 ? 0 : 1); d.cams = Math.min(d.cams, easy > 1 ? 0 : 1); d.blink = Math.min(d.blink, easy > 1 ? 1 : 2); }
   const cw = d.cw, ch = d.ch, W = 2 * cw + 1, H = 2 * ch + 1, N = W * H;
   const g = new Uint8Array(N), id = (x, y) => y * W + x;
   const vis = new Uint8Array(cw * ch), stack = [[0, ch - 1]];
@@ -384,7 +402,7 @@ function tryGen(seed, L, tr, easy) {
     const opts = []; for (let k = 0; k < 4; k++) { const nx = cx + DX[k], ny = cy + DY[k]; if (nx >= 0 && ny >= 0 && nx < cw && ny < ch && !g[id(2 * cx + 1 + DX[k], 2 * cy + 1 + DY[k])]) opts.push(k); }
     if (opts.length) { const k = opts[Math.floor(r() * opts.length)]; g[id(2 * cx + 1 + DX[k], 2 * cy + 1 + DY[k])] = 1; }
   }
-  const lv = { L, seed, W, H, g, deco: {}, S: id(1, H - 2), E: id(W - 2, 1), gem: -1, door: -1, note: -1, lasers: [], guards: [], cams: [], rotate: d.rotate, name: PLACES[(L + (hashStr(seed) >>> 0)) % PLACES.length], best: 0 };
+  const lv = { L, seed, W, H, g, deco: {}, S: id(1, H - 2), E: id(W - 2, 1), gem: -1, door: -1, note: -1, lasers: [], guards: [], cams: [], rotate: d.rotate, pings: d.pings, stains: [], name: PLACES[(L + (hashStr(seed) >>> 0)) % PLACES.length], best: 0 };
   const dS = bfs(lv, lv.S, null, true), dE = bfs(lv, lv.E, null, true);
   const dead = [];
   for (let cy = 0; cy < ch; cy++) for (let cx = 0; cx < cw; cx++) { const t = id(2 * cx + 1, 2 * cy + 1); if (deg(cx, cy) === 1 && t !== lv.S && t !== lv.E) dead.push(t); }
@@ -416,9 +434,9 @@ function tryGen(seed, L, tr, easy) {
   shuffle(wallC);
   const lmOrder = shuffle(LM.map((_, i) => i)), lmPos = [];
   for (const t of wallC) {
-    if (lmPos.length >= Math.min(10, LM.length)) break;
+    if (lmPos.length >= Math.min(LM.length, Math.max(8, Math.round(wallC.length / 6)))) break;
     const x = t % W, y = (t / W) | 0;
-    if (lmPos.some(p => Math.max(Math.abs(p % W - x), Math.abs(((p / W) | 0) - y)) < 3)) continue;
+    if (lmPos.some(p => Math.max(Math.abs(p % W - x), Math.abs(((p / W) | 0) - y)) < 2)) continue;
     lv.deco[t] = lmOrder[lmPos.length]; lmPos.push(t);
   }
   // lasers sit in corridors between two cells
@@ -464,9 +482,22 @@ function tryGen(seed, L, tr, easy) {
     if (!dirs.length || lv.cams.some(c => Math.abs(c.i % W - x) + Math.abs(((c.i / W) | 0) - y) < 4)) continue;
     lv.cams.push({ i: t, dirs: dirs.length === 1 ? [dirs[0], -1] : shuffle(dirs).slice(0, 3) });
   }
+  // coffee stains: parts of the blueprint the navigator cannot read (never over hazards or key tiles)
+  if (d.stains) {
+    const haz = new Set(lv.lasers.map(l => l.i));
+    for (const gd of lv.guards) { const P = 2 * (gd.path.length - 1); for (let t = 0; t < P; t++) { const q = guardAt(gd, t); haz.add(q.i); ray(lv, q.i, q.face, VR).forEach(c => haz.add(c)); } }
+    for (const c of lv.cams) { haz.add(c.i); for (const k of c.dirs) if (k >= 0) ray(lv, c.i, k, CAM_R).forEach(x => haz.add(x)); }
+    for (let si = 0; si < d.stains; si++) for (let at = 0; at < 80; at++) {
+      const sw = 3 + Math.floor(r() * 2), sh = 3 + Math.floor(r() * 2), x0 = 1 + Math.floor(r() * (W - sw - 1)), y0 = 1 + Math.floor(r() * (H - sh - 1));
+      const cells = []; let ok = true;
+      for (let y = y0; y < y0 + sh && ok; y++) for (let x = x0; x < x0 + sw; x++) { const t = id(x, y); if (special.has(t) || haz.has(t) || lv.stains.some(q => q.set.has(t))) { ok = false; break; } cells.push(t); }
+      if (!ok || cells.filter(t => g[t]).length < 4) continue;
+      lv.stains.push({ x0, y0, w: sw, h: sh, set: new Set(cells) }); break;
+    }
+  }
   if (seenBy(lv, 0, lv.S)) return null;
   const sol = solve(lv); if (!sol) return null;
-  if (!easy && sol.length > Math.min(110, 34 + L * 8)) return null;
+  if (!easy && sol.length > (L < 10 ? Math.min(110, 34 + L * 8) : L < 14 ? 130 : 160)) return null;
   lv.best = sol.length; lv.sol = sol;
   return lv;
 }
@@ -495,12 +526,13 @@ function caughtCheck(lv, prev, cur, t) {
   return '';
 }
 const gcd = (a, b) => b ? gcd(b, a % b) : a, lcm = (a, b) => a / gcd(a, b) * b;
-function solve(lv) {
+function solve(lv, from) {
   let P = 2;
   for (const gd of lv.guards) P = lcm(P, 2 * (gd.path.length - 1));
   for (const c of lv.cams) P = lcm(P, 2 * c.dirs.length);
   const N = lv.W * lv.H, key = (p, t, f) => ((p * P + t) << 2) | f;
-  const prev = new Map(), q = [[lv.S, 0, 0]]; prev.set(key(lv.S, 0, 0), null);
+  const p0 = from ? from.pos : lv.S, t0 = from ? from.t % P : 0, f0 = from ? ((from.gem ? 1 : 0) | (from.note || from.open ? 2 : 0)) : 0;
+  const prev = new Map(), q = [[p0, t0, f0]]; prev.set(key(p0, t0, f0), null);
   for (let h = 0; h < q.length; h++) {
     const [p, t, f] = q[h];
     if (p === lv.E && (f & 1)) {
@@ -559,15 +591,16 @@ let mode = 'idle';            // idle | solo | online
 let solo = store.get('solo', null);
 let lv = null, lvKey = '', sim = null, simAtt = -1, simLen = 0;
 let viewX = 0, viewY = 0, viewA = 0, lastCaughtKey = '', lastWonKey = '', briefedKey = '';
-let codeBuf = '';
+let codeBuf = '', forceRole = '', pingLeft = 0, pingKey = '', pingUntil = 0;
 const src = () => mode === 'online' ? net.room : mode === 'solo' ? solo : null;
 function role() {
-  if (mode === 'solo') return 'both';
+  if (forceRole) return forceRole;
+  if (mode === 'solo') return solo && solo.blind ? 'runner' : 'both';
   if (mode !== 'online' || !net.room) return 'nav';
   const s = mySeat(); return s < 0 ? 'nav' : (s === net.room.lvl % 2 ? 'runner' : 'nav');
 }
 function amWriter() { if (mode === 'solo') return true; const r = net.room; return !!r && started(r) && mySeat() === r.lvl % 2; }
-function saveSrc() { if (mode === 'solo') store.set('solo', solo); else if (mode === 'online') saveRoom(); }
+function saveSrc() { if (mode === 'solo') store.set(solo && solo.blind ? 'blind' : 'solo', solo); else if (mode === 'online') saveRoom(); }
 function partnerName() { const r = net.room; if (!r) return 'брат'; const s = mySeat(); return (r.names[1 - s] || 'брат'); }
 
 function sync(full) {
@@ -601,6 +634,7 @@ function act(e) {
   const s = src(); s.log.push(e); saveSrc();
   if (mode === 'online') send('ev', { lvl: s.lvl, att: s.att, seq: s.log.length - 1, e });
   sync();
+  if (mode === 'solo' && solo.blind && lv.door >= 0 && sim.note && !sim.open && !sim.caught && !sim.won) setTimeout(() => handleCode(rid5(), codeFor(solo.code, solo.lvl, solo.att)), 500);
 }
 function handleCode(rid, val) {
   const s = src(); if (!s || !sim || sim.open || sim.caught || sim.won) return;
@@ -647,6 +681,7 @@ function ui() {
   document.title = `Ограбление · Дело №${s.lvl + 1}`;
   $('#caseTitle').textContent = `Дело №${s.lvl + 1} · ${lv.name}`;
   let sub = `Ход ${sim.t}`;
+  if (mode === 'solo' && solo.blind) sub += ` · код дела ${s.code}`;
   if (s.att) sub += ` · попытка ${s.att + 1}`;
   if (online) { const pid = net.room.seats[1 - Math.max(0, mySeat())]; sub += pid && net.online.has(pid) ? ` · ${partnerName()} в сети` : pid ? ` · ${partnerName()} не в сети` : ' · ждём брата'; }
   $('#caseSub').textContent = sub;
@@ -663,12 +698,16 @@ function ui() {
     renderSlots();
   }
   $('#legend').hidden = !(r === 'nav' || r === 'both') || !lv || (lv.guards.length + lv.cams.length + lv.lasers.length === 0);
+  const ak0 = s.code + '|' + s.lvl + '|' + s.att;
+  if (pingKey !== ak0) { pingKey = ak0; pingLeft = lv.pings; pingUntil = 0; }
+  $('#pingRow').hidden = !(r === 'nav' && ready && !sim.caught && !sim.won);
+  $('#pingLeft').textContent = '×' + pingLeft; $('#btnPing').disabled = pingLeft <= 0;
   let st = '';
   if (online && !ready) st = 'Ждём второго игрока…';
   else if (sim.caught) st = '<b style="color:var(--red)">Тревога!</b>';
   else if (sim.won) st = '<b style="color:var(--nv)">Ушли!</b>';
-  else if (r === 'runner') st = sim.gem ? '<b class="y">💎 у тебя.</b> Слушай штурмана и иди к выходу 🚪' : 'Ты не видишь охрану и лазеры. <b>Слушай штурмана.</b>';
-  else if (r === 'nav') st = sim.gem ? `<b class="y">💎 у ${esc(partnerName())}.</b> Веди к выходу 🚪` : `Ты не ходишь сам: <b>веди ${esc(online ? partnerName() : 'вора')} голосом</b>. Жёлтая точка — это он.`;
+  else if (r === 'runner') st = (sim.gem ? '<b class="y">💎 у тебя.</b> Теперь к выходу 🚪. ' : '') + '<b>Штурман не видит тебя:</b> рассказывай, что вокруг, и слушай его.';
+  else if (r === 'nav') st = (sim.gem ? `<b class="y">💎 у ${esc(partnerName())}.</b> Веди к выходу 🚪. ` : '') + `<b>Ты не видишь вора:</b> спроси, что он видит, и найди это на плане.`;
   else st = sim.gem ? '<b class="y">💎 у тебя.</b> Теперь к выходу 🚪' : 'Тренировка: ты видишь всё. Найди 💎 и уйди через 🚪';
   $('#status').innerHTML = st;
   // overlays
@@ -695,11 +734,12 @@ function showBrief() {
   const s = src(), r = role();
   $('#briefStamp').textContent = `ДЕЛО №${s.lvl + 1}`;
   $('#briefName').textContent = lv.name;
-  const pn = esc(mode === 'online' ? partnerName() : '');
+  const blind = mode === 'solo' && solo.blind;
+  const pn = esc(mode === 'online' ? partnerName() : blind ? 'Claude' : '');
   $('#briefRole').innerHTML = r === 'runner'
-    ? `<span class="e">🥷</span><div><b>Ты — ВОР</b><p>Видишь только то, что рядом. Охрану, камеры и лазеры не видишь. ${pn} — штурман, он видит план и ведёт тебя. Найди 💎 и уходи через 🚪.${lv.rotate ? ' Компас сломан: у тебя «налево / вперёд / направо».' : ''}</p></div>`
+    ? `<span class="e">🥷</span><div><b>Ты — ВОР</b><p>Видишь только то, что рядом. Охрану, камеры и лазеры не видишь. ${pn} — штурман: видит план, но не видит тебя. Рассказывай, что вокруг (картины, статуи, тупики), и делай, что он говорит. Найди 💎 и уходи через 🚪.${lv.rotate ? ' Компас сломан: у тебя «налево / вперёд / направо».' : ''}${blind ? ` <b>Напиши Claude: «дело №${s.lvl + 1}, код ${esc(s.code)}»</b> и что видишь на старте. Код от двери тут откроется сам, когда встанешь на записку.` : ''}</p></div>`
     : r === 'nav'
-    ? `<span class="e">🗺️</span><div><b>Ты — ШТУРМАН</b><p>Видишь весь план, но сам не ходишь. ${pn || 'Вор'} — вор, он видит только рядом с собой. Веди его голосом к 💎 и к выходу 🚪.${lv.door >= 0 ? ' Код от двери вводишь ты.' : ''}</p></div>`
+    ? `<span class="e">🗺️</span><div><b>Ты — ШТУРМАН</b><p>Видишь план с охраной, камерами и лазерами, но <b>не видишь, где ${pn || 'вор'}</b>. Спрашивай, что он видит рядом, ищи эти ориентиры на плане и веди его голосом к 💎 и к выходу 🚪. 📡 Пеленг покажет его ${lv.pings} ${lv.pings === 1 ? 'раз' : 'раза'} за попытку.${lv.door >= 0 ? ' Код от двери вводишь ты.' : ''}</p></div>`
     : `<span class="e">🔎</span><div><b>Тренировка</b><p>Ты видишь всё сам: так удобно посмотреть уровни. Настоящая игра — вдвоём по звонку.</p></div>`;
   const n = NEWS[s.lvl];
   $('#briefNew').hidden = !n; if (n) $('#briefNew').innerHTML = `<b>Новое:</b> ${n}`;
@@ -728,6 +768,7 @@ document.addEventListener('keydown', e => {
   const m = lv && lv.rotate ? { ArrowLeft: 'l', ArrowRight: 'r', ArrowUp: 'f', ' ': 'w' } : { ArrowUp: 'U', ArrowDown: 'D', ArrowLeft: 'L', ArrowRight: 'R', ' ': 'w' };
   if (m[e.key]) { e.preventDefault(); act(m[e.key]); }
 });
+$('#btnPing').addEventListener('click', () => { if (pingLeft <= 0 || !sim || sim.caught || sim.won) return; ensureAudio(); pingLeft--; pingUntil = performance.now() + 3000; sfxPingRadar(); ui(); });
 $('#btnBrief').addEventListener('click', () => { ensureAudio(); $('#brief').hidden = true; });
 $('#btnRetry').addEventListener('click', () => { ensureAudio(); restartLevel(); });
 $('#btnNext').addEventListener('click', () => { ensureAudio(); nextLevel(); });
@@ -808,10 +849,31 @@ function drawNav(now) {
     if (nx !== i) { const [NX, NY] = at(nx); ctx.strokeStyle = '#FF8A8A'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X + T / 2, Y + T / 2); const mx = (X + NX) / 2 + T / 2, my = (Y + NY) / 2 + T / 2; ctx.lineTo(mx, my); ctx.stroke(); ctx.fillStyle = '#FF8A8A'; ctx.beginPath(); ctx.arc(mx, my, Math.max(2, T * 0.08), 0, 6.283); ctx.fill(); }
     emoji('💂', X + T / 2, Y + T / 2, T * 0.72); void face;
   }
-  // trail + thief
-  ctx.save(); ctx.strokeStyle = 'rgba(255,210,63,.45)'; ctx.setLineDash([2, 5]); ctx.lineWidth = 2; ctx.beginPath();
-  sim.trail.forEach((c, i) => { const X = ox + (c % W) * T + T / 2, Y = oy + ((c / W) | 0) * T + T / 2; i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }); ctx.stroke(); ctx.restore();
-  thief(ox + viewX * T + T / 2, oy + viewY * T + T / 2, T * 0.34, sim.face, now, 0);
+  // start marker
+  { const [X, Y] = at(lv.S); ctx.save(); ctx.setLineDash([3, 3]); ctx.strokeStyle = 'rgba(255,210,63,.8)'; ctx.lineWidth = 1.5; ctx.strokeRect(X + 3, Y + 3, T - 6, T - 6); ctx.restore();
+    ctx.fillStyle = 'rgba(255,210,63,.9)'; ctx.font = `bold ${Math.max(8, Math.round(T * 0.24))}px "PT Mono", monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('СТАРТ', X + T / 2, Y + T / 2); }
+  // coffee stains hide part of the plan
+  const both = role() === 'both';
+  for (const st of lv.stains || []) {
+    const X = ox + st.x0 * T, Y = oy + st.y0 * T, w = st.w * T, h = st.h * T, cxs = X + w / 2, cys = Y + h / 2;
+    ctx.save(); ctx.globalAlpha = both ? 0.55 : 0.97;
+    const gr = ctx.createRadialGradient(cxs, cys, 2, cxs, cys, Math.max(w, h) * 0.62);
+    gr.addColorStop(0, '#6B4423'); gr.addColorStop(0.75, '#4A2E16'); gr.addColorStop(1, '#2E1B0C');
+    ctx.fillStyle = gr; ctx.beginPath();
+    const R0 = Math.min(w, h) * 0.18; ctx.moveTo(X + R0, Y); ctx.arcTo(X + w, Y, X + w, Y + h, R0 * 1.6); ctx.arcTo(X + w, Y + h, X, Y + h, R0); ctx.arcTo(X, Y + h, X, Y, R0 * 1.8); ctx.arcTo(X, Y, X + w, Y, R0 * 1.2); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = 'rgba(40,22,8,.9)'; ctx.lineWidth = 3; ctx.stroke();
+    ctx.globalAlpha = both ? 0.6 : 1; emoji('☕', cxs, cys, Math.min(w, h) * 0.38);
+    ctx.restore();
+  }
+  // the thief is hidden from the navigator: shown only in training, on a ping, or when it is over
+  const showThief = both || sim.caught || sim.won || now < pingUntil;
+  if (showThief) {
+    if (both || sim.caught || sim.won) { ctx.save(); ctx.strokeStyle = 'rgba(255,210,63,.45)'; ctx.setLineDash([2, 5]); ctx.lineWidth = 2; ctx.beginPath();
+      sim.trail.forEach((c, i) => { const X = ox + (c % W) * T + T / 2, Y = oy + ((c / W) | 0) * T + T / 2; i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }); ctx.stroke(); ctx.restore(); }
+    const tx = ox + viewX * T + T / 2, ty = oy + viewY * T + T / 2;
+    if (now < pingUntil) { const k = ((pingUntil - now) % 1000) / 1000; ctx.strokeStyle = `rgba(127,212,255,${k})`; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(tx, ty, T * (1.6 - k), 0, 6.283); ctx.stroke(); }
+    thief(tx, ty, T * 0.34, sim.face, now, 0);
+  }
 }
 function thief(x, y, r, face, now, rot) {
   const pulse = 1 + Math.sin(now / 250) * 0.06;
@@ -916,6 +978,7 @@ const sfxGem = () => { [0, 4, 7, 12].forEach((s, i) => tone(880 * Math.pow(2, s 
 const sfxNote = () => noise(0.18, { type: 'bandpass', f: 3000, v: 0.2 });
 const sfxAlarm = () => { for (let i = 0; i < 4; i++) { tone(700, 0.22, { type: 'square', v: 0.07, slide: 1.6, at: i * 0.26 }); } };
 const sfxWin = () => { [0, 4, 7, 12, 16].forEach((s, k) => tone(523 * Math.pow(2, s / 12), 0.4, { type: 'triangle', v: 0.13, at: k * 0.09 })); };
+const sfxPingRadar = () => { tone(1200, 0.25, { v: 0.1, slide: 0.5 }); tone(1200, 0.25, { v: 0.06, slide: 0.5, at: 0.35 }); };
 const sfxPing = () => { tone(784, 0.12, { v: 0.1 }); tone(1175, 0.2, { v: 0.09, at: 0.1 }); };
 const buzz = ms => { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} };
 const ICON_ON = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>';
@@ -1178,15 +1241,18 @@ function openMenu() {
   const n1 = $('#inName'); if (document.activeElement !== n1) n1.value = myName();
   const b = store.get('best', 0); $('#bestLine').textContent = b ? `Лучшее: дошли до дела №${b + 1}` : 'Лучшее дело: —';
 }
-function startSolo() {
+function startSolo(blind) {
   if (net.on) leaveRoom();
   mode = 'solo';
-  if (!solo || !solo.code) solo = { code: 'SOLO' + rid(4), lvl: 0, att: 0, best: 0, log: [] };
-  store.set('solo', solo);
+  const k = blind ? 'blind' : 'solo';
+  solo = store.get(k, null);
+  if (!solo || !solo.code || solo.code.length !== 4) solo = { code: newCode(), lvl: 0, att: 0, best: 0, log: [] };
+  solo.blind = !!blind; store.set(k, solo);
   lv = null; lvKey = ''; briefedKey = ''; hideOverlays();
   $('#menu').hidden = true; sync(true); keepAwake();
 }
-$('#btnSolo').addEventListener('click', () => { ensureAudio(); startSolo(); });
+$('#btnSolo').addEventListener('click', () => { ensureAudio(); startSolo(false); });
+$('#btnBlind').addEventListener('click', () => { ensureAudio(); startSolo(true); });
 $('#btnCreate').addEventListener('click', () => { ensureAudio(); createRoom(); });
 const inCode = $('#inCode');
 inCode.addEventListener('input', () => { const v = normCode(inCode.value); if (inCode.value !== v) inCode.value = v; });
@@ -1215,7 +1281,7 @@ window.addEventListener('hashchange', () => { const c = codeFromHash(); if (c &&
 
 /* ---------- boot ---------- */
 renderSoundBtn(); resize();
-try { if (/\.test$|^localhost$|^127\./.test(location.hostname)) window.__game = { getLevel, solve, simulate, codeFor, act, submitCode, restartLevel, nextLevel, net, role, amWriter, get sim() { return sim; }, get lv() { return lv; }, src: () => src(), get myId() { return myId; } }; } catch (e) {}
+try { if (/\.test$|^localhost$|^127\./.test(location.hostname)) window.__game = { setRole: v => { forceRole = v; }, getLevel, solve, simulate, codeFor, act, submitCode, restartLevel, nextLevel, net, role, amWriter, get sim() { return sim; }, get lv() { return lv; }, src: () => src(), get myId() { return myId; } }; } catch (e) {}
 requestAnimationFrame(frame);
 const code0 = codeFromHash();
 if (code0) joinRoom(code0); else openMenu();
