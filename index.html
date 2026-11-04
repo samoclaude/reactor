@@ -1111,7 +1111,7 @@ async function keepAwake() {
    ===================================================================== */
 const net = {
   on: false, code: null, room: null, ch: null, status: 'off',
-  online: new Set(), metas: {}, applied: 0, running: false,
+  online: new Set(), lastSeen: {}, peerKey: {}, applied: 0, running: false,
   wasStarted: false, everOk: false, errorMsg: '', lastHello: 0, timers: {}
 };
 let sb = null, myId = null;
@@ -1181,7 +1181,6 @@ function sanitize(s) {
 function saveRoom() {
   if (!net.room) return;
   store.set('room:' + net.code, net.room);
-  trackPresence();
 }
 
 function getClient() {
@@ -1205,21 +1204,48 @@ function hello() {
   const wait = Math.max(120, 1500 - (Date.now() - net.lastHello));
   net.timers.hello = setTimeout(() => { net.lastHello = Date.now(); send('hello', { name: myName() || null }); }, wait);
 }
-function trackPresence() {
-  clearTimeout(net.timers.track);
-  net.timers.track = setTimeout(() => {
-    if (!net.ch || net.status !== 'ok') return;
-    const r = net.room;
-    try {
-      const p = net.ch.track(r ? { g: r.game, m: r.moves.length, l: r.locked ? 1 : 0, f: filled(r) } : { g: -1, m: 0, l: 0, f: 0 });
-      if (p && p.catch) p.catch(() => {});
-    } catch (e) {}
-  }, 200);
+// Presence is tracked once per join and never updated: re-tracking makes the
+// realtime client briefly drop the key, which showed the other player offline.
+function trackOnce() {
+  if (!net.ch || net.status !== 'ok') return;
+  try { const p = net.ch.track({ on: 1 }); if (p && p.catch) p.catch(() => {}); } catch (e) {}
+}
+// Heartbeat: tells peers we are here and how far our game is, so anyone behind can catch up.
+function ping() {
+  if (!net.ch) return;
+  const r = net.room;
+  if (net.status === 'ok') send('ping', { k: r ? roomKey(r) : null });
+  recomputeOnline();
+}
+function recomputeOnline() {
+  if (!net.ch) return;
+  let st = {};
+  try { st = net.ch.presenceState() || {}; } catch (e) {}
+  const now = Date.now();
+  const pres = new Set(Object.keys(st));
+  // a real presence leave wins over the heartbeat, so a closed tab shows offline at once
+  if (net.presence) for (const id of net.presence) if (!pres.has(id)) delete net.lastSeen[id];
+  net.presence = pres;
+  const on = new Set(pres);
+  for (const id in net.lastSeen) if (now - net.lastSeen[id] < 13000) on.add(id);
+  const r = net.room;
+  if (r && net.wasStarted && net.presenceSeen) {
+    r.seats.forEach((id, k) => {
+      if (!id || id === myId) return;
+      const was = net.online.has(id), is = on.has(id);
+      const nm = r.names[k] || PD[k].name;
+      if (was && !is) toast(`${nm}: нет связи`);
+      if (!was && is) toast(`${nm} снова в игре`);
+    });
+  }
+  const changed = on.size !== net.online.size || [...on].some(x => !net.online.has(x));
+  net.online = on; net.presenceSeen = true;
+  if (changed) refreshOnline();
 }
 function amActingHost() {
   const r = net.room; if (!r) return false;
   for (const id of r.seats) if (id && (id === myId || net.online.has(id))) return id === myId;
-  const cands = [...net.online, myId].filter(k => k === myId || (net.metas[k] && net.metas[k].g >= 0)).sort();
+  const cands = [...net.online, myId].filter(k => k === myId || net.peerKey[k]).sort();
   return cands[0] === myId;
 }
 
@@ -1232,7 +1258,7 @@ async function joinRoom(code, room) {
   gen++; clearTimeout(botTimer);
   demo = false; inGame = false; finished = false; busy = false; paused = false;
   $('#win').hidden = true;
-  Object.assign(net, { on: true, code, room: null, ch: null, status: 'connecting', online: new Set(), metas: {}, applied: 0,
+  Object.assign(net, { on: true, code, room: null, ch: null, status: 'connecting', online: new Set(), presence: null, lastSeen: {}, peerKey: {}, applied: 0,
     running: false, wasStarted: false, everOk: false, errorMsg: '', lastHello: 0, presenceSeen: false });
   if (room) {
     room.code = code; room.host = myId; room.seats[0] = myId; room.names[0] = myName() || null;
@@ -1267,7 +1293,7 @@ function connect() {
     if (net.ch !== ch) return;
     if (status === 'SUBSCRIBED') {
       net.status = 'ok'; net.everOk = true; net.errorMsg = '';
-      trackPresence(); hello();
+      trackOnce(); hello(); ping();
       clearTimeout(net.timers.find);
       net.timers.find = setTimeout(() => {
         if (net.on && !net.room) { net.errorMsg = 'Комната не найдена. Возможно, её создатель вышел. Попроси новый код.'; refreshOnline(); }
@@ -1278,6 +1304,8 @@ function connect() {
     }
     refreshOnline();
   });
+  clearInterval(net.timers.ping);
+  net.timers.ping = setInterval(ping, 5000);
   clearTimeout(net.timers.conn);
   net.timers.conn = setTimeout(() => {
     if (net.ch === ch && !net.everOk) {
@@ -1289,8 +1317,8 @@ function connect() {
 function leaveRoom() {
   const ch = net.ch; net.ch = null;
   if (ch) { try { ch.untrack(); } catch (e) {} try { sb && sb.removeChannel(ch); } catch (e) {} }
-  Object.values(net.timers).forEach(t => clearTimeout(t));
-  Object.assign(net, { on: false, code: null, room: null, status: 'off', online: new Set(), metas: {}, applied: 0,
+  Object.values(net.timers).forEach(t => { clearTimeout(t); clearInterval(t); });
+  Object.assign(net, { on: false, code: null, room: null, status: 'off', online: new Set(), lastSeen: {}, peerKey: {}, applied: 0,
     running: false, wasStarted: false, everOk: false, errorMsg: '' });
   gen++;
   try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
@@ -1299,7 +1327,15 @@ function leaveRoom() {
 
 function onMsg(m) {
   if (!m || !m.t || !m.from || m.from === myId) return;
+  net.lastSeen[m.from] = Date.now();
+  if (!net.online.has(m.from)) recomputeOnline();
   switch (m.t) {
+    case 'ping': {
+      net.peerKey[m.from] = Array.isArray(m.k) ? m.k : null;
+      const r = net.room;
+      if (Array.isArray(m.k) && (!r || cmpKey(m.k.map(x => x | 0), roomKey(r)) > 0)) hello();
+      break;
+    }
     case 'hello': onHello(m); break;
     case 'state': adoptState(m.room); break;
     case 'move': onMove(m); break;
@@ -1365,29 +1401,9 @@ function onName(m) {
   saveRoom(); roomChanged();
 }
 function onPresence() {
-  const st = net.ch.presenceState() || {};
-  const online = new Set(Object.keys(st));
-  const metas = {};
-  for (const k of online) { const arr = st[k]; metas[k] = (arr && arr[arr.length - 1]) || {}; }
+  recomputeOnline();
   const r = net.room;
-  if (r && net.wasStarted && net.presenceSeen) {
-    r.seats.forEach((id, k) => {
-      if (!id || id === myId) return;
-      const was = net.online.has(id), now = online.has(id);
-      const nm = r.names[k] || PD[k].name;
-      if (was && !now) toast(`${nm}: нет связи`);
-      if (!was && now) toast(`${nm} снова в игре`);
-    });
-  }
-  net.online = online; net.metas = metas; net.presenceSeen = true;
-  let ahead = false;
-  for (const k of online) {
-    if (k === myId) continue;
-    const m = metas[k];
-    if (!m || m.g == null || m.g < 0) continue;
-    if (!r || cmpKey([m.g | 0, m.m | 0, m.l | 0, m.f | 0], roomKey(r)) > 0) { ahead = true; break; }
-  }
-  if (ahead || !r || !r.seats.includes(myId)) hello();
+  if (!r || !r.seats.includes(myId)) hello();
   refreshOnline();
 }
 
@@ -1499,6 +1515,7 @@ function startNow() {
 function refreshOnline() {
   if (!net.on) return;
   const r = net.room;
+  if (net.errorMsg && net.status === 'ok' && r && mySeat() >= 0) net.errorMsg = '';
   const st = started(r);
   if (st && !net.wasStarted) {
     net.wasStarted = true; inGame = true;
@@ -1688,7 +1705,7 @@ canvas.addEventListener('pointerdown', e => {
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) return;
   if (inGame && !finished) keepAwake();
-  if (net.on && net.ch) hello();
+  if (net.on && net.ch) { hello(); ping(); }
 });
 window.addEventListener('hashchange', () => {
   const c = codeFromHash();
