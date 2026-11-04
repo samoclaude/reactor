@@ -1,0 +1,1225 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#07111F">
+<meta name="description" content="Ограбление: кооператив вдвоём. Один видит план здания, другой идёт вслепую. Созвонитесь и уведите добычу.">
+<meta property="og:title" content="Ограбление">
+<meta property="og:description" content="Один видит план, другой идёт вслепую. Кооп по звонку.">
+<meta property="og:type" content="website">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230D2B4E'/%3E%3Cpath d='M10 20h44M10 32h44M10 44h44M20 10v44M32 10v44M44 10v44' stroke='%231C4470' stroke-width='2'/%3E%3Ccircle cx='32' cy='32' r='11' fill='%23FFD23F'/%3E%3C/svg%3E">
+<title>Ограбление</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=PT+Mono&family=Russo+One&display=swap">
+<style>
+:root {
+  /* Heist dossier: navy blueprint for the navigator, night-vision green for the thief,
+     manila-folder paper for menus, safety yellow for the thief and red for alarms. Single look by choice. */
+  --bg: #07111F;
+  --print: #0D2B4E;
+  --grid: #1A3F68;
+  --fg: #E8F1FA;
+  --muted: #8AA4BF;
+  --cyan: #7FD4FF;
+  --yellow: #FFD23F;
+  --red: #FF4B4B;
+  --nv: #39FF88;
+  --manila: #E9D8A6;
+  --ink: #2B2418;
+  --font-head: "Russo One", "Arial Black", system-ui, sans-serif;
+  --font-mono: "PT Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { height: 100%; }
+body {
+  height: 100%; margin: 0; overflow: hidden; background: var(--bg); color: var(--fg);
+  font-family: var(--font-mono); font-size: 14px;
+  touch-action: manipulation; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
+}
+button { font-family: inherit; color: inherit; }
+button:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
+
+.app {
+  height: 100%; max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 8px;
+  padding-top: calc(8px + env(safe-area-inset-top, 0px));
+  padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(12px, env(safe-area-inset-left, 0px));
+  padding-right: max(12px, env(safe-area-inset-right, 0px));
+}
+.bar { display: flex; align-items: center; gap: 8px; min-height: 40px; }
+.case { min-width: 0; display: flex; flex-direction: column; line-height: 1.15; }
+.case b { font-family: var(--font-head); font-weight: 400; font-size: 15px; letter-spacing: .04em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.case span { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.role { margin-left: auto; flex: none; padding: 6px 10px; border-radius: 8px; font-family: var(--font-head); font-size: 12px; letter-spacing: .06em; }
+.role.runner { background: var(--yellow); color: #1A1400; }
+.role.nav { background: var(--cyan); color: #04213A; }
+.role.both { background: var(--manila); color: var(--ink); }
+.icon-btn { width: 40px; height: 40px; flex: none; border-radius: 10px; cursor: pointer; display: grid; place-items: center; border: 1px solid var(--grid); background: #0B1D33; }
+.icon-btn:active { transform: scale(.94); }
+.partner { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); }
+.partner i { width: 7px; height: 7px; border-radius: 50%; background: #555; }
+.partner.on i { background: var(--nv); box-shadow: 0 0 8px var(--nv); }
+
+.stage { flex: 1; min-height: 0; position: relative; display: grid; place-items: center; }
+#view { display: block; border-radius: 14px; }
+.flash { position: absolute; inset: 0; pointer-events: none; border-radius: 14px; box-shadow: inset 0 0 0 0 var(--red); }
+.flash.on { animation: alarm .5s ease-in-out 4 alternate; }
+@keyframes alarm { to { box-shadow: inset 0 0 60px 10px rgba(255,75,75,.75); } }
+
+.panel { display: flex; flex-direction: column; gap: 8px; }
+.status { min-height: 20px; font-size: 13px; text-align: center; color: var(--muted); line-height: 1.35; }
+.status b { color: var(--fg); }
+.status .y { color: var(--yellow); }
+.notebox {
+  display: flex; align-items: center; justify-content: center; gap: 10px; padding: 8px 12px; border-radius: 10px;
+  background: var(--manila); color: var(--ink); transform: rotate(-1deg);
+  box-shadow: 0 6px 16px -8px rgba(0,0,0,.8);
+}
+.notebox span { font-size: 12px; font-weight: 700; }
+.notebox b { font-family: var(--font-head); font-weight: 400; font-size: 26px; letter-spacing: .3em; }
+.pad { display: grid; gap: 6px; justify-content: center; }
+.pad.abs { grid-template-columns: repeat(3, 64px); grid-template-rows: repeat(3, 52px); }
+.pad.rot { grid-template-columns: repeat(4, 1fr); }
+.key {
+  border: 1px solid #2B5C2F; border-radius: 12px; cursor: pointer; display: grid; place-items: center;
+  background: linear-gradient(#173A1F, #0E2614); color: var(--nv); font-size: 22px; font-family: var(--font-head);
+  box-shadow: 0 3px 0 #06140A; min-height: 52px;
+}
+.key small { font-family: var(--font-mono); font-size: 11px; color: #9DE6B5; display: block; margin-top: -2px; }
+.key:active { transform: translateY(2px); box-shadow: 0 1px 0 #06140A; }
+.key:disabled { opacity: .35; }
+.key.wait { color: #CFF7DB; font-size: 15px; }
+.lock { display: flex; flex-direction: column; gap: 6px; padding: 8px; border-radius: 12px; background: #0B1D33; border: 1px solid var(--grid); }
+.lock-top { display: flex; align-items: center; gap: 10px; }
+.lock-top span { font-size: 12px; color: var(--muted); flex: 1; line-height: 1.3; }
+.slots { display: flex; gap: 5px; }
+.slots i { width: 30px; height: 38px; border-radius: 7px; background: #04101E; border: 1px solid var(--grid); display: grid; place-items: center; font-style: normal; font-family: var(--font-head); font-size: 20px; color: var(--yellow); }
+.slots.bad { animation: shake .35s; }
+.slots.ok i { border-color: var(--nv); color: var(--nv); }
+@keyframes shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+.digits { display: grid; grid-template-columns: repeat(11, 1fr); gap: 4px; }
+.digits button { height: 40px; border-radius: 8px; border: 1px solid var(--grid); background: #102A48; font-family: var(--font-head); font-size: 15px; cursor: pointer; padding: 0; }
+.digits button:active { background: #1B3F66; }
+.legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 12px; font-size: 11px; color: var(--muted); }
+
+/* dossier screens */
+.screen {
+  position: fixed; inset: 0; z-index: 20; overflow-y: auto; display: flex; justify-content: center; align-items: flex-start;
+  padding: calc(18px + env(safe-area-inset-top, 0px)) 14px calc(18px + env(safe-area-inset-bottom, 0px));
+  background: repeating-linear-gradient(0deg, transparent 0 23px, rgba(127,212,255,.06) 23px 24px), repeating-linear-gradient(90deg, transparent 0 23px, rgba(127,212,255,.06) 23px 24px), var(--print);
+}
+.folder {
+  position: relative; width: 100%; max-width: 480px; margin: auto 0; padding: 26px 20px 20px; border-radius: 4px 14px 14px 14px;
+  background: var(--manila); color: var(--ink);
+  box-shadow: 0 30px 60px -20px rgba(0,0,0,.8), inset 0 0 60px rgba(120,90,30,.25);
+  animation: drop .45s cubic-bezier(.2,.8,.2,1);
+}
+.folder::before { content: ""; position: absolute; left: 0; top: -16px; width: 130px; height: 18px; border-radius: 8px 8px 0 0; background: var(--manila); }
+@keyframes drop { from { transform: translateY(30px) rotate(-2deg); opacity: 0; } to { transform: none; opacity: 1; } }
+.stamp {
+  position: absolute; right: 14px; top: 16px; padding: 4px 10px; border: 3px solid #C4302B; border-radius: 6px; color: #C4302B;
+  font-family: var(--font-head); font-size: 12px; letter-spacing: .12em; transform: rotate(8deg); opacity: .85;
+}
+.folder h1 { margin: 6px 0 4px; font-family: var(--font-head); font-weight: 400; font-size: clamp(32px, 11vw, 46px); line-height: 1; letter-spacing: .02em; }
+.folder .lead { margin: 0 0 16px; font-size: 14px; line-height: 1.5; color: #4A3F2C; max-width: 40ch; }
+.f-col { display: flex; flex-direction: column; gap: 10px; }
+.btn {
+  min-height: 52px; border-radius: 10px; border: 0; cursor: pointer; padding: 0 16px;
+  font-family: var(--font-head); font-size: 15px; letter-spacing: .05em; text-transform: uppercase;
+  background: var(--ink); color: var(--manila); box-shadow: 0 4px 0 #120E08;
+}
+.btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #120E08; }
+.btn.alt { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 2px var(--ink); }
+.btn.y { background: var(--yellow); color: #1A1400; box-shadow: 0 4px 0 #8A6D00; }
+.btn.red { background: var(--red); color: #2A0000; box-shadow: 0 4px 0 #7A1010; }
+.join { display: flex; gap: 8px; }
+.inp {
+  flex: 1; min-width: 0; height: 52px; padding: 0 12px; border-radius: 10px; border: 2px solid var(--ink); background: #F6EBC8; color: var(--ink);
+  font: 700 17px var(--font-mono); -webkit-user-select: text; user-select: text;
+}
+.inp.code { font-family: var(--font-head); letter-spacing: .35em; text-transform: uppercase; text-align: center; }
+.inp:focus { outline: 3px solid #C4302B; outline-offset: 1px; }
+.lbl { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #6B5C3E; }
+.sep { height: 1px; background: rgba(43,36,24,.25); margin: 4px 0; }
+.rules { font-size: 13px; line-height: 1.5; }
+.rules summary { cursor: pointer; font-weight: 700; list-style: none; display: flex; justify-content: space-between; }
+.rules summary::-webkit-details-marker { display: none; }
+.rules summary::after { content: "+"; }
+.rules[open] summary::after { content: "–"; }
+.rules ul { margin: 8px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
+.tag-code { display: inline-block; padding: 6px 16px 6px 22px; margin: 2px 0 6px; background: #F6EBC8; border: 2px dashed var(--ink); border-radius: 6px 30px 30px 6px; font-family: var(--font-head); font-size: clamp(34px, 11vw, 44px); letter-spacing: .14em; -webkit-user-select: text; user-select: text; }
+.link-row { display: flex; gap: 8px; align-items: center; }
+.link-row span { flex: 1; min-width: 0; font-size: 12px; color: #6B5C3E; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; -webkit-user-select: all; user-select: all; }
+.link-row .btn { min-height: 40px; font-size: 12px; }
+.seat { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; background: #F6EBC8; }
+.seat b { font-size: 14px; }
+.seat em { margin-left: auto; font-style: normal; font-size: 12px; color: #6B5C3E; }
+.seat em.on { color: #1E7A3E; font-weight: 700; }
+.note { margin: 0; font-size: 13px; line-height: 1.45; color: #4A3F2C; }
+.note.err { color: #A3221D; font-weight: 700; }
+.foot { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: #6B5C3E; }
+.foot button { border: 0; background: none; padding: 0; font: inherit; color: inherit; text-decoration: underline; cursor: pointer; }
+
+.over { position: fixed; inset: 0; z-index: 25; display: grid; place-items: center; padding: 16px; background: rgba(4,10,20,.72); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.card { width: 100%; max-width: 400px; text-align: center; display: flex; flex-direction: column; gap: 12px; align-items: stretch; }
+.card .folder { text-align: left; }
+.big { font-family: var(--font-head); font-size: clamp(30px, 10vw, 44px); line-height: 1; }
+.big.red { color: #C4302B; }
+.big.green { color: #1E7A3E; }
+.role-line { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; background: #F6EBC8; }
+.role-line .e { font-size: 30px; }
+.role-line b { font-family: var(--font-head); font-weight: 400; font-size: 18px; letter-spacing: .04em; }
+.role-line p { margin: 2px 0 0; font-size: 12.5px; line-height: 1.4; color: #4A3F2C; }
+.newbox { padding: 9px 12px; border-left: 4px solid #C4302B; background: rgba(196,48,43,.08); font-size: 13px; line-height: 1.45; }
+.newbox b { color: #A3221D; }
+
+.toast {
+  position: fixed; left: 50%; z-index: 40; top: calc(env(safe-area-inset-top, 0px) + 58px); transform: translate(-50%, -8px); opacity: 0; pointer-events: none;
+  max-width: calc(100% - 32px); padding: 9px 14px; border-radius: 8px; background: var(--manila); color: var(--ink); font-weight: 700; font-size: 13.5px; text-align: center;
+  transition: opacity .25s, transform .25s; box-shadow: 0 10px 24px -10px rgba(0,0,0,.8);
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+@media (max-height: 700px) { .legend { display: none; } .pad.abs { grid-template-rows: repeat(3, 46px); } .key { min-height: 46px; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+  <header class="bar">
+    <div class="case"><b id="caseTitle">Дело №1</b><span id="caseSub">Ход 0</span></div>
+    <div class="role runner" id="roleTag">ВОР</div>
+    <button class="icon-btn" id="btnSound" aria-label="Звук"></button>
+    <button class="icon-btn" id="btnMenu" aria-label="Меню">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+    </button>
+  </header>
+  <main class="stage" id="stage"><canvas id="view" aria-label="Игровое поле"></canvas><div class="flash" id="flash"></div></main>
+  <section class="panel">
+    <div class="status" id="status"></div>
+    <div class="notebox" id="noteBox" hidden><span>📝 КОД С ЗАПИСКИ<br>скажи штурману</span><b id="noteCode">000</b></div>
+    <div class="lock" id="lockBox" hidden>
+      <div class="lock-top"><span id="lockText">🔒 Дверь к добыче. Код знает только вор: он найдёт записку 📝 и продиктует.</span><div class="slots" id="slots"><i></i><i></i><i></i></div></div>
+      <div class="digits" id="digits"></div>
+    </div>
+    <div class="pad abs" id="padAbs" hidden>
+      <span></span><button class="key" data-e="U" aria-label="Вверх">▲</button><span></span>
+      <button class="key" data-e="L" aria-label="Влево">◀</button><button class="key wait" data-e="w" aria-label="Ждать">⏸<small>ждать</small></button><button class="key" data-e="R" aria-label="Вправо">▶</button>
+      <span></span><button class="key" data-e="D" aria-label="Вниз">▼</button><span></span>
+    </div>
+    <div class="pad rot" id="padRot" hidden>
+      <button class="key" data-e="l" aria-label="Повернуть налево">⟲<small>налево</small></button>
+      <button class="key" data-e="f" aria-label="Шаг вперёд">▲<small>вперёд</small></button>
+      <button class="key" data-e="r" aria-label="Повернуть направо">⟳<small>направо</small></button>
+      <button class="key wait" data-e="w" aria-label="Ждать">⏸<small>ждать</small></button>
+    </div>
+    <div class="legend" id="legend" hidden><span>💂 видит 2 клетки вперёд</span><span>📹 видит 3 клетки</span><span><b style="color:#FF3B3B">━</b> лазер горит всегда</span><span><b style="color:#FF5EDB">━</b> мигает, пунктир = выключен</span><span>Всё двигается только с ходом вора</span></div>
+  </section>
+</div>
+
+<div class="screen" id="menu">
+  <div class="folder">
+    <div class="stamp">СОВ. СЕКРЕТНО</div>
+    <div class="lbl">Досье</div>
+    <h1>ОГРАБЛЕНИЕ</h1>
+    <p class="lead">Один видит план здания: охрану, камеры, лазеры. Другой идёт вслепую и находит коды. Созвонитесь, и вперёд. Каждый уровень роли меняются.</p>
+    <div class="f-col" id="vMain">
+      <label class="lbl" for="inName">Твоя кличка</label>
+      <input class="inp" id="inName" maxlength="12" autocomplete="nickname" placeholder="Как тебя звать">
+      <button class="btn" id="btnCreate">Создать комнату</button>
+      <div class="join"><input class="inp code" id="inCode" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="КОД" aria-label="Код комнаты"><button class="btn alt" id="btnJoin">Войти</button></div>
+      <button class="btn alt" id="btnSolo">Тренировка одному</button>
+      <div class="sep"></div>
+      <details class="rules">
+        <summary>Как играть</summary>
+        <ul>
+          <li><b>Вор</b> видит только клетки рядом с собой. Охрану, камеры и лазеры он не видит. Задача: найти добычу 💎 и уйти через выход 🚪.</li>
+          <li><b>Штурман</b> видит весь план, но сам не ходит. Он ведёт вора голосом: «два вверх, стой, жди ход, теперь направо».</li>
+          <li>Охранники, камеры и мигающие лазеры двигаются, только когда вор делает шаг или ждёт. Можно спокойно думать.</li>
+          <li>Дверь к добыче открывается кодом. Код написан на записке 📝, и прочитать её может только вор. Вводит код штурман.</li>
+          <li>Картины, статуи, фикусы на стенах видят оба. По ним удобно ориентироваться: «ты у статуи? теперь налево».</li>
+          <li>С 6-го дела бывает «компас сломан»: у вора только «повернуть» и «вперёд», а картинка у него крутится вместе с ним.</li>
+          <li>Попались: пробуйте это же дело снова, но коды будут новые. Прошли: роли меняются, дальше новое дело.</li>
+        </ul>
+      </details>
+      <div class="foot"><span id="bestLine">Лучшее дело: —</span></div>
+    </div>
+    <div class="f-col" id="vRoom" hidden>
+      <div class="lbl">Комната</div>
+      <div><span class="tag-code" id="roomCode">····</span></div>
+      <div class="link-row"><span id="roomLink"></span><button class="btn y" id="btnShare">Поделиться</button></div>
+      <div id="seats" class="f-col" style="gap:6px"></div>
+      <p class="note" id="netNote">Подключаюсь…</p>
+      <label class="lbl" for="inName2">Твоя кличка</label>
+      <input class="inp" id="inName2" maxlength="12" autocomplete="nickname" placeholder="Как тебя звать">
+      <div class="join"><button class="btn alt" id="btnLeave">Выйти</button><button class="btn" id="btnRoomClose" hidden>К делу</button></div>
+    </div>
+  </div>
+</div>
+
+<div class="over" id="brief" hidden>
+  <div class="card"><div class="folder">
+    <div class="stamp" id="briefStamp">ДЕЛО №1</div>
+    <div class="lbl">Брифинг</div>
+    <div class="big" id="briefName" style="margin:6px 0 12px">Ювелирка</div>
+    <div class="f-col">
+      <div class="role-line" id="briefRole"></div>
+      <div class="newbox" id="briefNew" hidden></div>
+      <p class="note" id="briefCall">Созвонитесь по телефону или в Дискорде: без голоса не пройти.</p>
+      <button class="btn y" id="btnBrief">Понял, начинаем</button>
+    </div>
+  </div></div>
+</div>
+
+<div class="over" id="caught" hidden>
+  <div class="card"><div class="folder">
+    <div class="stamp">ТРЕВОГА</div>
+    <div class="big red" style="margin:6px 0 8px">ПОПАЛИСЬ</div>
+    <p class="note" id="caughtWhy" style="margin-bottom:14px">Охранник заметил вора.</p>
+    <button class="btn red" id="btnRetry">Ещё раз (коды сменятся)</button>
+  </div></div>
+</div>
+
+<div class="over" id="won" hidden>
+  <div class="card"><div class="folder">
+    <div class="stamp" style="color:#1E7A3E;border-color:#1E7A3E">ЧИСТО</div>
+    <div class="big green" style="margin:6px 0 8px">УШЛИ С ДОБЫЧЕЙ</div>
+    <p class="note" id="wonText" style="margin-bottom:14px"></p>
+    <button class="btn" id="btnNext">Следующее дело</button>
+  </div></div>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+(() => {
+'use strict';
+const SB_URL = 'https://ulfqprrjdyycznobirxw.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVsZnFwcnJqZHl5Y3pub2Jpcnh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM3OTg4NTMsImV4cCI6MjEwOTM3NDg1M30.zIjRlMNnqg59jZRprHcCoIkoBiIis45vw5vP4bhF_tc';
+const APP = 'heist';
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(APP + ':' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(APP + ':' + k, JSON.stringify(v)); } catch (e) {} }
+};
+const sess = {
+  get(k) { try { return sessionStorage.getItem(APP + ':' + k); } catch (e) { return null; } },
+  set(k, v) { try { sessionStorage.setItem(APP + ':' + k, v); } catch (e) {} }
+};
+
+/* =====================================================================
+   LEVELS — generated from the room code, identical on both phones.
+   Only integer maths and a seeded RNG, then a solver proves each level can be beaten.
+   ===================================================================== */
+const DX = [0, 1, 0, -1], DY = [-1, 0, 1, 0];
+const VR = 2, CAM_R = 3;
+const LM = [['🖼️', 'картина'], ['🪴', 'фикус'], ['🗿', 'статуя'], ['📚', 'книги'], ['🏺', 'ваза'], ['🕰️', 'часы'], ['🎷', 'саксофон'], ['🧸', 'мишка'], ['🪞', 'зеркало'], ['🎸', 'гитара'], ['🐠', 'аквариум'], ['🦁', 'лев'], ['🛡️', 'щит'], ['🎻', 'скрипка'], ['🌵', 'кактус'], ['⚓', 'якорь']];
+const PLACES = ['Ювелирка', 'Галерея', 'Казино', 'Музей', 'Банк', 'Особняк', 'Аукцион', 'Обсерватория', 'Казначейство', 'Пентхаус', 'Хранилище', 'Дворец', 'Яхт-клуб', 'Библиотека', 'Посольство', 'Ломбард', 'Ипподром', 'Театр'];
+function hashStr(s) { let h = 2166136261 | 0; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h | 0; }
+function RNG(s) { let h = hashStr(s); return () => { h = (h + 0x6D2B79F5) | 0; let t = Math.imul(h ^ (h >>> 15), h | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+const isRotate = L => L >= 5 && (L % 5 === 0 || L % 5 === 3);
+function diff(L) {
+  return {
+    cw: L < 1 ? 3 : L < 4 ? 4 : 5, ch: L < 1 ? 5 : L < 4 ? 6 : 7,
+    lasers: L === 0 ? 2 : L < 3 ? 3 : 4,
+    blink: L === 0 ? 0 : L < 3 ? 2 : Math.min(4, 2 + Math.floor(L / 4)),
+    lock: L >= 2,
+    guards: L < 3 ? 0 : L < 5 ? 1 : L < 9 ? 2 : 3,
+    cams: L < 4 ? 0 : L < 7 ? 1 : 2,
+    rotate: isRotate(L)
+  };
+}
+const NEWS = {
+  0: 'Лазеры ⚡. Вор их не видит, штурман видит. Найдите 💎 и уходите через 🚪.',
+  1: 'Мигающие лазеры (розовые у штурмана): горят через ход. Сплошной — включён, пунктир — выключен. Можно переждать на месте кнопкой ⏸.',
+  2: 'Дверь с кодом 🔒. Код на записке 📝: вор встаёт на неё и читает код вслух, штурман вводит.',
+  3: 'Охранник 💂. Ходит туда-сюда и видит на 2 клетки вперёд. Стрелка показывает, куда он шагнёт.',
+  4: 'Камера 📹. Поворачивается каждые 2 хода и видит на 3 клетки по прямой.',
+  5: 'Компас сломан! У вора только «налево», «вперёд», «направо», а его картинка крутится вместе с ним. Штурман, говори от его лица.'
+};
+const levelCache = new Map();
+function getLevel(seed, L) {
+  const k = seed + '|' + L;
+  if (!levelCache.has(k)) { let lv = null; for (let tr = 0; tr < 70 && !lv; tr++) lv = tryGen(seed, L, tr, tr >= 40 ? (tr >= 58 ? 2 : 1) : 0); levelCache.set(k, lv); }
+  return levelCache.get(k);
+}
+function bfs(lv, src, blocked, doorOpen) {
+  const { W, H, g } = lv, dist = new Int16Array(W * H).fill(-1), q = [src]; dist[src] = 0;
+  for (let h = 0; h < q.length; h++) {
+    const c = q[h], x = c % W, y = (c / W) | 0;
+    for (let k = 0; k < 4; k++) {
+      const nx = x + DX[k], ny = y + DY[k]; if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+      const n = ny * W + nx; if (!g[n] || dist[n] >= 0 || (blocked && blocked.has(n)) || (n === lv.door && !doorOpen)) continue;
+      dist[n] = dist[c] + 1; q.push(n);
+    }
+  }
+  return dist;
+}
+function tryGen(seed, L, tr, easy) {
+  const r = RNG(seed + '|' + L + '|' + tr), d = diff(L);
+  if (easy) { d.guards = Math.min(d.guards, easy > 1 ? 0 : 1); d.cams = Math.min(d.cams, easy > 1 ? 0 : 1); d.blink = Math.min(d.blink, easy > 1 ? 1 : 2); }
+  const cw = d.cw, ch = d.ch, W = 2 * cw + 1, H = 2 * ch + 1, N = W * H;
+  const g = new Uint8Array(N), id = (x, y) => y * W + x;
+  const vis = new Uint8Array(cw * ch), stack = [[0, ch - 1]];
+  vis[(ch - 1) * cw] = 1; g[id(1, H - 2)] = 1;
+  while (stack.length) {
+    const [cx, cy] = stack[stack.length - 1], opts = [];
+    for (let k = 0; k < 4; k++) { const nx = cx + DX[k], ny = cy + DY[k]; if (nx >= 0 && ny >= 0 && nx < cw && ny < ch && !vis[ny * cw + nx]) opts.push(k); }
+    if (!opts.length) { stack.pop(); continue; }
+    const k = opts[Math.floor(r() * opts.length)], nx = cx + DX[k], ny = cy + DY[k];
+    vis[ny * cw + nx] = 1; g[id(2 * cx + 1 + DX[k], 2 * cy + 1 + DY[k])] = 1; g[id(2 * nx + 1, 2 * ny + 1)] = 1; stack.push([nx, ny]);
+  }
+  const deg = (cx, cy) => { let c = 0; for (let k = 0; k < 4; k++) if (g[id(2 * cx + 1 + DX[k], 2 * cy + 1 + DY[k])]) c++; return c; };
+  for (let cy = 0; cy < ch; cy++) for (let cx = 0; cx < cw; cx++) {
+    if (deg(cx, cy) !== 1 || r() > 0.7) continue;
+    const opts = []; for (let k = 0; k < 4; k++) { const nx = cx + DX[k], ny = cy + DY[k]; if (nx >= 0 && ny >= 0 && nx < cw && ny < ch && !g[id(2 * cx + 1 + DX[k], 2 * cy + 1 + DY[k])]) opts.push(k); }
+    if (opts.length) { const k = opts[Math.floor(r() * opts.length)]; g[id(2 * cx + 1 + DX[k], 2 * cy + 1 + DY[k])] = 1; }
+  }
+  const lv = { L, seed, W, H, g, deco: {}, S: id(1, H - 2), E: id(W - 2, 1), gem: -1, door: -1, note: -1, lasers: [], guards: [], cams: [], rotate: d.rotate, name: PLACES[(L + (hashStr(seed) >>> 0)) % PLACES.length], best: 0 };
+  const dS = bfs(lv, lv.S, null, true), dE = bfs(lv, lv.E, null, true);
+  const dead = [];
+  for (let cy = 0; cy < ch; cy++) for (let cx = 0; cx < cw; cx++) { const t = id(2 * cx + 1, 2 * cy + 1); if (deg(cx, cy) === 1 && t !== lv.S && t !== lv.E) dead.push(t); }
+  if (!dead.length) return null;
+  let best = -1;
+  for (const t of dead) { const v = Math.min(dS[t], dE[t]); if (v > best) { best = v; lv.gem = t; } }
+  if (best < 4) return null;
+  if (d.lock) {
+    const gx = lv.gem % W, gy = (lv.gem / W) | 0;
+    for (let k = 0; k < 4; k++) { const e = id(gx + DX[k], gy + DY[k]); if (g[e]) lv.door = e; }
+    const dD = bfs(lv, lv.door, null, true);
+    let nb = -1;
+    const nc = dead.filter(t => t !== lv.gem && Math.min(dS[t], dD[t]) >= 3);
+    if (nc.length) { lv.note = nc[Math.floor(r() * nc.length)]; nb = 3; }
+    if (nb < 3) {
+      nb = -1;
+      for (let cy = 0; cy < ch; cy++) for (let cx = 0; cx < cw; cx++) { const t = id(2 * cx + 1, 2 * cy + 1); if (t === lv.S || t === lv.E || t === lv.gem) continue; const v = Math.min(dS[t], dD[t]) + r(); if (v > nb) { nb = v; lv.note = t; } }
+    }
+  }
+  const special = new Set([lv.S, lv.E, lv.gem, lv.door, lv.note].filter(x => x >= 0));
+  // landmarks on walls
+  const wallC = [];
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const t = id(x, y); if (g[t]) continue;
+    let nf = 0; for (let k = 0; k < 4; k++) { const nx = x + DX[k], ny = y + DY[k]; if (nx >= 0 && ny >= 0 && nx < W && ny < H && g[id(nx, ny)]) nf++; }
+    if (nf) wallC.push(t);
+  }
+  const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  shuffle(wallC);
+  const lmOrder = shuffle(LM.map((_, i) => i)), lmPos = [];
+  for (const t of wallC) {
+    if (lmPos.length >= Math.min(10, LM.length)) break;
+    const x = t % W, y = (t / W) | 0;
+    if (lmPos.some(p => Math.max(Math.abs(p % W - x), Math.abs(((p / W) | 0) - y)) < 3)) continue;
+    lv.deco[t] = lmOrder[lmPos.length]; lmPos.push(t);
+  }
+  // lasers sit in corridors between two cells
+  const edges = [];
+  for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) { const t = id(x, y); if (g[t] && (x % 2 === 0 || y % 2 === 0) && !special.has(t) && dS[t] > 2) edges.push(t); }
+  shuffle(edges);
+  const blocked = new Set();
+  const okPath = () => { const ds = bfs(lv, lv.S, blocked, true); return ds[lv.gem] >= 0 && ds[lv.E] >= 0 && (lv.note < 0 || ds[lv.note] >= 0); };
+  let ei = 0;
+  for (; ei < edges.length && lv.lasers.length < d.lasers; ei++) {
+    const t = edges[ei]; blocked.add(t);
+    if (okPath()) lv.lasers.push({ i: t, m: 0 }); else blocked.delete(t);
+  }
+  let nb2 = 0;
+  for (; ei < edges.length && nb2 < d.blink; ei++) { const t = edges[ei]; if (blocked.has(t)) continue; lv.lasers.push({ i: t, m: 1 + (r() < 0.5 ? 1 : 0) }); nb2++; }
+  const used = new Set([...special, ...lv.lasers.map(l => l.i)]);
+  // guards
+  for (let gi = 0; gi < d.guards; gi++) {
+    for (let at = 0; at < 40; at++) {
+      const cx = Math.floor(r() * cw), cy = Math.floor(r() * ch), st = id(2 * cx + 1, 2 * cy + 1);
+      if (used.has(st) || dS[st] < 6) continue;
+      const len = [4, 5, 7][Math.floor(r() * 3)], path = [st], inPath = new Set([st]);
+      while (path.length < len) {
+        const c = path[path.length - 1], x = c % W, y = (c / W) | 0, nb = [];
+        for (let k = 0; k < 4; k++) { const n = id(x + DX[k], y + DY[k]); if (g[n] && !inPath.has(n) && !used.has(n) && dS[n] >= 3) nb.push(n); }
+        if (!nb.length) break;
+        const n = nb[Math.floor(r() * nb.length)]; path.push(n); inPath.add(n);
+      }
+      if (path.length !== len) continue;
+      path.forEach(t => used.add(t)); lv.guards.push({ path, W }); break;
+    }
+  }
+  // cameras on walls, looking along corridors
+  const camC = shuffle(wallC.filter(t => lv.deco[t] == null));
+  for (const t of camC) {
+    if (lv.cams.length >= d.cams) break;
+    const x = t % W, y = (t / W) | 0, dirs = [];
+    for (let k = 0; k < 4; k++) {
+      const nx = x + DX[k], ny = y + DY[k]; if (nx < 0 || ny < 0 || nx >= W || ny >= H || !g[id(nx, ny)]) continue;
+      let ok = true, c = t; for (let s = 0; s < CAM_R; s++) { const cx2 = c % W + DX[k], cy2 = ((c / W) | 0) + DY[k]; if (cx2 < 0 || cy2 < 0 || cx2 >= W || cy2 >= H) break; c = id(cx2, cy2); if (!g[c]) break; if (dS[c] < 3 || c === lv.E) ok = false; }
+      if (ok) dirs.push(k);
+    }
+    if (!dirs.length || lv.cams.some(c => Math.abs(c.i % W - x) + Math.abs(((c.i / W) | 0) - y) < 4)) continue;
+    lv.cams.push({ i: t, dirs: dirs.length === 1 ? [dirs[0], -1] : shuffle(dirs).slice(0, 3) });
+  }
+  if (seenBy(lv, 0, lv.S)) return null;
+  const sol = solve(lv); if (!sol) return null;
+  if (!easy && sol.length > Math.min(110, 34 + L * 8)) return null;
+  lv.best = sol.length; lv.sol = sol;
+  return lv;
+}
+function guardAt(gd, t) {
+  const p = gd.path, n = p.length, P = 2 * (n - 1), idx = ((t % P) + P) % P;
+  const i = idx < n ? idx : P - idx, fwd = idx < n - 1, j = fwd ? i + 1 : i - 1;
+  return { i: p[i], face: dirOf(gd.W, p[i], p[j]) };
+}
+let curW = 0;
+function dirOf(W, a, b) { const ax = a % W, ay = (a / W) | 0, bx = b % W, by = (b / W) | 0; return bx > ax ? 1 : bx < ax ? 3 : by > ay ? 2 : 0; }
+const camDir = (c, t) => c.dirs[Math.floor(t / 2) % c.dirs.length];
+const laserOn = (l, t) => l.m === 0 || (l.m === 1 ? t % 2 === 0 : t % 2 === 1);
+function stepT(lv, c, k) { const x = c % lv.W + DX[k], y = ((c / lv.W) | 0) + DY[k]; if (x < 0 || y < 0 || x >= lv.W || y >= lv.H) return -1; return y * lv.W + x; }
+function ray(lv, from, k, len) { const out = []; let c = from; for (let s = 0; s < len; s++) { c = stepT(lv, c, k); if (c < 0 || !lv.g[c] || c === lv.door) break; out.push(c); } return out; }
+function seenBy(lv, t, x) {
+  curW = lv.W;
+  for (const gd of lv.guards) { const { i, face } = guardAt(gd, t); if (i === x || ray(lv, i, face, VR).includes(x)) return 'guard'; }
+  for (const c of lv.cams) { const k = camDir(c, t); if (k >= 0 && ray(lv, c.i, k, CAM_R).includes(x)) return 'cam'; }
+  for (const l of lv.lasers) if (l.i === x && laserOn(l, t)) return 'laser';
+  return '';
+}
+function caughtCheck(lv, prev, cur, t) {
+  const r = seenBy(lv, t, cur); if (r) return r;
+  curW = lv.W;
+  if (t > 0) for (const gd of lv.guards) { if (guardAt(gd, t - 1).i === cur && guardAt(gd, t).i === prev) return 'guard'; }
+  return '';
+}
+const gcd = (a, b) => b ? gcd(b, a % b) : a, lcm = (a, b) => a / gcd(a, b) * b;
+function solve(lv) {
+  let P = 2;
+  for (const gd of lv.guards) P = lcm(P, 2 * (gd.path.length - 1));
+  for (const c of lv.cams) P = lcm(P, 2 * c.dirs.length);
+  const N = lv.W * lv.H, key = (p, t, f) => ((p * P + t) << 2) | f;
+  const prev = new Map(), q = [[lv.S, 0, 0]]; prev.set(key(lv.S, 0, 0), null);
+  for (let h = 0; h < q.length; h++) {
+    const [p, t, f] = q[h];
+    if (p === lv.E && (f & 1)) {
+      const path = []; let k = key(p, t, f);
+      while (prev.get(k)) { const [pk, e] = prev.get(k); path.push(e); k = pk; }
+      return path.reverse();
+    }
+    for (let k = -1; k < 4; k++) {
+      const np = k < 0 ? p : stepT(lv, p, k);
+      if (np < 0 || !lv.g[np]) continue;
+      if (np === lv.door && !(f & 2)) continue;
+      const nt = t + 1;
+      if (caughtCheck(lv, p, np, nt)) continue;
+      let nf = f; if (np === lv.gem) nf |= 1; if (np === lv.note || lv.note < 0) nf |= 2;
+      const kk = key(np, nt % P, nf); if (prev.has(kk)) continue;
+      prev.set(kk, [key(p, t, f), k < 0 ? 'w' : 'URDL'[k]]); q.push([np, nt % P, nf]);
+    }
+    if (q.length > 400000) return null;
+  }
+  return null;
+}
+function codeFor(seed, L, att) { return String(100 + ((hashStr(seed + '#' + L + '#' + att) >>> 0) % 900)); }
+
+/* ---------- simulation of one attempt: a list of events ---------- */
+const EV_RE = /^([URDLwlrf]|[ox][a-z0-9]{3,8})$/;
+function newSim(lv) { return { pos: lv.S, face: 0, t: 0, gem: false, note: lv.note < 0, open: lv.door < 0, caught: '', won: false, trail: [lv.S], wrong: 0, steps: 0 }; }
+function cloneSim(s) { return Object.assign({}, s, { trail: s.trail.slice() }); }
+function applyEv(lv, s, e) {
+  if (s.caught || s.won || !EV_RE.test(e)) return false;
+  if (e === 'l') { s.face = (s.face + 3) % 4; return true; }
+  if (e === 'r') { s.face = (s.face + 1) % 4; return true; }
+  if (e[0] === 'o') { if (s.open) return false; s.open = true; return true; }
+  if (e[0] === 'x') { s.wrong++; return true; }
+  let np = s.pos;
+  if (e !== 'w') {
+    const k = e === 'f' ? s.face : 'URDL'.indexOf(e);
+    const c = stepT(lv, s.pos, k);
+    if (c < 0 || !lv.g[c] || (c === lv.door && !s.open)) return false;
+    np = c; if (e !== 'f') s.face = k;
+  }
+  const pv = s.pos; s.pos = np; s.t++; s.steps++;
+  if (np !== pv) s.trail.push(np);
+  if (np === lv.note) s.note = true;
+  if (np === lv.gem) s.gem = true;
+  const why = caughtCheck(lv, pv, np, s.t);
+  if (why) { s.caught = why; return true; }
+  if (np === lv.E && s.gem) s.won = true;
+  return true;
+}
+function simulate(lv, log) { const s = newSim(lv); for (const e of log) applyEv(lv, s, e); return s; }
+
+/* =====================================================================
+   GAME STATE
+   ===================================================================== */
+let mode = 'idle';            // idle | solo | online
+let solo = store.get('solo', null);
+let lv = null, lvKey = '', sim = null, simAtt = -1, simLen = 0;
+let viewX = 0, viewY = 0, viewA = 0, lastCaughtKey = '', lastWonKey = '', briefedKey = '';
+let codeBuf = '';
+const src = () => mode === 'online' ? net.room : mode === 'solo' ? solo : null;
+function role() {
+  if (mode === 'solo') return 'both';
+  if (mode !== 'online' || !net.room) return 'nav';
+  const s = mySeat(); return s < 0 ? 'nav' : (s === net.room.lvl % 2 ? 'runner' : 'nav');
+}
+function amWriter() { if (mode === 'solo') return true; const r = net.room; return !!r && started(r) && mySeat() === r.lvl % 2; }
+function saveSrc() { if (mode === 'solo') store.set('solo', solo); else if (mode === 'online') saveRoom(); }
+function partnerName() { const r = net.room; if (!r) return 'брат'; const s = mySeat(); return (r.names[1 - s] || 'брат'); }
+
+function sync(full) {
+  const s = src(); if (!s) return;
+  const k = s.code + '|' + s.lvl;
+  if (!lv || lvKey !== k) { lv = getLevel(s.code, s.lvl); lvKey = k; full = true; viewX = lv.S % lv.W; viewY = (lv.S / lv.W) | 0; viewA = 0; codeBuf = ''; }
+  if (full || s.att !== simAtt || s.log.length < simLen) {
+    sim = simulate(lv, s.log); simAtt = s.att; simLen = s.log.length; codeBuf = '';
+    if (full) { viewX = sim.pos % lv.W; viewY = (sim.pos / lv.W) | 0; viewA = -sim.face * Math.PI / 2; }
+  } else {
+    while (simLen < s.log.length) { const e = s.log[simLen++]; const was = cloneSim(sim); applyEv(lv, sim, e); evFx(e, was); }
+  }
+  ui();
+}
+function evFx(e, was) {
+  const r = role();
+  if (e[0] === 'o') { sfxUnlock(); toast('🔓 Дверь открыта!'); codeBuf = ''; flashSlots('ok'); return; }
+  if (e[0] === 'x') { sfxBad(); toast(r === 'runner' ? 'Штурман ввёл неверный код' : 'Неверный код'); codeBuf = ''; flashSlots('bad'); return; }
+  if (e === 'l' || e === 'r') { sfxTurn(); return; }
+  if (sim.caught) { sfxAlarm(); buzz(200); $('#flash').classList.remove('on'); void $('#flash').offsetWidth; $('#flash').classList.add('on'); return; }
+  if (sim.gem && !was.gem) { sfxGem(); toast('💎 Добыча у вора! Теперь к выходу 🚪'); }
+  if (sim.note && !was.note && lv.note >= 0) { sfxNote(); if (r !== 'nav') toast('📝 Записка! Продиктуй код штурману'); else toast(`📝 ${partnerName()} нашёл записку, спроси код`); }
+  if (sim.won) { sfxWin(); buzz(80); return; }
+  sfxStep();
+}
+function act(e) {
+  if (!amWriter() || !sim || sim.caught || sim.won || !lv) return;
+  if (!$('#brief').hidden) return;
+  const test = cloneSim(sim);
+  if (!applyEv(lv, test, e)) { sfxBump(); buzz(15); if (role() !== 'nav') toast('Тут не пройти'); return; }
+  const s = src(); s.log.push(e); saveSrc();
+  if (mode === 'online') send('ev', { lvl: s.lvl, att: s.att, seq: s.log.length - 1, e });
+  sync();
+}
+function handleCode(rid, val) {
+  const s = src(); if (!s || !sim || sim.open || sim.caught || sim.won) return;
+  if (s.log.some(x => x.slice(1) === rid && (x[0] === 'o' || x[0] === 'x'))) return;
+  const e = (val === codeFor(s.code, s.lvl, s.att) ? 'o' : 'x') + rid;
+  s.log.push(e); saveSrc();
+  if (mode === 'online') send('ev', { lvl: s.lvl, att: s.att, seq: s.log.length - 1, e });
+  sync();
+}
+function rid5() { return Math.random().toString(36).slice(2, 7).replace(/[^a-z0-9]/g, 'a').padEnd(5, 'a'); }
+function submitCode(val) {
+  const s = src(); if (!s) return;
+  const rid = rid5();
+  if (amWriter()) { handleCode(rid, val); return; }
+  net.pending = { rid, val, lvl: s.lvl, att: s.att, n: 0 };
+  sendPending();
+  toast('Код отправлен, проверяем…');
+}
+function sendPending() {
+  const p = net.pending, r = net.room; if (!p || !r) return;
+  if (p.lvl !== r.lvl || p.att !== r.att || r.log.some(x => x.slice(1) === p.rid) || p.n > 8) { net.pending = null; return; }
+  p.n++; send('req', { lvl: p.lvl, att: p.att, rid: p.rid, val: p.val });
+  clearTimeout(net.timers.req); net.timers.req = setTimeout(sendPending, 1500);
+}
+function restartLevel() {
+  const s = src(); if (!s) return;
+  s.att++; s.log = []; saveSrc();
+  if (mode === 'online') send('state', { room: s });
+  $('#caught').hidden = true; sync(true);
+}
+function nextLevel() {
+  const s = src(); if (!s) return;
+  s.lvl++; s.att = 0; s.log = []; s.best = Math.max(s.best || 0, s.lvl); saveSrc();
+  const b = store.get('best', 0); if (s.lvl > b) store.set('best', s.lvl);
+  if (mode === 'online') send('state', { room: s });
+  $('#won').hidden = true; sync(true);
+}
+
+/* ---------- UI ---------- */
+function ui() {
+  const s = src(), r = role();
+  if (!s || !lv) return;
+  const online = mode === 'online', ready = !online || started(net.room);
+  document.title = `Ограбление · Дело №${s.lvl + 1}`;
+  $('#caseTitle').textContent = `Дело №${s.lvl + 1} · ${lv.name}`;
+  let sub = `Ход ${sim.t}`;
+  if (s.att) sub += ` · попытка ${s.att + 1}`;
+  if (online) { const pid = net.room.seats[1 - Math.max(0, mySeat())]; sub += pid && net.online.has(pid) ? ` · ${partnerName()} в сети` : pid ? ` · ${partnerName()} не в сети` : ' · ждём брата'; }
+  $('#caseSub').textContent = sub;
+  const tag = $('#roleTag'); tag.className = 'role ' + r; tag.textContent = r === 'runner' ? '🥷 ВОР' : r === 'nav' ? '🗺️ ШТУРМАН' : 'ТРЕНИРОВКА';
+  const canMove = (r === 'runner' || r === 'both') && ready && !sim.caught && !sim.won;
+  $('#padAbs').hidden = !(canMove && !lv.rotate); $('#padRot').hidden = !(canMove && lv.rotate);
+  const showNote = (r === 'runner' || r === 'both') && sim.note && lv.note >= 0 && !sim.open;
+  $('#noteBox').hidden = !showNote; if (showNote) $('#noteCode').textContent = codeFor(s.code, s.lvl, s.att);
+  const showLock = (r === 'nav' || r === 'both') && lv.door >= 0 && ready && !sim.caught && !sim.won;
+  $('#lockBox').hidden = !showLock;
+  if (showLock) {
+    $('#lockText').textContent = sim.open ? '🔓 Дверь открыта. Ведите вора к добыче.' : sim.note ? '🔒 Вор прочитал записку. Спроси код и введи его.' : '🔒 Дверь к добыче. Код на записке 📝: доведи вора до неё.';
+    $('#digits').style.display = sim.open ? 'none' : '';
+    renderSlots();
+  }
+  $('#legend').hidden = !(r === 'nav' || r === 'both') || !lv || (lv.guards.length + lv.cams.length + lv.lasers.length === 0);
+  let st = '';
+  if (online && !ready) st = 'Ждём второго игрока…';
+  else if (sim.caught) st = '<b style="color:var(--red)">Тревога!</b>';
+  else if (sim.won) st = '<b style="color:var(--nv)">Ушли!</b>';
+  else if (r === 'runner') st = sim.gem ? '<b class="y">💎 у тебя.</b> Слушай штурмана и иди к выходу 🚪' : 'Ты не видишь охрану и лазеры. <b>Слушай штурмана.</b>';
+  else if (r === 'nav') st = sim.gem ? `<b class="y">💎 у ${esc(partnerName())}.</b> Веди к выходу 🚪` : `Ты не ходишь сам: <b>веди ${esc(online ? partnerName() : 'вора')} голосом</b>. Жёлтая точка — это он.`;
+  else st = sim.gem ? '<b class="y">💎 у тебя.</b> Теперь к выходу 🚪' : 'Тренировка: ты видишь всё. Найди 💎 и уйди через 🚪';
+  $('#status').innerHTML = st;
+  // overlays
+  const ak = s.code + '|' + s.lvl + '|' + s.att;
+  if (sim.caught && lastCaughtKey !== ak) {
+    lastCaughtKey = ak;
+    const why = { guard: 'Охранник заметил вора.', cam: 'Вор попал в камеру.', laser: 'Вор задел лазер.' }[sim.caught];
+    setTimeout(() => { if (sim && sim.caught && src() && src().att === s.att) { $('#caughtWhy').textContent = why + ' Это же дело можно пройти снова, коды будут новые.'; $('#caught').hidden = false; } }, 1300);
+  }
+  if (!sim.caught) $('#caught').hidden = true;
+  if (sim.won && lastWonKey !== ak) {
+    lastWonKey = ak;
+    setTimeout(() => {
+      if (!sim || !sim.won) return;
+      $('#wonText').innerHTML = `Ходов: <b>${sim.steps}</b> · самый короткий путь: <b>${lv.best}</b>.${mode === 'online' ? ' В следующем деле роли меняются.' : ''}`;
+      $('#won').hidden = false;
+    }, 900);
+  }
+  if (!sim.won) $('#won').hidden = true;
+  const bk = s.code + '|' + s.lvl;
+  if (ready && briefedKey !== bk && $('#menu').hidden) { briefedKey = bk; showBrief(); }
+}
+function showBrief() {
+  const s = src(), r = role();
+  $('#briefStamp').textContent = `ДЕЛО №${s.lvl + 1}`;
+  $('#briefName').textContent = lv.name;
+  const pn = esc(mode === 'online' ? partnerName() : '');
+  $('#briefRole').innerHTML = r === 'runner'
+    ? `<span class="e">🥷</span><div><b>Ты — ВОР</b><p>Видишь только то, что рядом. Охрану, камеры и лазеры не видишь. ${pn} — штурман, он видит план и ведёт тебя. Найди 💎 и уходи через 🚪.${lv.rotate ? ' Компас сломан: у тебя «налево / вперёд / направо».' : ''}</p></div>`
+    : r === 'nav'
+    ? `<span class="e">🗺️</span><div><b>Ты — ШТУРМАН</b><p>Видишь весь план, но сам не ходишь. ${pn || 'Вор'} — вор, он видит только рядом с собой. Веди его голосом к 💎 и к выходу 🚪.${lv.door >= 0 ? ' Код от двери вводишь ты.' : ''}</p></div>`
+    : `<span class="e">🔎</span><div><b>Тренировка</b><p>Ты видишь всё сам: так удобно посмотреть уровни. Настоящая игра — вдвоём по звонку.</p></div>`;
+  const n = NEWS[s.lvl];
+  $('#briefNew').hidden = !n; if (n) $('#briefNew').innerHTML = `<b>Новое:</b> ${n}`;
+  $('#briefCall').hidden = mode !== 'online';
+  $('#brief').hidden = false;
+}
+function renderSlots() {
+  const sl = $('#slots'), s = src(); const shown = sim.open ? codeFor(s.code, s.lvl, s.att) : codeBuf;
+  [...sl.children].forEach((el, i) => { el.textContent = shown[i] || ''; });
+  sl.classList.toggle('ok', !!sim.open);
+}
+function flashSlots(c) { const sl = $('#slots'); if (c === 'bad') { sl.classList.remove('bad'); void sl.offsetWidth; sl.classList.add('bad'); } renderSlots(); }
+$('#digits').innerHTML = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map(d => `<button data-d="${d}">${d}</button>`).join('') + '<button data-d="x" aria-label="Стереть">⌫</button>';
+$('#digits').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b || !sim || sim.open) return;
+  ensureAudio();
+  if (b.dataset.d === 'x') codeBuf = codeBuf.slice(0, -1);
+  else if (codeBuf.length < 3) { codeBuf += b.dataset.d; sfxKey(); }
+  renderSlots();
+  if (codeBuf.length === 3) { const v = codeBuf; setTimeout(() => submitCode(v), 200); }
+});
+document.querySelectorAll('.pad .key').forEach(b => b.addEventListener('click', () => { ensureAudio(); act(b.dataset.e); }));
+document.addEventListener('keydown', e => {
+  if (e.target && e.target.tagName === 'INPUT') return;
+  const r = role(); if (r !== 'runner' && r !== 'both') return;
+  const m = lv && lv.rotate ? { ArrowLeft: 'l', ArrowRight: 'r', ArrowUp: 'f', ' ': 'w' } : { ArrowUp: 'U', ArrowDown: 'D', ArrowLeft: 'L', ArrowRight: 'R', ' ': 'w' };
+  if (m[e.key]) { e.preventDefault(); act(m[e.key]); }
+});
+$('#btnBrief').addEventListener('click', () => { ensureAudio(); $('#brief').hidden = true; });
+$('#btnRetry').addEventListener('click', () => { ensureAudio(); restartLevel(); });
+$('#btnNext').addEventListener('click', () => { ensureAudio(); nextLevel(); });
+let toastT = 0;
+function toast(msg) { const el = $('#toast'); el.textContent = msg; el.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), 2400); }
+
+/* =====================================================================
+   DRAWING
+   ===================================================================== */
+const cv = $('#view'), ctx = cv.getContext('2d'), stage = $('#stage');
+let CWp = 300, CHp = 300, dpr = 1;
+function resize() {
+  const r = stage.getBoundingClientRect();
+  dpr = Math.min(3, window.devicePixelRatio || 1);
+  CWp = Math.max(160, Math.floor(r.width)); CHp = Math.max(160, Math.floor(r.height));
+  cv.width = CWp * dpr; cv.height = CHp * dpr; cv.style.width = CWp + 'px'; cv.style.height = CHp + 'px';
+}
+new ResizeObserver(resize).observe(stage);
+function emoji(ch, x, y, size, rot) {
+  ctx.save(); ctx.translate(x, y); if (rot) ctx.rotate(rot);
+  ctx.font = `${Math.round(size)}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(ch, 0, size * 0.05); ctx.restore();
+}
+function laserBeam(l, x, y, T, on) {
+  const W = lv.W, horiz = lv.g[l.i - 1] && lv.g[l.i + 1];
+  ctx.save();
+  const col = l.m ? '#FF5EDB' : '#FF3B3B';
+  ctx.strokeStyle = col; ctx.lineCap = 'round';
+  if (on) { ctx.shadowColor = col; ctx.shadowBlur = 10; ctx.lineWidth = Math.max(2, T * 0.1); }
+  else { ctx.globalAlpha = 0.55; ctx.setLineDash([3, 4]); ctx.lineWidth = Math.max(1.5, T * 0.06); }
+  ctx.beginPath();
+  if (horiz) { ctx.moveTo(x + T / 2, y + 2); ctx.lineTo(x + T / 2, y + T - 2); } else { ctx.moveTo(x + 2, y + T / 2); ctx.lineTo(x + T - 2, y + T / 2); }
+  ctx.stroke();
+  ctx.restore();
+  void W;
+}
+function drawNav(now) {
+  const W = lv.W, H = lv.H, T = Math.floor(Math.min(CWp / W, CHp / H)), ox = Math.floor((CWp - T * W) / 2), oy = Math.floor((CHp - T * H) / 2);
+  ctx.fillStyle = '#0D2B4E'; ctx.fillRect(0, 0, CWp, CHp);
+  ctx.strokeStyle = 'rgba(127,212,255,.07)'; ctx.lineWidth = 1;
+  ctx.beginPath(); for (let x = 0; x <= W; x++) { ctx.moveTo(ox + x * T + .5, oy); ctx.lineTo(ox + x * T + .5, oy + H * T); } for (let y = 0; y <= H; y++) { ctx.moveTo(ox, oy + y * T + .5); ctx.lineTo(ox + W * T, oy + y * T + .5); } ctx.stroke();
+  const t = sim.t; curW = W;
+  // hazard zones
+  const zone = (cells, col) => { ctx.fillStyle = col; for (const c of cells) ctx.fillRect(ox + (c % W) * T + 1, oy + ((c / W) | 0) * T + 1, T - 2, T - 2); };
+  for (const c of lv.cams) { const k = camDir(c, t); if (k >= 0) zone(ray(lv, c.i, k, CAM_R), 'rgba(255,170,40,.32)'); const k2 = camDir(c, t + 1); if (k2 >= 0 && k2 !== k) { ctx.save(); ctx.setLineDash([3, 3]); ctx.strokeStyle = 'rgba(255,170,40,.55)'; for (const cc of ray(lv, c.i, k2, CAM_R)) ctx.strokeRect(ox + (cc % W) * T + 3, oy + ((cc / W) | 0) * T + 3, T - 6, T - 6); ctx.restore(); } }
+  for (const gd of lv.guards) { const { i, face } = guardAt(gd, t); zone([i, ...ray(lv, i, face, VR)], 'rgba(255,60,60,.30)'); }
+  // walls
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const c = y * W + x; if (lv.g[c]) continue;
+    const X = ox + x * T, Y = oy + y * T;
+    ctx.fillStyle = '#16406B'; ctx.fillRect(X, Y, T, T);
+    ctx.strokeStyle = '#8FD3FF'; ctx.lineWidth = 1.5; ctx.beginPath();
+    if (y > 0 && lv.g[c - W]) { ctx.moveTo(X, Y + .75); ctx.lineTo(X + T, Y + .75); }
+    if (y < H - 1 && lv.g[c + W]) { ctx.moveTo(X, Y + T - .75); ctx.lineTo(X + T, Y + T - .75); }
+    if (x > 0 && lv.g[c - 1]) { ctx.moveTo(X + .75, Y); ctx.lineTo(X + .75, Y + T); }
+    if (x < W - 1 && lv.g[c + 1]) { ctx.moveTo(X + T - .75, Y); ctx.lineTo(X + T - .75, Y + T); }
+    ctx.stroke();
+    if (lv.deco[c] != null) emoji(LM[lv.deco[c]][0], X + T / 2, Y + T / 2, T * 0.72);
+  }
+  // patrol paths
+  ctx.save(); ctx.setLineDash([2, 4]); ctx.strokeStyle = 'rgba(255,120,120,.5)'; ctx.lineWidth = 1.5;
+  for (const gd of lv.guards) { ctx.beginPath(); gd.path.forEach((c, i) => { const X = ox + (c % W) * T + T / 2, Y = oy + ((c / W) | 0) * T + T / 2; i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }); ctx.stroke(); }
+  ctx.restore();
+  const at = c => [ox + (c % W) * T, oy + ((c / W) | 0) * T];
+  // exit, items
+  { const [X, Y] = at(lv.E); ctx.fillStyle = 'rgba(57,255,136,.18)'; ctx.fillRect(X + 1, Y + 1, T - 2, T - 2); ctx.strokeStyle = '#39FF88'; ctx.lineWidth = 2; ctx.strokeRect(X + 2, Y + 2, T - 4, T - 4); emoji('🚪', X + T / 2, Y + T / 2, T * 0.62); }
+  if (!sim.gem) { const [X, Y] = at(lv.gem); emoji('💎', X + T / 2, Y + T / 2, T * 0.66); }
+  if (lv.note >= 0) { const [X, Y] = at(lv.note); ctx.globalAlpha = sim.note ? 0.45 : 1; emoji('📝', X + T / 2, Y + T / 2, T * 0.62); ctx.globalAlpha = 1; }
+  if (lv.door >= 0) {
+    const [X, Y] = at(lv.door);
+    if (!sim.open) { ctx.fillStyle = '#FFD23F'; ctx.fillRect(X + 2, Y + 2, T - 4, T - 4); ctx.fillStyle = '#1A1400'; for (let k = 0; k < 4; k++) ctx.fillRect(X + 2 + k * (T - 4) / 4, Y + 2, Math.max(1, (T - 4) / 8), T - 4); emoji('🔒', X + T / 2, Y + T / 2, T * 0.5); }
+    else { ctx.strokeStyle = 'rgba(255,210,63,.6)'; ctx.setLineDash([3, 3]); ctx.strokeRect(X + 3, Y + 3, T - 6, T - 6); ctx.setLineDash([]); emoji('🔓', X + T / 2, Y + T / 2, T * 0.45); }
+  }
+  for (const l of lv.lasers) { const [X, Y] = at(l.i); laserBeam(l, X, Y, T, laserOn(l, t)); }
+  for (const c of lv.cams) { const [X, Y] = at(c.i); emoji('📹', X + T / 2, Y + T / 2, T * 0.62); }
+  for (const gd of lv.guards) {
+    const { i, face } = guardAt(gd, t), nx = guardAt(gd, t + 1).i; const [X, Y] = at(i);
+    if (nx !== i) { const [NX, NY] = at(nx); ctx.strokeStyle = '#FF8A8A'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X + T / 2, Y + T / 2); const mx = (X + NX) / 2 + T / 2, my = (Y + NY) / 2 + T / 2; ctx.lineTo(mx, my); ctx.stroke(); ctx.fillStyle = '#FF8A8A'; ctx.beginPath(); ctx.arc(mx, my, Math.max(2, T * 0.08), 0, 6.283); ctx.fill(); }
+    emoji('💂', X + T / 2, Y + T / 2, T * 0.72); void face;
+  }
+  // trail + thief
+  ctx.save(); ctx.strokeStyle = 'rgba(255,210,63,.45)'; ctx.setLineDash([2, 5]); ctx.lineWidth = 2; ctx.beginPath();
+  sim.trail.forEach((c, i) => { const X = ox + (c % W) * T + T / 2, Y = oy + ((c / W) | 0) * T + T / 2; i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }); ctx.stroke(); ctx.restore();
+  thief(ox + viewX * T + T / 2, oy + viewY * T + T / 2, T * 0.34, sim.face, now, 0);
+}
+function thief(x, y, r, face, now, rot) {
+  const pulse = 1 + Math.sin(now / 250) * 0.06;
+  ctx.save(); ctx.translate(x, y);
+  ctx.fillStyle = 'rgba(255,210,63,.18)'; ctx.beginPath(); ctx.arc(0, 0, r * 1.8 * pulse, 0, 6.283); ctx.fill();
+  ctx.rotate(face * Math.PI / 2 + (rot || 0));
+  ctx.fillStyle = sim.caught ? '#FF4B4B' : '#FFD23F'; ctx.strokeStyle = '#1A1400'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.283); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#1A1400'; ctx.beginPath(); ctx.moveTo(0, -r * 1.55); ctx.lineTo(r * 0.55, -r * 0.75); ctx.lineTo(-r * 0.55, -r * 0.75); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#1A1400'; ctx.fillRect(-r * 0.62, -r * 0.28, r * 1.24, r * 0.34);
+  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(-r * 0.3, -r * 0.11, r * 0.11, 0, 6.283); ctx.arc(r * 0.3, -r * 0.11, r * 0.11, 0, 6.283); ctx.fill();
+  ctx.restore();
+}
+function drawRunner(now) {
+  const W = lv.W, H = lv.H, R = 3, SEE = 2.45, span = 2 * R + 1;
+  const T = Math.floor(Math.min(CWp / 5.4, CHp / 6.2)); void span;
+  const cx = CWp / 2, cy = CHp / 2;
+  ctx.fillStyle = '#020604'; ctx.fillRect(0, 0, CWp, CHp);
+  ctx.save(); ctx.translate(cx, cy); if (lv.rotate) ctx.rotate(viewA);
+  const px = Math.round(viewX), py = Math.round(viewY);
+  const er = lv.rotate ? -viewA : 0;
+  for (let dy = -R - 1; dy <= R + 1; dy++) for (let dx = -R - 1; dx <= R + 1; dx++) {
+    const x = px + dx, y = py + dy;
+    const X = (x - viewX) * T - T / 2, Y = (y - viewY) * T - T / 2;
+    const dist = Math.hypot(x - viewX, y - viewY); if (dist > SEE + 0.6) continue;
+    const a = Math.max(0, Math.min(1, (SEE + 0.6 - dist) / 0.9));
+    ctx.globalAlpha = a;
+    if (x < 0 || y < 0 || x >= W || y >= H) { ctx.fillStyle = '#0A2414'; ctx.fillRect(X, Y, T, T); continue; }
+    const c = y * W + x;
+    if (lv.g[c]) {
+      ctx.fillStyle = '#12492A'; ctx.fillRect(X, Y, T, T);
+      ctx.strokeStyle = 'rgba(57,255,136,.16)'; ctx.lineWidth = 1; ctx.strokeRect(X + .5, Y + .5, T - 1, T - 1);
+      if (c === lv.E) { ctx.fillStyle = 'rgba(57,255,136,.25)'; ctx.fillRect(X + 2, Y + 2, T - 4, T - 4); emoji('🚪', X + T / 2, Y + T / 2, T * 0.6, er); }
+      if (c === lv.gem && !sim.gem) emoji('💎', X + T / 2, Y + T / 2, T * 0.6, er);
+      if (c === lv.note) emoji('📝', X + T / 2, Y + T / 2, T * 0.55, er);
+      if (c === lv.door) { if (!sim.open) { ctx.fillStyle = '#C9A800'; ctx.fillRect(X + 3, Y + 3, T - 6, T - 6); emoji('🔒', X + T / 2, Y + T / 2, T * 0.5, er); } else emoji('🔓', X + T / 2, Y + T / 2, T * 0.42, er); }
+    } else {
+      ctx.fillStyle = '#04120A'; ctx.fillRect(X, Y, T, T);
+      ctx.save(); ctx.beginPath(); ctx.rect(X, Y, T, T); ctx.clip(); ctx.strokeStyle = 'rgba(57,255,136,.18)'; ctx.lineWidth = 1; ctx.beginPath();
+      for (let h = -T; h < T; h += 8) { ctx.moveTo(X + h, Y + T); ctx.lineTo(X + h + T, Y); } ctx.stroke(); ctx.restore();
+      ctx.strokeStyle = '#39FF88'; ctx.lineWidth = 2.5; ctx.beginPath();
+      if (y > 0 && lv.g[c - W]) { ctx.moveTo(X, Y + 1); ctx.lineTo(X + T, Y + 1); }
+      if (y < H - 1 && lv.g[c + W]) { ctx.moveTo(X, Y + T - 1); ctx.lineTo(X + T, Y + T - 1); }
+      if (x > 0 && lv.g[c - 1]) { ctx.moveTo(X + 1, Y); ctx.lineTo(X + 1, Y + T); }
+      if (x < W - 1 && lv.g[c + 1]) { ctx.moveTo(X + T - 1, Y); ctx.lineTo(X + T - 1, Y + T); }
+      ctx.stroke();
+      if (lv.deco[c] != null) emoji(LM[lv.deco[c]][0], X + T / 2, Y + T / 2, T * 0.66, er);
+    }
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+  thief(cx, cy, T * 0.3, lv.rotate ? 0 : sim.face, now, lv.rotate ? (viewA + sim.face * Math.PI / 2) : 0);
+  // night-vision vignette + scanlines
+  const g = ctx.createRadialGradient(cx, cy, T * 1.6, cx, cy, Math.max(CWp, CHp) * 0.62);
+  g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.92)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, CWp, CHp);
+  ctx.fillStyle = 'rgba(57,255,136,.035)'; for (let y = (now / 40) % 4; y < CHp; y += 4) ctx.fillRect(0, y, CWp, 1);
+  ctx.fillStyle = 'rgba(57,255,136,.7)'; ctx.font = '11px "PT Mono", monospace'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  ctx.fillText(lv.rotate ? 'NV · КОМПАС СЛОМАН' : 'NV · СЕВЕР ВВЕРХУ', 10, 10);
+  if (!lv.rotate) { ctx.textAlign = 'center'; ctx.fillText('С', cx, 10); ctx.fillText('Ю', cx, CHp - 22); ctx.textBaseline = 'middle'; ctx.fillText('З', 12, cy); ctx.fillText('В', CWp - 12, cy); }
+}
+function frame(now) {
+  requestAnimationFrame(frame);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if (!lv || !sim) { ctx.fillStyle = '#0D2B4E'; ctx.fillRect(0, 0, CWp, CHp); return; }
+  const tx = sim.pos % lv.W, ty = (sim.pos / lv.W) | 0, k = 0.28;
+  viewX += (tx - viewX) * k; viewY += (ty - viewY) * k;
+  if (Math.abs(tx - viewX) < 0.01) viewX = tx; if (Math.abs(ty - viewY) < 0.01) viewY = ty;
+  const ta = -sim.face * Math.PI / 2; let da = ta - viewA; while (da > Math.PI) da -= 2 * Math.PI; while (da < -Math.PI) da += 2 * Math.PI; viewA += da * 0.25;
+  if (role() === 'runner') drawRunner(now); else drawNav(now);
+}
+
+/* ---------- sound ---------- */
+let soundOn = store.get('sound', true), actx = null, master = null, noiseBuf = null;
+function ensureAudio() {
+  if (actx) { if (actx.state === 'suspended') actx.resume(); return; }
+  try {
+    actx = new (window.AudioContext || window.webkitAudioContext)(); master = actx.createGain(); master.gain.value = 0.7; master.connect(actx.destination);
+    const len = actx.sampleRate * 0.5; noiseBuf = actx.createBuffer(1, len, actx.sampleRate); const d = noiseBuf.getChannelData(0); for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+  } catch (e) { actx = null; }
+}
+function tone(f, d, o = {}) {
+  if (!soundOn || !actx) return;
+  const t = actx.currentTime + (o.at || 0), osc = actx.createOscillator(), g = actx.createGain();
+  osc.type = o.type || 'sine'; osc.frequency.setValueAtTime(f, t); if (o.slide) osc.frequency.exponentialRampToValueAtTime(f * o.slide, t + d);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(o.v || 0.12, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+  osc.connect(g); g.connect(master); osc.start(t); osc.stop(t + d + 0.05);
+}
+function noise(d, o = {}) {
+  if (!soundOn || !actx) return;
+  const t = actx.currentTime + (o.at || 0), s = actx.createBufferSource(), f = actx.createBiquadFilter(), g = actx.createGain();
+  s.buffer = noiseBuf; f.type = o.type || 'lowpass'; f.frequency.value = o.f || 800; g.gain.setValueAtTime(o.v || 0.2, t); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+  s.connect(f); f.connect(g); g.connect(master); s.start(t); s.stop(t + d + 0.05);
+}
+const sfxStep = () => noise(0.06, { f: 500, v: 0.18 });
+const sfxTurn = () => noise(0.05, { type: 'highpass', f: 2500, v: 0.08 });
+const sfxBump = () => tone(90, 0.12, { type: 'square', v: 0.08 });
+const sfxKey = () => tone(1400, 0.04, { type: 'square', v: 0.04 });
+const sfxBad = () => { tone(180, 0.25, { type: 'sawtooth', v: 0.08, slide: 0.7 }); };
+const sfxUnlock = () => { tone(660, 0.1, { type: 'triangle' }); tone(990, 0.18, { type: 'triangle', at: 0.08 }); noise(0.08, { type: 'highpass', f: 3000, v: 0.15, at: 0.02 }); };
+const sfxGem = () => { [0, 4, 7, 12].forEach((s, i) => tone(880 * Math.pow(2, s / 12), 0.2, { type: 'triangle', v: 0.1, at: i * 0.06 })); };
+const sfxNote = () => noise(0.18, { type: 'bandpass', f: 3000, v: 0.2 });
+const sfxAlarm = () => { for (let i = 0; i < 4; i++) { tone(700, 0.22, { type: 'square', v: 0.07, slide: 1.6, at: i * 0.26 }); } };
+const sfxWin = () => { [0, 4, 7, 12, 16].forEach((s, k) => tone(523 * Math.pow(2, s / 12), 0.4, { type: 'triangle', v: 0.13, at: k * 0.09 })); };
+const sfxPing = () => { tone(784, 0.12, { v: 0.1 }); tone(1175, 0.2, { v: 0.09, at: 0.1 }); };
+const buzz = ms => { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} };
+const ICON_ON = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>';
+const ICON_OFF = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="m16 9 5 6"/><path d="m21 9-5 6"/></svg>';
+function renderSoundBtn() { const b = $('#btnSound'); b.innerHTML = soundOn ? ICON_ON : ICON_OFF; }
+$('#btnSound').addEventListener('click', () => { soundOn = !soundOn; store.set('sound', soundOn); renderSoundBtn(); if (soundOn) { ensureAudio(); sfxKey(); } });
+let wake = null;
+async function keepAwake() { try { if ('wakeLock' in navigator && !wake) { wake = await navigator.wakeLock.request('screen'); wake.addEventListener('release', () => { wake = null; }); } } catch (e) {} }
+
+/* =====================================================================
+   ONLINE: Supabase Realtime (broadcast + presence, no tables).
+   Within a level only the thief's phone writes the event log; the navigator sends code requests.
+   Restart / next level raise (lvl, att) and the higher state wins on every phone.
+   ===================================================================== */
+const net = { on: false, code: null, room: null, ch: null, status: 'off', online: new Set(), presence: null, lastSeen: {}, peerKey: {}, wasStarted: false, everOk: false, errorMsg: '', lastHello: 0, presenceSeen: false, pending: null, timers: {} };
+let sb = null, myId = null;
+function rid(n) { const a = 'abcdefghijkmnpqrstuvwxyz23456789', b = new Uint8Array(n); try { crypto.getRandomValues(b); } catch (e) { for (let i = 0; i < n; i++) b[i] = Math.random() * 256; } let s = ''; for (const x of b) s += a[x % a.length]; return s; }
+const CODE_ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function newCode() { const b = new Uint8Array(4); try { crypto.getRandomValues(b); } catch (e) { for (let i = 0; i < 4; i++) b[i] = Math.random() * 256; } let s = ''; for (const x of b) s += CODE_ABC[x % CODE_ABC.length]; return s; }
+const CYR = { 'А': 'A', 'В': 'B', 'Е': 'E', 'К': 'K', 'М': 'M', 'Н': 'H', 'О': 'O', 'Р': 'P', 'С': 'C', 'Т': 'T', 'У': 'Y', 'Х': 'X' };
+const normCode = s => String(s || '').toUpperCase().replace(/[А-ЯЁ]/g, ch => CYR[ch] || '').replace(/[^A-Z0-9]/g, '').slice(0, 4);
+function codeFromHash() { const c = normCode(decodeURIComponent(location.hash.slice(1))); return c.length === 4 ? c : null; }
+const myName = () => String(store.get('name', '') || '').trim().slice(0, 12);
+let tabBus = null;
+try { tabBus = new BroadcastChannel(APP + '-tabs'); tabBus.onmessage = e => { const d = e.data || {}; if (d.q === 'who' && myId && d.id === myId) tabBus.postMessage({ a: 'mine', id: myId }); }; } catch (e) {}
+function getIdentity() {
+  return new Promise(res => {
+    if (myId) return res(myId);
+    const s = sess.get('cid'); if (s) { myId = s; return res(s); }
+    let cand = store.get('cid', null) || rid(10);
+    if (!tabBus) { myId = cand; sess.set('cid', cand); store.set('cid', cand); return res(cand); }
+    let taken = false; const h = e => { const d = e.data || {}; if (d.a === 'mine' && d.id === cand) taken = true; };
+    tabBus.addEventListener('message', h); tabBus.postMessage({ q: 'who', id: cand });
+    setTimeout(() => { tabBus.removeEventListener('message', h); if (taken) cand = rid(10); else store.set('cid', cand); myId = cand; sess.set('cid', cand); res(cand); }, 180);
+  });
+}
+const filled = r => r.seats.filter(Boolean).length;
+const started = r => !!r && r.seats.every(Boolean);
+const mySeat = () => (net.on && net.room && myId) ? net.room.seats.indexOf(myId) : -1;
+function cmpKey(a, b) { for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return a[i] - b[i]; return 0; }
+const roomKey = r => [r.lvl, r.att, r.log.length, filled(r)];
+const inviteUrl = () => location.origin + location.pathname + location.search + '#' + (net.code || '');
+function sanitize(s) {
+  const fit = (a, f) => [0, 1].map(i => (Array.isArray(a) && a[i] != null) ? f(a[i]) : null);
+  return {
+    code: s.code, host: s.host || null,
+    seats: fit(s.seats, x => String(x).slice(0, 24)), names: fit(s.names, x => String(x).slice(0, 12)),
+    lvl: Math.max(0, Math.min(999, s.lvl | 0)), att: Math.max(0, s.att | 0), best: Math.max(0, s.best | 0),
+    log: (Array.isArray(s.log) ? s.log : []).map(String).filter(x => EV_RE.test(x)).slice(0, 4000)
+  };
+}
+function saveRoom() { if (net.room) store.set('room:' + net.code, net.room); }
+function getClient() {
+  if (sb) return sb;
+  if (!window.supabase || !window.supabase.createClient) throw new Error('nolib');
+  sb = window.supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }, realtime: { params: { eventsPerSecond: 30 } } });
+  return sb;
+}
+function send(t, data) { if (!net.ch) return; try { const p = net.ch.send({ type: 'broadcast', event: 'm', payload: Object.assign({ t, from: myId }, data || {}) }); if (p && p.catch) p.catch(() => {}); } catch (e) {} }
+function hello() {
+  clearTimeout(net.timers.hello);
+  const wait = Math.max(120, 1500 - (Date.now() - net.lastHello));
+  net.timers.hello = setTimeout(() => { net.lastHello = Date.now(); send('hello', { name: myName() || null }); }, wait);
+}
+// Presence is tracked once per join and never updated: re-tracking makes the realtime client drop the key.
+function trackOnce() { if (!net.ch || net.status !== 'ok') return; try { const p = net.ch.track({ on: 1 }); if (p && p.catch) p.catch(() => {}); } catch (e) {} }
+function ping() { if (!net.ch) return; const r = net.room; if (net.status === 'ok') send('ping', { k: r ? roomKey(r) : null }); recomputeOnline(); }
+function recomputeOnline() {
+  if (!net.ch) return;
+  let stt = {}; try { stt = net.ch.presenceState() || {}; } catch (e) {}
+  const now = Date.now(), pres = new Set(Object.keys(stt));
+  if (net.presence) for (const id of net.presence) if (!pres.has(id)) delete net.lastSeen[id];
+  net.presence = pres;
+  const on = new Set(pres);
+  for (const id in net.lastSeen) if (now - net.lastSeen[id] < 13000) on.add(id);
+  const r = net.room;
+  if (r && net.wasStarted && net.presenceSeen) {
+    r.seats.forEach((id, k) => {
+      if (!id || id === myId) return;
+      const was = net.online.has(id), is = on.has(id), nm = r.names[k] || 'Напарник';
+      if (was && !is) toast(`${nm}: нет связи`);
+      if (!was && is) toast(`${nm} снова на связи`);
+    });
+  }
+  const changed = on.size !== net.online.size || [...on].some(x => !net.online.has(x));
+  net.online = on; net.presenceSeen = true;
+  if (changed) refreshOnline();
+}
+function amActingHost() {
+  const r = net.room; if (!r) return false;
+  for (const id of r.seats) if (id && (id === myId || net.online.has(id))) return id === myId;
+  const cands = [...net.online, myId].filter(k => k === myId || net.peerKey[k]).sort();
+  return cands[0] === myId;
+}
+async function joinRoom(code, room) {
+  code = normCode(code);
+  if (code.length !== 4) { toast('Код комнаты: 4 символа'); return; }
+  if (net.on && net.code === code) { showRoomPanel(); return; }
+  if (net.on) leaveRoom();
+  await getIdentity();
+  mode = 'online'; lv = null; sim = null; lvKey = ''; briefedKey = '';
+  hideOverlays();
+  Object.assign(net, { on: true, code, room: null, ch: null, status: 'connecting', online: new Set(), presence: null, lastSeen: {}, peerKey: {}, wasStarted: false, everOk: false, errorMsg: '', lastHello: 0, presenceSeen: false, pending: null });
+  if (room) { room.code = code; room.host = myId; room.seats[0] = myId; room.names[0] = myName() || null; net.room = room; }
+  else { const snap = store.get('room:' + code, null); if (snap && snap.code === code && Array.isArray(snap.seats)) net.room = sanitize(snap); }
+  if (codeFromHash() !== code) { try { history.replaceState(null, '', '#' + code); } catch (e) { try { location.hash = code; } catch (e2) {} } }
+  if (net.room) { saveRoom(); sync(true); }
+  showRoomPanel(); connect();
+}
+function createRoom() { joinRoom(newCode(), { code: '', host: null, seats: [null, null], names: [null, null], lvl: 0, att: 0, best: 0, log: [] }); }
+const NET_ERR = 'Не получается подключиться к серверу. Проверь интернет. В превью внутри Claude онлайн не работает, только на опубликованном сайте.';
+function connect() {
+  let client;
+  try { client = getClient(); } catch (e) { net.status = 'error'; net.errorMsg = 'Не загрузился модуль связи. Проверь интернет и обнови страницу.'; refreshOnline(); return; }
+  const ch = client.channel(APP + '-' + net.code, { config: { broadcast: { self: false, ack: false }, presence: { key: myId } } });
+  net.ch = ch;
+  ch.on('broadcast', { event: 'm' }, msg => { if (net.ch === ch) onMsg((msg && msg.payload) || {}); });
+  ch.on('presence', { event: 'sync' }, () => { if (net.ch === ch) onPresence(); });
+  ch.subscribe(status => {
+    if (net.ch !== ch) return;
+    if (status === 'SUBSCRIBED') {
+      net.status = 'ok'; net.everOk = true; net.errorMsg = '';
+      trackOnce(); hello(); ping();
+      clearTimeout(net.timers.find);
+      net.timers.find = setTimeout(() => { if (net.on && !net.room) { net.errorMsg = 'Комната не найдена. Возможно, её создатель вышел. Попроси новый код.'; refreshOnline(); } }, 7000);
+    } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+      net.status = 'lost'; if (!net.everOk) net.errorMsg = NET_ERR;
+    }
+    refreshOnline();
+  });
+  clearInterval(net.timers.ping); net.timers.ping = setInterval(ping, 4000);
+  clearTimeout(net.timers.conn);
+  net.timers.conn = setTimeout(() => { if (net.ch === ch && !net.everOk) { net.errorMsg = NET_ERR; refreshOnline(); } }, 9000);
+}
+function leaveRoom() {
+  const ch = net.ch; net.ch = null;
+  if (ch) { try { ch.untrack(); } catch (e) {} try { sb && sb.removeChannel(ch); } catch (e) {} }
+  Object.values(net.timers).forEach(t => { clearTimeout(t); clearInterval(t); });
+  Object.assign(net, { on: false, code: null, room: null, status: 'off', online: new Set(), presence: null, lastSeen: {}, peerKey: {}, wasStarted: false, everOk: false, errorMsg: '', pending: null });
+  mode = 'idle'; lv = null; sim = null; lvKey = '';
+  try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+}
+function onMsg(m) {
+  if (!m || !m.t || !m.from || m.from === myId) return;
+  net.lastSeen[m.from] = Date.now();
+  if (!net.online.has(m.from)) recomputeOnline();
+  const r = net.room;
+  switch (m.t) {
+    case 'ping': {
+      net.peerKey[m.from] = Array.isArray(m.k) ? m.k : null;
+      if (!Array.isArray(m.k)) { if (r && r.seats.includes(myId)) send('state', { room: r }); break; }
+      if (!r) { hello(); break; }
+      const c = cmpKey(m.k.map(x => x | 0), roomKey(r));
+      if (c > 0) hello(); else if (c < 0 && r.seats.includes(myId)) send('state', { room: r });
+      break;
+    }
+    case 'hello': onHello(m); break;
+    case 'state': adoptState(m.room); break;
+    case 'ev': {
+      if (!r) { hello(); break; }
+      const lvl = m.lvl | 0, att = m.att | 0, seq = m.seq | 0, e = String(m.e || '');
+      if (lvl !== r.lvl || att !== r.att) { if (lvl > r.lvl || (lvl === r.lvl && att > r.att)) hello(); break; }
+      if (r.seats[lvl % 2] !== m.from || !EV_RE.test(e)) break;
+      if (seq === r.log.length) { r.log.push(e); saveRoom(); sync(); }
+      else if (seq > r.log.length) hello();
+      break;
+    }
+    case 'req': {
+      if (!r || !amWriter() || (m.lvl | 0) !== r.lvl || (m.att | 0) !== r.att) break;
+      const ridv = String(m.rid || '').replace(/[^a-z0-9]/g, '').slice(0, 8), val = String(m.val || '').replace(/\D/g, '').slice(0, 3);
+      if (ridv.length >= 3 && val.length === 3) handleCode(ridv, val);
+      break;
+    }
+    case 'name': { if (!r) break; const k = r.seats.indexOf(m.from); if (k < 0) break; r.names[k] = m.name ? String(m.name).slice(0, 12) : null; saveRoom(); refreshOnline(); break; }
+    case 'full': if (m.to === myId && mySeat() < 0) { net.errorMsg = 'В комнате уже двое.'; refreshOnline(); } break;
+  }
+}
+function onHello(m) {
+  const r = net.room; if (!r) return;
+  const id = String(m.from);
+  let seat = r.seats.indexOf(id), changed = false;
+  const host = amActingHost();
+  if (seat < 0 && host) {
+    let k = r.seats.indexOf(null);
+    if (k < 0) k = r.seats.findIndex(s => s && s !== myId && s !== id && !net.online.has(s));
+    if (k < 0) { send('full', { to: id }); return; }
+    r.seats[k] = id; seat = k; changed = true;
+    r.names[k] = m.name ? String(m.name).slice(0, 12) : (r.names[k] || null);
+  } else if (seat >= 0 && host && m.name && r.names[seat] !== m.name) { r.names[seat] = String(m.name).slice(0, 12); changed = true; }
+  if (changed) { saveRoom(); refreshOnline(); sync(); }
+  if (host || (seat >= 0 && r.seats.includes(myId))) send('state', { room: r });
+}
+function adoptState(s0) {
+  if (!s0 || s0.code !== net.code || !Array.isArray(s0.seats)) return;
+  const s = sanitize(s0), r = net.room;
+  if (!r) { net.room = s; saveRoom(); sync(true); refreshOnline(); return; }
+  let ch = false;
+  s.seats.forEach((x, i) => { if (x && !r.seats[i]) { r.seats[i] = x; ch = true; } });
+  s.names.forEach((x, i) => { if (x && !r.names[i]) { r.names[i] = x; ch = true; } });
+  const c = cmpKey([s.lvl, s.att, s.log.length], [r.lvl, r.att, r.log.length]);
+  if (c > 0) {
+    const sameAtt = s.lvl === r.lvl && s.att === r.att && r.log.every((x, i) => s.log[i] === x);
+    r.lvl = s.lvl; r.att = s.att; r.log = s.log; r.best = Math.max(r.best || 0, s.best || 0);
+    saveRoom(); sync(!sameAtt);
+    if (!sameAtt) hideOverlays(true);
+  } else if (ch) { saveRoom(); sync(); }
+  refreshOnline();
+}
+function onPresence() { recomputeOnline(); const r = net.room; if (!r || !r.seats.includes(myId)) hello(); refreshOnline(); }
+function refreshOnline() {
+  if (!net.on) return;
+  const r = net.room;
+  if (net.errorMsg && net.status === 'ok' && r && mySeat() >= 0) net.errorMsg = '';
+  const stt = started(r);
+  if (stt && !net.wasStarted) {
+    net.wasStarted = true;
+    $('#menu').hidden = true;
+    if (net.everOk) sfxPing();
+    keepAwake(); sync(true);
+  }
+  if (!stt && $('#menu').hidden) showRoomPanel();
+  renderRoomPanel(); if (lv) ui();
+}
+function showRoomPanel() { $('#vMain').hidden = true; $('#vRoom').hidden = false; $('#menu').hidden = false; renderRoomPanel(); }
+function renderRoomPanel() {
+  if (!net.on) return;
+  const r = net.room;
+  $('#roomCode').textContent = net.code || '····';
+  $('#roomLink').textContent = inviteUrl();
+  $('#btnShare').textContent = navigator.share ? 'Поделиться' : 'Копировать';
+  $('#seats').innerHTML = r ? r.seats.map((id, k) => {
+    const nm = id ? (r.names[k] || (k ? 'Второй' : 'Первый')) : 'ждём…';
+    const st = !id ? '' : id === myId ? 'это ты' : net.online.has(id) ? 'на связи' : 'не в сети';
+    return `<div class="seat"><b>${esc(nm)}</b><em class="${id && (id === myId || net.online.has(id)) ? 'on' : ''}">${st}</em></div>`;
+  }).join('') : '';
+  const note = $('#netNote'); let txt, err = false;
+  if (net.errorMsg) { txt = net.errorMsg; err = true; }
+  else if (net.status === 'connecting') txt = 'Подключаюсь…';
+  else if (net.status === 'lost') txt = 'Связь пропала, переподключаюсь…';
+  else if (!r) txt = 'Ищу комнату…';
+  else if (mySeat() < 0) txt = 'Жду, пока меня пустят…';
+  else if (!started(r)) txt = 'Отправь брату ссылку или код. Как только он зайдёт, начнётся первое дело. Созвонитесь!';
+  else txt = `Дело №${r.lvl + 1}. Комната живёт, пока в ней кто-то есть.`;
+  note.textContent = txt; note.classList.toggle('err', err);
+  $('#btnRoomClose').hidden = !(r && started(r));
+  const n2 = $('#inName2'); if (document.activeElement !== n2) n2.value = myName();
+}
+async function shareInvite() {
+  const url = inviteUrl();
+  if (navigator.share) { try { await navigator.share({ title: 'Ограбление', text: `Есть дело. Комната ${net.code}`, url }); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
+  try { await navigator.clipboard.writeText(url); toast('Ссылка скопирована'); }
+  catch (e) { toast('Скопируй ссылку вручную'); }
+}
+
+/* ---------- menu ---------- */
+function hideOverlays(keepBrief) { $('#caught').hidden = true; $('#won').hidden = true; if (!keepBrief) $('#brief').hidden = true; }
+function openMenu() {
+  if (net.on) { showRoomPanel(); return; }
+  $('#vMain').hidden = false; $('#vRoom').hidden = true; $('#menu').hidden = false;
+  const n1 = $('#inName'); if (document.activeElement !== n1) n1.value = myName();
+  const b = store.get('best', 0); $('#bestLine').textContent = b ? `Лучшее: дошли до дела №${b + 1}` : 'Лучшее дело: —';
+}
+function startSolo() {
+  if (net.on) leaveRoom();
+  mode = 'solo';
+  if (!solo || !solo.code) solo = { code: 'SOLO' + rid(4), lvl: 0, att: 0, best: 0, log: [] };
+  store.set('solo', solo);
+  lv = null; lvKey = ''; briefedKey = ''; hideOverlays();
+  $('#menu').hidden = true; sync(true); keepAwake();
+}
+$('#btnSolo').addEventListener('click', () => { ensureAudio(); startSolo(); });
+$('#btnCreate').addEventListener('click', () => { ensureAudio(); createRoom(); });
+const inCode = $('#inCode');
+inCode.addEventListener('input', () => { const v = normCode(inCode.value); if (inCode.value !== v) inCode.value = v; });
+const doJoin = () => { const v = normCode(inCode.value); if (v.length !== 4) { toast('Введи код из 4 символов'); inCode.focus(); return; } ensureAudio(); joinRoom(v); };
+$('#btnJoin').addEventListener('click', doJoin);
+inCode.addEventListener('keydown', e => { if (e.key === 'Enter') doJoin(); });
+let nameT = 0;
+function onNameInput(e) {
+  const v = e.target.value.slice(0, 12); store.set('name', v.trim());
+  (e.target.id === 'inName' ? $('#inName2') : $('#inName')).value = v;
+  if (net.on && net.room && mySeat() >= 0) {
+    clearTimeout(nameT);
+    nameT = setTimeout(() => { const k = mySeat(); if (k < 0) return; net.room.names[k] = myName() || null; saveRoom(); refreshOnline(); send('name', { name: myName() || null }); }, 500);
+  }
+}
+$('#inName').addEventListener('input', onNameInput); $('#inName2').addEventListener('input', onNameInput);
+$('#btnShare').addEventListener('click', shareInvite);
+$('#btnLeave').addEventListener('click', () => { leaveRoom(); openMenu(); });
+$('#btnRoomClose').addEventListener('click', () => { $('#menu').hidden = true; ui(); });
+$('#btnMenu').addEventListener('click', () => {
+  if (!$('#menu').hidden) { if ((mode === 'online' && started(net.room)) || mode === 'solo') $('#menu').hidden = true; return; }
+  openMenu();
+});
+document.addEventListener('visibilitychange', () => { if (document.hidden) return; if (mode !== 'idle') keepAwake(); if (net.on && net.ch) { hello(); ping(); } });
+window.addEventListener('hashchange', () => { const c = codeFromHash(); if (c && (!net.on || net.code !== c)) joinRoom(c); });
+
+/* ---------- boot ---------- */
+renderSoundBtn(); resize();
+try { if (/\.test$|^localhost$|^127\./.test(location.hostname)) window.__game = { getLevel, solve, simulate, codeFor, act, submitCode, restartLevel, nextLevel, net, role, amWriter, get sim() { return sim; }, get lv() { return lv; }, src: () => src(), get myId() { return myId; } }; } catch (e) {}
+requestAnimationFrame(frame);
+const code0 = codeFromHash();
+if (code0) joinRoom(code0); else openMenu();
+})();
+</script>
+</body>
+</html>
