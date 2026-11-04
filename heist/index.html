@@ -206,6 +206,11 @@ button:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
 .newbox { padding: 9px 12px; border-left: 4px solid #C4302B; background: rgba(196,48,43,.08); font-size: 13px; line-height: 1.45; }
 .newbox b { color: #A3221D; }
 
+.update { position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 8px); transform: translateX(-50%); z-index: 50; display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 14px; border-radius: 10px; background: var(--yellow); color: #1A1400; font-weight: 700; font-size: 13px; box-shadow: 0 10px 24px -8px rgba(0,0,0,.8); max-width: calc(100% - 24px); }
+.update button { border: 0; border-radius: 8px; padding: 8px 12px; background: #1A1400; color: var(--yellow); font: 700 13px var(--font-mono); cursor: pointer; }
+.trainrow { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #4A3F2C; }
+.trainrow button { width: 36px; height: 36px; border-radius: 8px; border: 2px solid var(--ink); background: #F6EBC8; font: 700 18px var(--font-mono); cursor: pointer; }
+.trainrow b { min-width: 28px; text-align: center; font-family: var(--font-head); font-weight: 400; font-size: 18px; }
 .toast {
   position: fixed; left: 50%; z-index: 40; top: calc(env(safe-area-inset-top, 0px) + 58px); transform: translate(-50%, -8px); opacity: 0; pointer-events: none;
   max-width: calc(100% - 32px); padding: 9px 14px; border-radius: 8px; background: var(--manila); color: var(--ink); font-weight: 700; font-size: 13.5px; text-align: center;
@@ -273,6 +278,7 @@ button:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
       <div class="join"><input class="inp code" id="inCode" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="КОД" aria-label="Код комнаты"><button class="btn alt" id="btnJoin">Войти</button></div>
       <button class="btn y" id="btnBlind">Вором вслепую: штурман — Claude в чате</button>
       <button class="btn alt" id="btnSolo">Тренировка: видно всё</button>
+      <div class="trainrow"><span>Тренировка с дела №</span><button id="tMinus" aria-label="Меньше">−</button><b id="tLvl">1</b><button id="tPlus" aria-label="Больше">+</button><span id="tHint"></span></div>
       <div class="sep"></div>
       <details class="rules">
         <summary>Как играть</summary>
@@ -293,7 +299,7 @@ button:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
           <li><b>Тренировка</b>: видно всё сразу, чтобы просто посмотреть уровни.</li>
         </ul>
       </details>
-      <div class="foot"><span id="bestLine">Лучшее дело: —</span></div>
+      <div class="foot"><span id="bestLine">Лучшее дело: —</span><span>версия <b id="buildTag"></b></span></div>
     </div>
     <div class="f-col" id="vRoom" hidden>
       <div class="lbl">Комната</div>
@@ -341,6 +347,7 @@ button:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
 </div>
 
 <div class="toast" id="toast" role="status"></div>
+<div class="update" id="update" hidden><span>Вышла новая версия игры</span><button id="btnUpdate">Обновить</button></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
@@ -349,6 +356,7 @@ button:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
 const SB_URL = 'https://ulfqprrjdyycznobirxw.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVsZnFwcnJqZHl5Y3pub2Jpcnh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM3OTg4NTMsImV4cCI6MjEwOTM3NDg1M30.zIjRlMNnqg59jZRprHcCoIkoBiIis45vw5vP4bhF_tc';
 const APP = 'heist';
+const BUILD = '2026-11-05.4';
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const store = {
@@ -393,8 +401,8 @@ function diff(L) {
     lasers: L === 0 ? 2 : L < 3 ? 3 : L < 10 ? 4 : 6,
     blink: L === 0 ? 0 : L < 3 ? 2 : L < 10 ? Math.min(4, 2 + Math.floor(L / 4)) : 5,
     lock: L >= 2, safe: L >= 3, dupes: L >= 6, flicker: L >= 6, vis: L >= 8 ? 1.6 : 2.45, timer: L >= 1,
-    guards: L < 4 ? 0 : L < 6 ? 1 : L < 9 ? 2 : L < 14 ? 3 : 4,
-    cams: L < 5 ? 0 : L < 8 ? 1 : L < 14 ? 2 : 3,
+    guards: L < 3 ? 0 : L < 5 ? 1 : L < 9 ? 2 : L < 14 ? 3 : 4,
+    cams: L < 4 ? 0 : L < 8 ? 1 : L < 14 ? 2 : 3,
     stains: L < 7 ? 0 : L < 12 ? 1 : 2,
     pings: L < 3 ? 3 : L < 8 ? 2 : 1,
     rotate: isRotate(L)
@@ -402,11 +410,11 @@ function diff(L) {
 }
 const NEWS = {
   0: 'Штурман не видит вора, а у вора нет «вверх-вниз»: только поворот налево, поворот направо и шаг вперёд, и картинка крутится вместе с ним. Штурман, говори «налево/направо» от его лица! Вор, описывай ориентиры. Врезался в стену — ход потрачен.',
-  1: 'Таймер тревоги ⏱ пошёл с первого хода. И мигающие лазеры (розовые у штурмана): горят через ход. Сплошной — включён, пунктир — выключен. Переждать можно кнопкой ⏸.',
+  1: 'Теперь старт случайный, и штурман его не видит: вор, опиши, что вокруг, а штурман найдёт тебя на плане. Таймер тревоги ⏱ пошёл с первого хода. И мигающие лазеры (розовые у штурмана): горят через ход, пунктир — выключен. Переждать можно кнопкой ⏸.',
   2: 'Дверь с кодом 🔒. Код на записке 📝: вор встаёт на неё и читает код вслух, штурман вводит.',
-  3: 'Сейф 🔐 у добычи! Вор видит 4 странных символа, штурман — инструкцию. Описывайте символы как сможете («вилка с хвостиком»), штурман найдёт столбик и скажет порядок. 3 ошибки = тревога.',
-  4: 'Охранник 💂. Ходит туда-сюда и видит на 2 клетки вперёд. Стрелка показывает, куда он шагнёт.',
-  5: 'Камера 📹. Поворачивается каждые 2 хода и видит на 3 клетки по прямой.',
+  3: 'Сейф 🔐 у добычи! Вор видит 4 странных символа, штурман — инструкцию. Описывайте символы как сможете («вилка с хвостиком»), штурман найдёт столбик и скажет порядок. 3 ошибки = тревога. И первый охранник 💂: ходит туда-сюда и видит на 2 клетки вперёд, стрелка показывает его следующий шаг.',
+  4: 'Камера 📹. Поворачивается каждые 2 хода и видит на 3 клетки по прямой.',
+  5: 'Охранников теперь двое.',
   6: 'Ориентиры на стенах теперь повторяются: две гитары, два кактуса… Ищите по сочетаниям. И у вора иногда гаснет фонарик.',
   8: 'Фонарик у вора садится: он видит только соседние клетки.',
   7: 'Кофейное пятно ☕ на чертеже: штурман не видит, что под ним. Вор, эту часть описывай сам. Охраны и лазеров под пятном нет.',
@@ -437,8 +445,9 @@ function tryGen(seed, L, tr, easy) {
   if (easy) { d.stains = Math.min(d.stains, 1); d.guards = Math.min(d.guards, easy > 1 ? 0 : 1); d.cams = Math.min(d.cams, easy > 1 ? 0 : 1); d.blink = Math.min(d.blink, easy > 1 ? 1 : 2); }
   const cw = d.cw, ch = d.ch, W = 2 * cw + 1, H = 2 * ch + 1, N = W * H;
   const g = new Uint8Array(N), id = (x, y) => y * W + x;
-  const vis = new Uint8Array(cw * ch), stack = [[0, ch - 1]];
-  vis[(ch - 1) * cw] = 1; g[id(1, H - 2)] = 1;
+  const sc = L === 0 ? [0, ch - 1] : [Math.floor(r() * cw), Math.floor(r() * ch)];
+  const vis = new Uint8Array(cw * ch), stack = [sc];
+  vis[sc[1] * cw + sc[0]] = 1; g[id(2 * sc[0] + 1, 2 * sc[1] + 1)] = 1;
   while (stack.length) {
     const [cx, cy] = stack[stack.length - 1], opts = [];
     for (let k = 0; k < 4; k++) { const nx = cx + DX[k], ny = cy + DY[k]; if (nx >= 0 && ny >= 0 && nx < cw && ny < ch && !vis[ny * cw + nx]) opts.push(k); }
@@ -452,8 +461,15 @@ function tryGen(seed, L, tr, easy) {
     const opts = []; for (let k = 0; k < 4; k++) { const nx = cx + DX[k], ny = cy + DY[k]; if (nx >= 0 && ny >= 0 && nx < cw && ny < ch && !g[id(2 * cx + 1 + DX[k], 2 * cy + 1 + DY[k])]) opts.push(k); }
     if (opts.length) { const k = opts[Math.floor(r() * opts.length)]; g[id(2 * cx + 1 + DX[k], 2 * cy + 1 + DY[k])] = 1; }
   }
-  const lv = { L, seed, W, H, g, deco: {}, S: id(1, H - 2), E: id(W - 2, 1), gem: -1, door: -1, note: -1, lasers: [], guards: [], cams: [], rotate: d.rotate, pings: d.pings, stains: [], safe: d.safe, flicker: d.flicker, vis: d.vis, limit: 0, name: PLACES[(L + (hashStr(seed) >>> 0)) % PLACES.length], best: 0 };
-  const dS = bfs(lv, lv.S, null, true), dE = bfs(lv, lv.E, null, true);
+  const lv = { L, seed, W, H, g, deco: {}, S: id(2 * sc[0] + 1, 2 * sc[1] + 1), E: id(W - 2, 1), face0: L === 0 ? 0 : Math.floor(r() * 4), gem: -1, door: -1, note: -1, lasers: [], guards: [], cams: [], rotate: d.rotate, pings: d.pings, stains: [], safe: d.safe, flicker: d.flicker, vis: d.vis, limit: 0, name: PLACES[(L + (hashStr(seed) >>> 0)) % PLACES.length], best: 0 };
+  const dS = bfs(lv, lv.S, null, true);
+  if (L > 0) {
+    // exit: a random cell among the far half from the start
+    const cells = []; for (let cy = 0; cy < ch; cy++) for (let cx = 0; cx < cw; cx++) { const t = id(2 * cx + 1, 2 * cy + 1); if (t !== lv.S) cells.push(t); }
+    cells.sort((a, b) => dS[b] - dS[a]); const far = cells.slice(0, Math.max(1, Math.floor(cells.length * 0.35)));
+    lv.E = far[Math.floor(r() * far.length)];
+  }
+  const dE = bfs(lv, lv.E, null, true);
   const dead = [];
   for (let cy = 0; cy < ch; cy++) for (let cx = 0; cx < cw; cx++) { const t = id(2 * cx + 1, 2 * cy + 1); if (deg(cx, cy) === 1 && t !== lv.S && t !== lv.E) dead.push(t); }
   if (!dead.length) return null;
@@ -611,7 +627,7 @@ function codeFor(seed, L, att) { return String(100 + ((hashStr(seed + '#' + L + 
 
 /* ---------- simulation of one attempt: a list of events ---------- */
 const EV_RE = /^([URDLwlrfbz]|k[0-3]|[ox][a-z0-9]{3,8})$/;
-function newSim(lv) { return { pos: lv.S, face: 0, t: 0, gem: false, note: lv.note < 0, open: lv.door < 0, caught: '', won: false, trail: [lv.S], wrong: 0, steps: 0, bumps: 0, sp: 0, strikes: 0 }; }
+function newSim(lv) { return { pos: lv.S, face: lv.face0 || 0, t: 0, gem: false, note: lv.note < 0, open: lv.door < 0, caught: '', won: false, trail: [lv.S], wrong: 0, steps: 0, bumps: 0, sp: 0, strikes: 0 }; }
 function cloneSim(s) { return Object.assign({}, s, { trail: s.trail.slice() }); }
 function applyEv(lv, s, e) {
   if (s.caught || s.won || !EV_RE.test(e)) return false;
@@ -714,7 +730,8 @@ function pushEv(e) {
   sync();
 }
 function pressSafe(i) { if (!amWriter() || !sim || sim.caught || sim.won || !lv || !lv.safe || sim.pos !== lv.gem || sim.gem) return; ensureAudio(); pushEv('k' + i); }
-function timerLeft() { const s = src(); if (!s || !lv || !lv.limit || mode !== 'online') return null; if (!s.t0) return lv.limit * 1000; return lv.limit * 1000 - (Date.now() - s.t0); }
+function limitMs() { return lv && lv.limit ? lv.limit * 1000 * (mode === 'solo' && solo && solo.blind ? 2 : 1) : 0; }
+function timerLeft() { const s = src(); if (!s || !lv || !lv.limit || mode === 'idle') return null; if (!s.t0) return limitMs(); return limitMs() - (Date.now() - s.t0); }
 function handleCode(rid, val) {
   const s = src(); if (!s || !sim || sim.open || sim.caught || sim.won) return;
   if (s.log.some(x => x.slice(1) === rid && (x[0] === 'o' || x[0] === 'x'))) return;
@@ -743,6 +760,7 @@ function restartLevel() {
 }
 function nextLevel() {
   const s = src(); if (!s) return;
+  if (mode === 'solo' && !s.blind) { trainLvl = Math.min(60, s.lvl + 2); store.set('trainLvl', trainLvl); renderTrain(); }
   s.lvl++; s.att = 0; s.log = []; s.t0 = 0; s.best = Math.max(s.best || 0, s.lvl); saveSrc();
   const b = store.get('best', 0); if (s.lvl > b) store.set('best', s.lvl);
   if (mode === 'online') send('state', { room: s });
@@ -794,7 +812,7 @@ function ui() {
   else if (sim.caught) st = '<b style="color:var(--red)">Тревога!</b>';
   else if (sim.won) st = '<b style="color:var(--nv)">Ушли!</b>';
   else if (r === 'runner') st = (sim.gem ? '<b class="y">💎 у тебя.</b> Теперь к выходу 🚪. ' : '') + '<b>Штурман не видит тебя:</b> рассказывай, что вокруг, и слушай его.';
-  else if (r === 'nav') st = (sim.gem ? `<b class="y">💎 у ${esc(partnerName())}.</b> Веди к выходу 🚪. ` : '') + `<b>Ты не видишь вора:</b> спроси, что он видит, и найди это на плане.`;
+  else if (r === 'nav') st = (sim.gem ? `<b class="y">💎 у ${esc(partnerName())}.</b> Веди к выходу 🚪. ` : '') + (lv.L > 0 && sim.t < 3 && !sim.gem ? `<b>Где вор начал, ты не знаешь.</b> Пусть опишет, что вокруг, и найди его на плане.` : `<b>Ты не видишь вора:</b> спроси, что он видит, и найди это на плане.`);
   else st = sim.gem ? '<b class="y">💎 у тебя.</b> Теперь к выходу 🚪' : 'Тренировка: ты видишь всё. Найди 💎 и уйди через 🚪';
   $('#status').innerHTML = st;
   // overlays
@@ -809,7 +827,7 @@ function ui() {
     lastWonKey = ak;
     setTimeout(() => {
       if (!sim || !sim.won) return;
-      const tl = timerLeft(), used = tl != null && src().t0 ? Math.round((lv.limit * 1000 - tl) / 1000) : null;
+      const tl = timerLeft(), used = tl != null && src().t0 ? Math.round((limitMs() - tl) / 1000) : null;
       $('#wonText').innerHTML = `Ходов: <b>${sim.steps}</b> · самый короткий путь: <b>${lv.best}</b> · врезались в стены: <b>${sim.bumps}</b>${lv.safe ? ` · ошибок на сейфе: <b>${sim.strikes}</b>` : ''}${used != null ? ` · время: <b>${Math.floor(used / 60)}:${String(used % 60).padStart(2, '0')}</b>` : ''}.${mode === 'online' ? ' В следующем деле роли меняются.' : ''}`;
       $('#won').hidden = false;
     }, 900);
@@ -938,8 +956,8 @@ function drawNav(now) {
     if (nx !== i) { const [NX, NY] = at(nx); ctx.strokeStyle = '#FF8A8A'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X + T / 2, Y + T / 2); const mx = (X + NX) / 2 + T / 2, my = (Y + NY) / 2 + T / 2; ctx.lineTo(mx, my); ctx.stroke(); ctx.fillStyle = '#FF8A8A'; ctx.beginPath(); ctx.arc(mx, my, Math.max(2, T * 0.08), 0, 6.283); ctx.fill(); }
     emoji('💂', X + T / 2, Y + T / 2, T * 0.72); void face;
   }
-  // start marker
-  { const [X, Y] = at(lv.S); ctx.save(); ctx.setLineDash([3, 3]); ctx.strokeStyle = 'rgba(255,210,63,.8)'; ctx.lineWidth = 1.5; ctx.strokeRect(X + 3, Y + 3, T - 6, T - 6); ctx.restore();
+  // start marker: only on the first case (and in training); afterwards the navigator has to find the thief
+  if (lv.L === 0 || role() === 'both') { const [X, Y] = at(lv.S); ctx.save(); ctx.setLineDash([3, 3]); ctx.strokeStyle = 'rgba(255,210,63,.8)'; ctx.lineWidth = 1.5; ctx.strokeRect(X + 3, Y + 3, T - 6, T - 6); ctx.restore();
     ctx.fillStyle = 'rgba(255,210,63,.9)'; ctx.font = `bold ${Math.max(8, Math.round(T * 0.24))}px "PT Mono", monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('СТАРТ', X + T / 2, Y + T / 2); }
   // coffee stains hide part of the plan
   const both = role() === 'both';
@@ -1149,11 +1167,11 @@ function send(t, data) { if (!net.ch) return; try { const p = net.ch.send({ type
 function hello() {
   clearTimeout(net.timers.hello);
   const wait = Math.max(120, 1500 - (Date.now() - net.lastHello));
-  net.timers.hello = setTimeout(() => { net.lastHello = Date.now(); send('hello', { name: myName() || null }); }, wait);
+  net.timers.hello = setTimeout(() => { net.lastHello = Date.now(); send('hello', { name: myName() || null, v: BUILD }); }, wait);
 }
 // Presence is tracked once per join and never updated: re-tracking makes the realtime client drop the key.
 function trackOnce() { if (!net.ch || net.status !== 'ok') return; try { const p = net.ch.track({ on: 1 }); if (p && p.catch) p.catch(() => {}); } catch (e) {} }
-function ping() { if (!net.ch) return; const r = net.room; if (net.status === 'ok') send('ping', { k: r ? roomKey(r) : null }); recomputeOnline(); }
+function ping() { if (!net.ch) return; const r = net.room; if (net.status === 'ok') send('ping', { k: r ? roomKey(r) : null, v: BUILD }); recomputeOnline(); }
 function recomputeOnline() {
   if (!net.ch) return;
   let stt = {}; try { stt = net.ch.presenceState() || {}; } catch (e) {}
@@ -1233,6 +1251,7 @@ function onMsg(m) {
   if (!m || !m.t || !m.from || m.from === myId) return;
   net.lastSeen[m.from] = Date.now();
   if (!net.online.has(m.from)) recomputeOnline();
+  if (m.t === 'ping' || m.t === 'hello') checkPeerBuild(m.v);
   const r = net.room;
   switch (m.t) {
     case 'ping': {
@@ -1350,12 +1369,18 @@ function openMenu() {
   const n1 = $('#inName'); if (document.activeElement !== n1) n1.value = myName();
   const b = store.get('best', 0); $('#bestLine').textContent = b ? `Лучшее: дошли до дела №${b + 1}` : 'Лучшее дело: —';
 }
+let trainLvl = Math.max(1, Math.min(60, store.get('trainLvl', 1) | 0));
+function renderTrain() { $('#tLvl').textContent = trainLvl; const n = NEWS[trainLvl - 1]; $('#tHint').textContent = trainLvl >= 4 ? 'есть сейф' : ''; void n; }
+$('#tMinus').addEventListener('click', () => { trainLvl = Math.max(1, trainLvl - 1); store.set('trainLvl', trainLvl); renderTrain(); });
+$('#tPlus').addEventListener('click', () => { trainLvl = Math.min(60, trainLvl + 1); store.set('trainLvl', trainLvl); renderTrain(); });
+renderTrain();
 function startSolo(blind) {
   if (net.on) leaveRoom();
   mode = 'solo';
   const k = blind ? 'blind' : 'solo';
   solo = store.get(k, null);
   if (!solo || !solo.code || solo.code.length !== 4) solo = { code: newCode(), lvl: 0, att: 0, best: 0, log: [] };
+  if (!blind && solo.lvl !== trainLvl - 1) { solo.lvl = trainLvl - 1; solo.att = 0; solo.log = []; solo.t0 = 0; }
   solo.blind = !!blind; store.set(k, solo);
   lv = null; lvKey = ''; briefedKey = ''; hideOverlays();
   $('#menu').hidden = true; sync(true); keepAwake();
@@ -1387,6 +1412,20 @@ $('#btnMenu').addEventListener('click', () => {
 });
 document.addEventListener('visibilitychange', () => { if (document.hidden) return; if (mode !== 'idle') keepAwake(); if (net.on && net.ch) { hello(); ping(); } });
 window.addEventListener('hashchange', () => { const c = codeFromHash(); if (c && (!net.on || net.code !== c)) joinRoom(c); });
+
+/* ---------- version check: phones and laptops must run the same build ---------- */
+$('#buildTag').textContent = BUILD;
+async function checkUpdate() {
+  try {
+    const res = await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' });
+    const html = await res.text(), m = html.match(/const BUILD = '([^']+)'/);
+    if (m && m[1] !== BUILD) $('#update').hidden = false;
+  } catch (e) {}
+}
+$('#btnUpdate').addEventListener('click', () => { location.reload(); });
+setTimeout(checkUpdate, 1500); setInterval(checkUpdate, 90000);
+let warnedBuild = false;
+function checkPeerBuild(v) { if (v && v !== BUILD && !warnedBuild) { warnedBuild = true; toast('У напарника другая версия игры! Обновите страницу у обоих'); checkUpdate(); } }
 
 /* ---------- boot ---------- */
 renderSoundBtn(); resize();
