@@ -176,7 +176,7 @@ button:focus-visible, summary:focus-visible { outline: 2px solid var(--fg); outl
 .qty button { width: 38px; height: 40px; border: 0; border-radius: 11px; background: var(--cell); font: 900 20px var(--font-ui); cursor: pointer; }
 .qty button:active { transform: scale(.94); }
 .qty b { min-width: 34px; text-align: center; font-family: var(--font-display); font-weight: 400; font-size: 20px; }
-.faces { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; flex: 1; }
+.faces { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; flex: 1; }
 .faces button { height: 46px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; display: grid; place-items: center; padding: 0; }
 .faces button .die { --s: 28px; }
 .faces button[aria-pressed="true"] { border-color: var(--gold); background: color-mix(in srgb, var(--gold) 22%, var(--surface)); box-shadow: 0 0 0 1px var(--gold); }
@@ -403,8 +403,8 @@ button:focus-visible, summary:focus-visible { outline: 2px solid var(--fg); outl
         <summary>Как играть</summary>
         <ol>
           <li>Каждый раунд все бросают свои кубики. Свои видишь только ты.</li>
-          <li>По очереди делаете ставку на все кубики на столе: «минимум 4 пятёрки». Единицы — джокеры, они считаются за любую грань.</li>
-          <li>Следующий либо повышает ставку (больше кубиков или столько же, но грань старше), либо говорит «Не верю!».</li>
+          <li>По очереди делаете ставку на все кубики на столе: «минимум 4 пятёрки». Единицы — джокеры: они считаются за любую грань и сами по себе самая старшая грань. Старшинство: 2, 3, 4, 5, 6, а выше всех единица.</li>
+          <li>Следующий либо повышает ставку, либо говорит «Не верю!». Повышать можно только вверх: количество или грань, или и то и другое, но ничего не опускать. После «3 тройки» можно «3 четвёрки», «4 тройки» или «4 шестёрки», а «4 двойки» уже нельзя. Ставка на единицы считает только единицы.</li>
           <li>«Не верю!» вскрывает все стаканы. Если таких граней (с джокерами) на столе меньше, чем в ставке, кубик теряет тот, кто ставил. Иначе теряет тот, кто не поверил.</li>
           <li>«Точно!»: ты уверен, что граней ровно столько, сколько в ставке. Угадал, получаешь кубик назад. Не угадал, теряешь свой.</li>
           <li>Раз за игру можно подглядеть один случайный кубик соперника и раз перебросить свои.</li>
@@ -490,7 +490,7 @@ let soundOn = store.get('sound', true);
 let wins = store.get('wins', {}) || {};
 const plural = (n, a, b, c) => { const m10 = n % 10, m100 = n % 100; if (m10 === 1 && m100 !== 11) return a; if (m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20)) return b; return c; };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-const FACE_GEN = { 2: ['двойка', 'двойки', 'двоек'], 3: ['тройка', 'тройки', 'троек'], 4: ['четвёрка', 'четвёрки', 'четвёрок'], 5: ['пятёрка', 'пятёрки', 'пятёрок'], 6: ['шестёрка', 'шестёрки', 'шестёрок'] };
+const FACE_GEN = { 1: ['единица', 'единицы', 'единиц'], 2: ['двойка', 'двойки', 'двоек'], 3: ['тройка', 'тройки', 'троек'], 4: ['четвёрка', 'четвёрки', 'четвёрок'], 5: ['пятёрка', 'пятёрки', 'пятёрок'], 6: ['шестёрка', 'шестёрки', 'шестёрок'] };
 const faceWord = (q, f) => plural(q, ...FACE_GEN[f]);
 
 /* ---------- dice markup ---------- */
@@ -509,7 +509,10 @@ $('#logoDie').outerHTML = dieHTML(1);
    ===================================================================== */
 const LIAR = 1, EXACT = 2, PEEK = 3, REROLL = 4, START_DICE = 5;
 const mvBid = (q, f) => 1000 + q * 10 + f;
-const isBid = m => m >= 1012 && m <= 1406;
+const isBid = m => m >= 1011 && m <= 1406 && (m - 1000) % 10 >= 1 && (m - 1000) % 10 <= 6;
+const rank = f => f === 1 ? 7 : f;
+const FACE_ORDER = [2, 3, 4, 5, 6, 1];
+const matches = (d, f) => f === 1 ? d === 1 : (d === f || d === 1);
 const bidQ = m => Math.floor((m - 1000) / 10), bidF = m => (m - 1000) % 10;
 function hashStr(s) { let h = 2166136261 | 0; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h | 0; }
 function rng(...parts) {
@@ -531,10 +534,11 @@ function newRound(s, starter) {
 const alive = (s, p) => s.dice[p] > 0;
 function nextAlive(s, p) { for (let k = 1; k <= s.n; k++) { const q = (p + k) % s.n; if (alive(s, q)) return q; } return p; }
 const total = s => s.dice.reduce((a, b) => a + b, 0);
-function countMatch(hands, f) { let c = 0; for (const h of hands) for (const d of h) if (d === f || d === 1) c++; return c; }
+function countMatch(hands, f) { let c = 0; for (const h of hands) for (const d of h) if (matches(d, f)) c++; return c; }
+function raises(q, f, b) { return !b || (q >= b.q && rank(f) >= rank(b.f) && (q > b.q || rank(f) > rank(b.f))); }
 function legalIn(s, m, p) {
   if (!s || s.over || p !== s.turn) return false;
-  if (isBid(m)) { const q = bidQ(m), f = bidF(m); if (f < 2 || f > 6 || q < 1 || q > total(s)) return false; const b = s.bid; return !b || q > b.q || (q === b.q && f > b.f); }
+  if (isBid(m)) { const q = bidQ(m), f = bidF(m); if (f < 1 || f > 6 || q < 1 || q > total(s)) return false; return raises(q, f, s.bid); }
   if (m === LIAR || m === EXACT) return !!s.bid;
   if (m === PEEK) return s.peek[p] > 0 && !s.peeked[p] && s.dice.some((d, q) => q !== p && d > 0);
   if (m === REROLL) return s.reroll[p] > 0;
@@ -576,9 +580,9 @@ function instantMove(m) { if (!legal(m, S.turn)) return { bad: true }; applyIn(S
 function botMove(p) {
   const s = S, hand = s.hands[p], tot = total(s), others = tot - hand.length, b = s.bid;
   const pk = s.peeked[p];
-  const known = f => hand.filter(d => d === f || d === 1).length + (pk && (pk.v === f || pk.v === 1) ? 1 : 0);
+  const known = f => hand.filter(d => matches(d, f)).length + (pk && matches(pk.v, f) ? 1 : 0);
   const unknown = others - (pk ? 1 : 0);
-  const exp = f => known(f) + unknown / 3;
+  const exp = f => known(f) + unknown * (f === 1 ? 1 / 6 : 1 / 3);
   if (s.peek[p] > 0 && !pk && Math.random() < 0.3 && legalIn(s, PEEK, p)) return PEEK;
   if (b) {
     const e = exp(b.f);
@@ -586,9 +590,9 @@ function botMove(p) {
     if (Math.abs(b.q - e) < 0.4 && Math.random() < 0.22) return EXACT;
   }
   let best = null;
-  for (let f = 2; f <= 6; f++) {
-    let q = !b ? Math.max(1, Math.round(exp(f) - 0.6 - Math.random() * 0.8)) : (f > b.f ? b.q : b.q + 1);
-    if (b && q < b.q) continue;
+  for (const f of FACE_ORDER) {
+    if (b && rank(f) < rank(b.f)) continue;
+    let q = !b ? Math.max(1, Math.round(exp(f) - 0.6 - Math.random() * 0.8)) : (rank(f) > rank(b.f) ? b.q : b.q + 1);
     if (q > tot || !legalIn(s, mvBid(q, f), p)) continue;
     const bluff = Math.random() < 0.12 ? 1.2 : 0;
     const sc = exp(f) - q + Math.random() * 0.6 + bluff;
@@ -673,7 +677,7 @@ async function reveal(info, myGen) {
   for (let k = 0; k < info.hands.length; k++) {
     for (let i = 0; i < info.hands[k].length; i++) {
       const d = info.hands[k][i]; const el = ov.querySelector(`[data-k="${k}"][data-i="${i}"]`);
-      if (d === b.f || d === 1) { n++; if (el) { el.classList.remove('dim'); el.classList.add('hit'); } $('#rvN').textContent = n; sfxCount(n); await sleep(230); if (myGen !== gen) return; }
+      if (matches(d, b.f)) { n++; if (el) { el.classList.remove('dim'); el.classList.add('hit'); } $('#rvN').textContent = n; sfxCount(n); await sleep(230); if (myGen !== gen) return; }
     }
   }
   await sleep(450); if (myGen !== gen) return;
@@ -732,10 +736,10 @@ function defaultBid() {
   const m = me(); if (m < 0 || !S) return;
   const hand = S.hands[m] || [], b = S.bid;
   let bestF = 2, bc = -1;
-  for (let f = 2; f <= 6; f++) { const c = hand.filter(d => d === f).length; if (c > bc || (c === bc && b && f > b.f)) { bc = c; bestF = f; } }
+  for (const f of FACE_ORDER) { if (minQ(f) > total(S)) continue; const c = hand.filter(d => matches(d, f)).length - (f === 1 ? 0.5 : 0); if (c > bc) { bc = c; bestF = f; } }
   ui.f = bestF; ui.q = minQ(bestF);
 }
-function minQ(f) { const b = S.bid; if (!b) return 1; return f > b.f ? b.q : b.q + 1; }
+function minQ(f) { const b = S.bid; if (!b) return 1; if (rank(f) < rank(b.f)) return 99; return rank(f) > rank(b.f) ? b.q : b.q + 1; }
 function render(rolled, rerolledBy) {
   if (!S || !players.length) return;
   const m = me(), r = net.on ? net.room : null, onlineReady = !net.on || (r && started(r));
@@ -811,17 +815,18 @@ function renderBuilder() {
   ui.q = Math.max(1, Math.min(tot, ui.q));
   if (!legal(mvBid(ui.q, ui.f), S.turn)) ui.q = Math.min(tot, minQ(ui.f));
   $('#qVal').textContent = ui.q;
-  $('#faces').innerHTML = [2, 3, 4, 5, 6].map(f => `<button data-f="${f}" aria-pressed="${f === ui.f}" ${minQ(f) > tot ? 'disabled' : ''} aria-label="Грань ${f}">${dieHTML(f)}</button>`).join('');
+  $('#faces').innerHTML = FACE_ORDER.map(f => `<button data-f="${f}" aria-pressed="${f === ui.f}" ${minQ(f) > tot ? 'disabled' : ''} aria-label="Грань ${f}">${dieHTML(f)}</button>`).join('');
   const ok = legal(mvBid(ui.q, ui.f), S.turn);
   const bb = $('#btnBid'); bb.disabled = !ok; bb.innerHTML = `Ставлю ${ui.q} ×${dieHTML(ui.f)}`;
   $('#btnLiar').disabled = !S.bid; $('#btnExact').disabled = !S.bid;
-  const m = me(), hand = S.hands[m] || [], mineC = hand.filter(d => d === ui.f || d === 1).length, others = tot - hand.length;
-  const pk = S.peeked[m], pkC = pk && (pk.v === ui.f || pk.v === 1) ? 1 : 0;
+  const m = me(), hand = S.hands[m] || [], mineC = hand.filter(d => matches(d, ui.f)).length, others = tot - hand.length;
+  const pk = S.peeked[m], pkC = pk && matches(pk.v, ui.f) ? 1 : 0;
   const unk = others - (pk ? 1 : 0);
-  $('#odds').innerHTML = `${faceWord(5, ui.f)[0].toUpperCase() + faceWord(5, ui.f).slice(1)} с джокерами: у тебя <b>${mineC}</b>${pk ? `, подсмотрено <b>${pkC}</b>` : ''}, у остальных в среднем ещё <b>≈${(unk / 3).toFixed(1).replace('.', ',')}</b>`;
+  const fw = faceWord(5, ui.f), Fw = fw[0].toUpperCase() + fw.slice(1);
+  $('#odds').innerHTML = `${Fw}${ui.f === 1 ? '' : ' с джокерами'}: у тебя <b>${mineC}</b>${pk ? `, подсмотрено <b>${pkC}</b>` : ''}, у остальных в среднем ещё <b>≈${(unk * (ui.f === 1 ? 1 / 6 : 1 / 3)).toFixed(1).replace('.', ',')}</b>`;
 }
 $('#faces').addEventListener('click', e => { const b = e.target.closest('button'); if (!b || b.disabled) return; ui.f = +b.dataset.f; if (!legal(mvBid(ui.q, ui.f), S.turn)) ui.q = minQ(ui.f); tick(); renderBuilder(); });
-$('#qMinus').addEventListener('click', () => { const nq = ui.q - 1; if (nq >= 1 && (!S.bid || legal(mvBid(nq, ui.f), S.turn))) { ui.q = nq; tick(); } else sfxBad(); renderBuilder(); });
+$('#qMinus').addEventListener('click', () => { const nq = ui.q - 1; if (nq >= 1 && legal(mvBid(nq, ui.f), S.turn)) { ui.q = nq; tick(); } else sfxBad(); renderBuilder(); });
 $('#qPlus').addEventListener('click', () => { if (ui.q < total(S)) { ui.q++; tick(); } else sfxBad(); renderBuilder(); });
 $('#btnBid').addEventListener('click', () => commit(mvBid(ui.q, ui.f)));
 $('#btnLiar').addEventListener('click', () => commit(LIAR));
@@ -1263,7 +1268,7 @@ window.addEventListener('hashchange', () => { const c = codeFromHash(); if (c &&
 
 /* ---------- boot ---------- */
 renderSoundBtn(); syncSeg();
-try { if (/\.test$|^localhost$|^127\./.test(location.hostname)) window.__game = { net, botMove, commit, canAct, get S() { return S; }, get players() { return players; }, get finished() { return finished; }, get busy() { return busy; }, get myId() { return myId; }, me }; } catch (e) {}
+try { if (/\.test$|^localhost$|^127\./.test(location.hostname)) window.__game = { net, botMove, commit, canAct, raises, countMatch, get S() { return S; }, get players() { return players; }, get finished() { return finished; }, get busy() { return busy; }, get myId() { return myId; }, me }; } catch (e) {}
 startDemo();
 const code0 = codeFromHash();
 if (code0) joinRoom(code0); else openSheet();
