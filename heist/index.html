@@ -16,6 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=PT+Mono&family=Russo+One&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@500&display=block&text=%D1%AE%D1%A6%C6%9B%D1%AC%D1%AA%D2%A8%D1%BE%D2%8A%D1%A2%D3%AC%D2%BE%D1%A8%D2%94%D3%83%D2%80%D2%B4%D3%A0%D1%BA%CE%BE%D4%84%D4%88%D4%8E%D2%B8%D3%BE0123456789">
 <style>
 :root {
   /* Heist dossier: navy blueprint for the navigator, night-vision green for the thief,
@@ -55,19 +56,24 @@ button:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
 }
 .bar { display: flex; align-items: center; gap: 8px; min-height: 40px; }
 .case { min-width: 0; display: flex; flex-direction: column; line-height: 1.15; }
-.case b { font-family: var(--font-head); font-weight: 400; font-size: 15px; letter-spacing: .04em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.case { flex: 1; }
+.case b { display: flex; gap: 6px; font-family: var(--font-head); font-weight: 400; font-size: 15px; letter-spacing: .04em; white-space: nowrap; min-width: 0; }
+.case b > span { font-size: inherit; white-space: nowrap; }
+.case b > .cnum { flex: none; color: var(--fg); }
+.case b > .cname { min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--muted); }
+@media (max-width: 420px) { .role .rt { display: none; } .case b > .cname { display: none; } }
 .case span { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .role { margin-left: auto; flex: none; padding: 6px 10px; border-radius: 8px; font-family: var(--font-head); font-size: 12px; letter-spacing: .06em; }
 .role.runner { background: var(--yellow); color: #1A1400; }
 .role.nav { background: var(--cyan); color: #04213A; }
 .role.both { background: var(--manila); color: var(--ink); }
-.icon-btn { width: 40px; height: 40px; flex: none; border-radius: 10px; cursor: pointer; display: grid; place-items: center; border: 1px solid var(--grid); background: #0B1D33; }
+.icon-btn { width: 44px; height: 44px; flex: none; border-radius: 10px; cursor: pointer; display: grid; place-items: center; border: 1px solid var(--grid); background: #0B1D33; }
 .icon-btn:active { transform: scale(.94); }
 .partner { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); }
 .partner i { width: 7px; height: 7px; border-radius: 50%; background: #555; }
 .partner.on i { background: var(--nv); box-shadow: 0 0 8px var(--nv); }
 
-.stage { flex: 1; min-height: 0; position: relative; display: grid; place-items: center; }
+.stage { flex: 1; min-height: 0; position: relative; display: grid; place-items: center; overflow: hidden; }
 #view { display: block; border-radius: 14px; }
 .flash { position: absolute; inset: 0; pointer-events: none; border-radius: 14px; box-shadow: inset 0 0 0 0 var(--red); }
 .flash.on { animation: alarm .5s ease-in-out 4 alternate; }
@@ -104,11 +110,18 @@ button:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
 .slots.bad { animation: shake .35s; }
 .slots.ok i { border-color: var(--nv); color: var(--nv); }
 @keyframes shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+.serial { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; }
+.serial div { display: flex; flex-direction: column; align-items: center; padding: 4px 0; border-radius: 8px; background: #04101E; border: 1px solid var(--grid); }
+.serial b { font-family: var(--font-head); font-weight: 400; font-size: 22px; color: var(--yellow); }
+.serial small { font-size: 10px; color: var(--muted); }
+.lamp { width: 18px; height: 18px; flex: none; border-radius: 50%; background: #39FF88; box-shadow: 0 0 10px #39FF88; }
+.lamp.red { background: #FF4B4B; box-shadow: 0 0 12px #FF4B4B; }
+.sbtns { grid-template-columns: repeat(3, 1fr) !important; }
 .digits { display: grid; grid-template-columns: repeat(11, 1fr); gap: 4px; }
-.digits button { height: 40px; border-radius: 8px; border: 1px solid var(--grid); background: #102A48; font-family: var(--font-head); font-size: 15px; cursor: pointer; padding: 0; }
+.digits button { height: 44px; border-radius: 8px; border: 1px solid var(--grid); background: #102A48; font-family: var(--font-head); font-size: 15px; cursor: pointer; padding: 0; }
 .digits button:active { background: #1B3F66; }
 .pingrow { display: flex; justify-content: center; }
-.pingbtn { display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 14px; border-radius: 10px; cursor: pointer; border: 1px solid var(--cyan); background: #0B2A47; color: var(--cyan); font: 700 13px var(--font-mono); }
+.pingbtn { display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 14px; border-radius: 10px; cursor: pointer; border: 1px solid var(--cyan); background: #0B2A47; color: var(--cyan); font: 700 13px var(--font-mono); }
 .pingbtn b { font-family: var(--font-head); font-weight: 400; color: var(--fg); }
 .pingbtn:disabled { opacity: .4; cursor: default; }
 .pingbtn:not(:disabled):active { transform: scale(.96); }
@@ -156,6 +169,7 @@ button:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
 .folder h1 { margin: 6px 0 4px; font-family: var(--font-head); font-weight: 400; font-size: clamp(32px, 11vw, 46px); line-height: 1; letter-spacing: .02em; }
 .folder .lead { margin: 0 0 16px; font-size: 14px; line-height: 1.5; color: #4A3F2C; max-width: 40ch; }
 .f-col { display: flex; flex-direction: column; gap: 10px; }
+.f-col > .inp { flex: none; }
 .btn {
   min-height: 52px; border-radius: 10px; border: 0; cursor: pointer; padding: 0 16px;
   font-family: var(--font-head); font-size: 15px; letter-spacing: .05em; text-transform: uppercase;
@@ -193,8 +207,8 @@ button:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
 .foot { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: #6B5C3E; }
 .foot button { border: 0; background: none; padding: 0; font: inherit; color: inherit; text-decoration: underline; cursor: pointer; }
 
-.over { position: fixed; inset: 0; z-index: 25; display: grid; place-items: center; padding: 16px; background: rgba(4,10,20,.72); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
-.card { width: 100%; max-width: 400px; text-align: center; display: flex; flex-direction: column; gap: 12px; align-items: stretch; }
+.over { position: fixed; inset: 0; z-index: 25; display: flex; overflow-y: auto; padding: 16px; background: rgba(4,10,20,.72); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.card { margin: auto; width: 100%; max-width: 400px; text-align: center; display: flex; flex-direction: column; gap: 12px; align-items: stretch; }
 .card .folder { text-align: left; }
 .big { font-family: var(--font-head); font-size: clamp(30px, 10vw, 44px); line-height: 1; }
 .big.red { color: #C4302B; }
@@ -206,18 +220,18 @@ button:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
 .newbox { padding: 9px 12px; border-left: 4px solid #C4302B; background: rgba(196,48,43,.08); font-size: 13px; line-height: 1.45; }
 .newbox b { color: #A3221D; }
 
-.update { position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 8px); transform: translateX(-50%); z-index: 50; display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 14px; border-radius: 10px; background: var(--yellow); color: #1A1400; font-weight: 700; font-size: 13px; box-shadow: 0 10px 24px -8px rgba(0,0,0,.8); max-width: calc(100% - 24px); }
+.update { position: fixed; left: 12px; right: 12px; margin: 0 auto; width: fit-content; top: calc(env(safe-area-inset-top, 0px) + 8px); z-index: 50; display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 14px; border-radius: 10px; background: var(--yellow); color: #1A1400; font-weight: 700; font-size: 13px; box-shadow: 0 10px 24px -8px rgba(0,0,0,.8); max-width: calc(100% - 24px); }
 .update button { border: 0; border-radius: 8px; padding: 8px 12px; background: #1A1400; color: var(--yellow); font: 700 13px var(--font-mono); cursor: pointer; }
 .trainrow { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #4A3F2C; }
-.trainrow button { width: 36px; height: 36px; border-radius: 8px; border: 2px solid var(--ink); background: #F6EBC8; font: 700 18px var(--font-mono); cursor: pointer; }
+.trainrow button { width: 44px; height: 44px; border-radius: 8px; border: 2px solid var(--ink); background: #F6EBC8; font: 700 18px var(--font-mono); cursor: pointer; }
 .trainrow b { min-width: 28px; text-align: center; font-family: var(--font-head); font-weight: 400; font-size: 18px; }
 .toast {
-  position: fixed; left: 50%; z-index: 40; top: calc(env(safe-area-inset-top, 0px) + 58px); transform: translate(-50%, -8px); opacity: 0; pointer-events: none;
-  max-width: calc(100% - 32px); padding: 9px 14px; border-radius: 8px; background: var(--manila); color: var(--ink); font-weight: 700; font-size: 13.5px; text-align: center;
+  position: fixed; left: 16px; right: 16px; margin: 0 auto; width: fit-content; z-index: 40; top: calc(env(safe-area-inset-top, 0px) + 58px); transform: translateY(-8px); opacity: 0; pointer-events: none; padding: 9px 14px; border-radius: 8px; background: var(--manila); color: var(--ink); font-weight: 700; font-size: 13.5px; text-align: center;
   transition: opacity .25s, transform .25s; box-shadow: 0 10px 24px -10px rgba(0,0,0,.8);
 }
-.toast.show { opacity: 1; transform: translate(-50%, 0); }
-@media (max-height: 700px) { .legend { display: none; } .pad.abs { grid-template-rows: repeat(3, 46px); } .key { min-height: 46px; } }
+.toast.show { opacity: 1; transform: none; }
+@media (max-width: 420px) { .digits { grid-template-columns: repeat(6, 1fr); } }
+@media (max-height: 700px) { .mcol i { font-size: 18px; line-height: 1.05; } .sbtns button { height: 54px; font-size: 30px; } .legend { display: none; } .pad.abs { grid-template-rows: repeat(3, 46px); } .key { min-height: 46px; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
 </head>
@@ -225,7 +239,7 @@ button:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
 
 <div class="app" id="app">
   <header class="bar">
-    <div class="case"><b id="caseTitle">Дело №1</b><span id="caseSub">Ход 0</span></div>
+    <div class="case"><b><span class="cnum" id="caseNum">Дело №1</span> <span class="cname" id="caseName"></span></b><span id="caseSub">Ход 0</span></div>
     <div class="clock idle" id="clock" hidden>0:00</div>
     <div class="role runner" id="roleTag">ВОР</div>
     <button class="icon-btn" id="btnSound" aria-label="Звук"></button>
@@ -236,32 +250,33 @@ button:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
   <main class="stage" id="stage"><canvas id="view" aria-label="Игровое поле"></canvas><div class="flash" id="flash"></div></main>
   <section class="panel">
     <div class="status" id="status"></div>
-    <div class="notebox" id="noteBox" hidden><span>📝 КОД С ЗАПИСКИ<br>скажи штурману</span><b id="noteCode">000</b></div>
+    <div class="notebox" id="noteBox" hidden><span>📝 ЗАПИСКА: код двери — это цифры серийного номера под номерами</span><b id="noteCode">0 0 0</b><span>Номер знает только штурман</span></div>
     <div class="safe" id="safeBox" hidden>
-      <div class="safe-top"><span>🔐 <b>СЕЙФ.</b> Опиши штурману эти 4 символа и жми их в том порядке, что он скажет.</span><span class="strikes" id="strikes">○○○</span></div>
+      <div class="safe-top"><span id="lamp" class="lamp"></span><span>🔐 <b>СЕЙФ.</b> Опиши штурману символы (2 из 6 — обманки) и цвет лампы. Жми в том порядке, что он скажет.</span><span class="strikes" id="strikes">○○○</span></div>
       <div class="sbtns glyph" id="sbtns"></div>
     </div>
     <div class="manual" id="manualBox" hidden>
-      <p><b>📕 Вор у сейфа!</b> Пусть опишет 4 символа. Найди столбик, где есть все четыре, и скажи порядок сверху вниз. 3 ошибки = тревога. <span id="safeProg"></span></p>
+      <p><b>📕 Вор у сейфа!</b> У него 6 символов, 2 из них обманки. Найди столбик, где есть 4 из них, и скажи порядок сверху вниз. <b id="lampRule"></b> <span id="safeProg"></span></p>
       <div class="mcols glyph" id="mcols"></div>
     </div>
     <div class="lock" id="lockBox" hidden>
-      <div class="lock-top"><span id="lockText">🔒 Дверь к добыче. Код знает только вор: он найдёт записку 📝 и продиктует.</span><div class="slots" id="slots"><i></i><i></i><i></i></div></div>
+      <div class="lock-top"><span id="lockText">🔒 Дверь к добыче.</span><div class="slots" id="slots"><i></i><i></i><i></i></div></div>
+      <div class="serial" id="serial" hidden></div>
       <div class="digits" id="digits"></div>
     </div>
     <div class="pad abs" id="padAbs" hidden>
       <span></span><button class="key" data-e="U" aria-label="Вверх">▲</button><span></span>
-      <button class="key" data-e="L" aria-label="Влево">◀</button><button class="key wait" data-e="w" aria-label="Ждать">⏸<small>ждать</small></button><button class="key" data-e="R" aria-label="Вправо">▶</button>
+      <button class="key" data-e="L" aria-label="Влево">◀</button><button class="key wait" data-e="w" aria-label="Ждать">⏸️<small>ждать</small></button><button class="key" data-e="R" aria-label="Вправо">▶</button>
       <span></span><button class="key" data-e="D" aria-label="Вниз">▼</button><span></span>
     </div>
     <div class="pad rot" id="padRot" hidden>
       <button class="key" data-e="l" aria-label="Повернуть налево">⟲<small>поворот налево</small></button>
       <button class="key" data-e="f" aria-label="Шаг вперёд">▲<small>вперёд</small></button>
       <button class="key" data-e="r" aria-label="Повернуть направо">⟳<small>поворот направо</small></button>
-      <button class="key wait" data-e="w" aria-label="Ждать">⏸<small>ждать</small></button>
+      <button class="key wait" data-e="w" aria-label="Ждать">⏸️<small>ждать</small></button>
     </div>
     <div class="pingrow" id="pingRow" hidden><button class="pingbtn" id="btnPing">📡 Пеленг: показать вора <b id="pingLeft">2</b></button></div>
-    <div class="legend" id="legend" hidden><span>💂 видит 2 клетки вперёд</span><span>📹 видит 3 клетки</span><span><b style="color:#FF3B3B">━</b> лазер горит всегда</span><span><b style="color:#FF5EDB">━</b> мигает, пунктир = выключен</span><span>☕ под пятном план не виден</span><span>Всё двигается только с ходом вора</span></div>
+    <div class="legend" id="legend" hidden><span id="lgGuard">💂 видит 2 клетки вперёд</span><span id="lgCam">📹 видит 3 клетки</span><span><b style="color:#FF3B3B">━</b> лазер горит всегда</span><span><b style="color:#FF5EDB">━</b> мигает, пунктир = выключен</span><span>☕ под пятном план не виден</span><span>Всё двигается только с ходом вора</span></div>
   </section>
 </div>
 
@@ -274,6 +289,7 @@ button:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
     <div class="f-col" id="vMain">
       <label class="lbl" for="inName">Твоя кличка</label>
       <input class="inp" id="inName" maxlength="12" autocomplete="nickname" placeholder="Как тебя звать">
+      <button class="btn y" id="btnResume" hidden>Вернуться к делу</button>
       <button class="btn" id="btnCreate">Создать комнату</button>
       <div class="join"><input class="inp code" id="inCode" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="КОД" aria-label="Код комнаты"><button class="btn alt" id="btnJoin">Войти</button></div>
       <button class="btn y" id="btnBlind">Вором вслепую: штурман — Claude в чате</button>
@@ -285,14 +301,14 @@ button:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
         <ul>
           <li><b>Вор</b> видит только клетки рядом с собой. Охрану, камеры и лазеры он не видит. Задача: найти добычу 💎 и уйти через выход 🚪.</li>
           <li><b>Штурман</b> видит план: охрану, камеры, лазеры, картины на стенах. Но <b>где вор, он не видит</b>. Вор описывает, что рядом («слева гитара, впереди тупик»), а штурман по ориентирам находит его клетку и ведёт голосом: «два вверх, стой, жди ход, теперь направо».</li>
-          <li>📡 <b>Пеленг</b> у штурмана показывает вора на 3 секунды. Его мало: от 3 раз за попытку в начале до 1 на поздних делах. Ещё вора выдаёт, когда он берёт 💎 или читает записку.</li>
+          <li>Вор не видит сквозь стены: только то, что в прямой видимости, а добычу, дверь, записку и выход — только вплотную. 📡 <b>Пеленг</b> у штурмана показывает вора на 3 секунды: 2 раза на первых делах, потом 1, с 11-го — ни одного.</li>
           <li>С 8-го дела на чертеже <b>кофейное пятно ☕</b>: что под ним, штурман не видит, и эту часть описывает вор. Охраны и лазеров под пятном нет. С 11-го здание больше, дальше больше охраны и камер.</li>
           <li>Охранники, камеры и мигающие лазеры двигаются, только когда вор делает шаг или ждёт. Можно спокойно думать.</li>
-          <li>Дверь к добыче открывается кодом. Код написан на записке 📝, и прочитать её может только вор. Вводит код штурман.</li>
+          <li>Дверь к добыче открывается кодом. Серийный номер двери есть только на чертеже у штурмана, а на записке 📝 у вора написано, какие цифры из него нужны («№2, №5, №1»). Собирайте код вместе, вводит вор у двери. Ошибка — минус 10 секунд.</li>
           <li>Картины, статуи, фикусы на стенах видят оба. По ним удобно ориентироваться: «ты у статуи? теперь налево».</li>
           <li>У вора нет «вверх-вниз»: только <b>поворот налево</b>, <b>поворот направо</b> и <b>шаг вперёд</b>, а картинка крутится вместе с ним. Штурман говорит «налево» и «направо» от лица вора, а не по карте. Отсюда весь хаос 😄</li>
-          <li>Врезался в стену — ход потрачен, а штурман узнает про «бум». Со 2-го дела идёт таймер тревоги: не успели — попались.</li>
-          <li>С 4-го дела у добычи <b>сейф со странными символами</b>. Видит их только вор, а инструкция только у штурмана. Описывайте как хотите: «вилка с хвостиком», «паук в шляпе». Три ошибки = тревога.</li>
+          <li>Каждое действие вора, даже поворот, — это ход: охрана, камеры и мигающие лазеры сдвигаются. Врезался в стену — ход потрачен и минус 5 секунд. Со 2-го дела таймер тревоги стартует, как только вор закрыл брифинг.</li>
+          <li>С 4-го дела у добычи <b>сейф</b>: у вора 6 странных символов, два из них обманки, а инструкция только у штурмана. Описывайте как хотите: «вилка с хвостиком», «паук в шляпе». С 6-го дела у сейфа лампа: красная — нажимать в обратном порядке. Ошибка — минус 15 секунд, лишняя ошибка — тревога.</li>
           <li>С 7-го дела ориентиры на стенах повторяются, а фонарик у вора иногда гаснет. С 9-го он светит слабее.</li>
           <li>Попались: пробуйте это же дело снова, но коды будут новые. Прошли: роли меняются, дальше новое дело.</li>
           <li><b>Вором вслепую</b>: играешь один за вора, а штурманом будет Claude в чате. Пришли ему код дела из верхней строки.</li>
@@ -347,7 +363,7 @@ button:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
 </div>
 
 <div class="toast" id="toast" role="status"></div>
-<div class="update" id="update" hidden><span>Вышла новая версия игры</span><button id="btnUpdate">Обновить</button></div>
+<div class="update" id="update" hidden><span id="updateText">Вышла новая версия игры</span><button id="btnUpdate">Обновить</button></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
@@ -356,7 +372,7 @@ button:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
 const SB_URL = 'https://ulfqprrjdyycznobirxw.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVsZnFwcnJqZHl5Y3pub2Jpcnh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM3OTg4NTMsImV4cCI6MjEwOTM3NDg1M30.zIjRlMNnqg59jZRprHcCoIkoBiIis45vw5vP4bhF_tc';
 const APP = 'heist';
-const BUILD = '2026-11-05.4';
+const BUILD = '2026-11-05.5';
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const store = {
@@ -375,57 +391,70 @@ const sess = {
 const DX = [0, 1, 0, -1], DY = [-1, 0, 1, 0];
 const VR = 2, CAM_R = 3;
 const LM = [['🖼️', 'картина'], ['🪴', 'фикус'], ['🗿', 'статуя'], ['📚', 'книги'], ['🏺', 'ваза'], ['🕰️', 'часы'], ['🎷', 'саксофон'], ['🧸', 'мишка'], ['🪞', 'зеркало'], ['🎸', 'гитара'], ['🐠', 'аквариум'], ['🦁', 'лев'], ['🛡️', 'щит'], ['🎻', 'скрипка'], ['🌵', 'кактус'], ['⚓', 'якорь'],
-  ['🏆', 'кубок'], ['🎹', 'пианино'], ['🦉', 'сова'], ['🌻', 'подсолнух'], ['🎭', 'маски'], ['🕯️', 'свеча'], ['📺', 'телевизор'], ['☎️', 'телефон'], ['🧯', 'огнетушитель'], ['🦖', 'динозавр'], ['🚲', 'велосипед'], ['🎯', 'мишень'], ['🦜', 'попугай'], ['🍷', 'вино']];
+  ['🐟', 'рыбка'], ['🎺', 'труба'], ['🌲', 'ёлка'], ['🗽', 'статуя свободы'], ['🦚', 'павлин'], ['🏆', 'кубок'], ['🎹', 'пианино'], ['🦉', 'сова'], ['🌻', 'подсолнух'], ['🎭', 'маски'], ['🕯️', 'свеча'], ['📺', 'телевизор'], ['☎️', 'телефон'], ['🧯', 'огнетушитель'], ['🦖', 'динозавр'], ['🚲', 'велосипед'], ['🎯', 'мишень'], ['🦜', 'попугай'], ['🍷', 'вино']];
 const PLACES = ['Ювелирка', 'Галерея', 'Казино', 'Музей', 'Банк', 'Особняк', 'Аукцион', 'Обсерватория', 'Казначейство', 'Пентхаус', 'Хранилище', 'Дворец', 'Яхт-клуб', 'Библиотека', 'Посольство', 'Ломбард', 'Ипподром', 'Театр'];
 function hashStr(s) { let h = 2166136261 | 0; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h | 0; }
 function RNG(s) { let h = hashStr(s); return () => { h = (h + 0x6D2B79F5) | 0; let t = Math.imul(h ^ (h >>> 15), h | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 const isRotate = L => true;
-const GLYPHS = ['Ѯ', 'Ϙ', 'Ѧ', 'ƛ', 'Ϟ', 'Ѭ', 'ϗ', 'Ͼ', 'Ѫ', 'Ҩ', 'Ψ', 'Ѿ', 'Ϫ', 'Ҋ', 'Ϯ', 'Ѣ', 'Ӭ', 'Ҿ', 'Ϡ', 'Ѱ', 'Ж', 'Ω', 'Ѩ', 'Ӂ'];
+const GLYPHS = ['Ѯ', 'Ѧ', 'ƛ', 'Ѭ', 'Ѫ', 'Ҩ', 'Ѿ', 'Ҋ', 'Ѣ', 'Ӭ', 'Ҿ', 'Ѩ', 'Ҕ', 'Ӄ', 'Ҁ', 'Ҵ', 'Ӡ', 'Ѻ', 'ξ', 'Ԅ', 'Ԉ', 'Ԏ', 'Ҹ', 'Ӿ'];
 function safeFor(seed, L, att) {
   const r = RNG(seed + '$' + L + '$' + att);
-  for (let tr = 0; tr < 80; tr++) {
+  const lamp = L >= 5 && r() < 0.5 ? 'red' : 'green', maxStrikes = L >= 5 ? 2 : 3;
+  for (let tr = 0; tr < 120; tr++) {
     const cols = [];
     for (let c = 0; c < 5; c++) { const pool = GLYPHS.slice(); const col = []; for (let k = 0; k < 6; k++) col.push(pool.splice(Math.floor(r() * pool.length), 1)[0]); cols.push(col); }
     const tc = Math.floor(r() * 5), idx = [0, 1, 2, 3, 4, 5]; for (let i = 5; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [idx[i], idx[j]] = [idx[j], idx[i]]; }
     const pick = idx.slice(0, 4).sort((a, b) => a - b).map(i => cols[tc][i]);
-    if (cols.some((col, c) => c !== tc && pick.every(g => col.includes(g)))) continue;
-    const shown = pick.slice(); for (let i = 3; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [shown[i], shown[j]] = [shown[j], shown[i]]; }
-    return { cols, tc, shown, order: pick.map(g => shown.indexOf(g)) };
+    const rest = GLYPHS.filter(g => !cols[tc].includes(g)), decoys = [];
+    while (decoys.length < 2) { const g = rest[Math.floor(r() * rest.length)]; if (!decoys.includes(g)) decoys.push(g); }
+    const shown = pick.concat(decoys);
+    if (cols.some((col, c) => c !== tc && shown.filter(g => col.includes(g)).length >= 4)) continue;
+    for (let i = 5; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [shown[i], shown[j]] = [shown[j], shown[i]]; }
+    const seq = lamp === 'red' ? pick.slice().reverse() : pick;
+    return { cols, tc, shown, lamp, maxStrikes, order: seq.map(g => shown.indexOf(g)) };
   }
   return null;
 }
+// door: the serial number is on the blueprint, the note says which digits make the code
+function doorFor(seed, L, att) {
+  const r = RNG(seed + '%' + L + '%' + att);
+  let serial = ''; for (let i = 0; i < 6; i++) serial += Math.floor(r() * 10);
+  const pos = []; while (pos.length < 3) { const k = Math.floor(r() * 6); if (!pos.includes(k)) pos.push(k); }
+  return { serial, pos, code: pos.map(k => serial[k]).join('') };
+}
+let curDoor = null;
 let curSafe = null;
 function diff(L) {
   return {
     cw: L < 1 ? 3 : L < 4 ? 4 : L < 10 ? 5 : L < 14 ? 6 : 7, ch: L < 1 ? 5 : L < 4 ? 6 : L < 10 ? 7 : L < 14 ? 8 : 9,
     lasers: L === 0 ? 2 : L < 3 ? 3 : L < 10 ? 4 : 6,
     blink: L === 0 ? 0 : L < 3 ? 2 : L < 10 ? Math.min(4, 2 + Math.floor(L / 4)) : 5,
-    lock: L >= 2, safe: L >= 3, dupes: L >= 6, flicker: L >= 6, vis: L >= 8 ? 1.6 : 2.45, timer: L >= 1,
+    lock: L >= 2, safe: L >= 3, dupes: L >= 2, flicker: L >= 6, vr: L >= 6 ? 3 : 2, camr: L >= 6 ? 4 : 3, vis: L >= 8 ? 1.6 : 2.45, timer: L >= 1,
     guards: L < 3 ? 0 : L < 5 ? 1 : L < 9 ? 2 : L < 14 ? 3 : 4,
     cams: L < 4 ? 0 : L < 8 ? 1 : L < 14 ? 2 : 3,
     stains: L < 7 ? 0 : L < 12 ? 1 : 2,
-    pings: L < 3 ? 3 : L < 8 ? 2 : 1,
+    pings: L < 3 ? 2 : L < 10 ? 1 : 0,
     rotate: isRotate(L)
   };
 }
 const NEWS = {
-  0: 'Штурман не видит вора, а у вора нет «вверх-вниз»: только поворот налево, поворот направо и шаг вперёд, и картинка крутится вместе с ним. Штурман, говори «налево/направо» от его лица! Вор, описывай ориентиры. Врезался в стену — ход потрачен.',
-  1: 'Теперь старт случайный, и штурман его не видит: вор, опиши, что вокруг, а штурман найдёт тебя на плане. Таймер тревоги ⏱ пошёл с первого хода. И мигающие лазеры (розовые у штурмана): горят через ход, пунктир — выключен. Переждать можно кнопкой ⏸.',
-  2: 'Дверь с кодом 🔒. Код на записке 📝: вор встаёт на неё и читает код вслух, штурман вводит.',
-  3: 'Сейф 🔐 у добычи! Вор видит 4 странных символа, штурман — инструкцию. Описывайте символы как сможете («вилка с хвостиком»), штурман найдёт столбик и скажет порядок. 3 ошибки = тревога. И первый охранник 💂: ходит туда-сюда и видит на 2 клетки вперёд, стрелка показывает его следующий шаг.',
-  4: 'Камера 📹. Поворачивается каждые 2 хода и видит на 3 клетки по прямой.',
-  5: 'Охранников теперь двое.',
-  6: 'Ориентиры на стенах теперь повторяются: две гитары, два кактуса… Ищите по сочетаниям. И у вора иногда гаснет фонарик.',
+  0: 'Штурман не видит вора, а у вора нет «вверх-вниз»: только поворот налево, поворот направо и шаг вперёд, и картинка крутится вместе с ним. Штурман, говори «налево/направо» от его лица! Каждое действие, даже поворот, — это ход. Врезался в стену — ход потрачен и −5 секунд.',
+  1: 'Старт случайный, и штурман его не видит: вор, опиши, что вокруг, а штурман найдёт тебя на плане. Таймер тревоги ⏱ пошёл, как только вор закрыл брифинг! И мигающие лазеры (розовые у штурмана): горят через ход, пунктир — выключен.',
+  2: 'Дверь с кодом 🔒. Серийный номер двери — только на чертеже у штурмана, а на записке 📝 у вора — какие цифры из него нужны. Собирайте код вместе, вводит вор у двери (ошибка −10 с). И ориентиры на стенах начинают повторяться.',
+  3: 'Сейф 🔐: у вора 6 странных символов, 2 из них обманки. Штурман ищет столбик, где есть 4 из них, и говорит порядок сверху вниз. Ошибка −15 с, 3 ошибки = тревога. И первый охранник 💂: ходит туда-сюда, видит на 2 клетки вперёд, стрелка — его следующий шаг.',
+  4: 'Камера 📹. Поворачивается каждые 2 хода.',
+  5: 'У сейфа лампа: если она КРАСНАЯ, нажимать снизу вверх. Лампу видит только вор, правило знает только штурман. Тревога уже со 2-й ошибки. Охранников двое.',
+  6: 'Охрана видит на 3 клетки, камеры на 4. И у вора иногда гаснет фонарик.',
   8: 'Фонарик у вора садится: он видит только соседние клетки.',
   7: 'Кофейное пятно ☕ на чертеже: штурман не видит, что под ним. Вор, эту часть описывай сам. Охраны и лазеров под пятном нет.',
-  10: 'Здание стало больше, лазеров тоже. Пеленг теперь один на попытку.',
+  10: 'Здание стало больше, лазеров тоже. Пеленга больше нет.',
   12: 'На чертеже уже два кофейных пятна.',
   14: 'Самое большое здание: четыре охранника и три камеры.'
 };
 const levelCache = new Map();
 function getLevel(seed, L) {
   const k = seed + '|' + L;
-  if (!levelCache.has(k)) { let lv = null; for (let tr = 0; tr < 70 && !lv; tr++) lv = tryGen(seed, L, tr, tr >= 40 ? (tr >= 58 ? 2 : 1) : 0); levelCache.set(k, lv); }
+  if (!levelCache.has(k)) { let lv = null; for (let tr = 0; tr < 230 && !lv; tr++) lv = tryGen(seed, L, tr, tr >= 200 ? (tr >= 218 ? 2 : 1) : 0); levelCache.set(k, lv); }
   return levelCache.get(k);
 }
 function bfs(lv, src, blocked, doorOpen) {
@@ -461,7 +490,7 @@ function tryGen(seed, L, tr, easy) {
     const opts = []; for (let k = 0; k < 4; k++) { const nx = cx + DX[k], ny = cy + DY[k]; if (nx >= 0 && ny >= 0 && nx < cw && ny < ch && !g[id(2 * cx + 1 + DX[k], 2 * cy + 1 + DY[k])]) opts.push(k); }
     if (opts.length) { const k = opts[Math.floor(r() * opts.length)]; g[id(2 * cx + 1 + DX[k], 2 * cy + 1 + DY[k])] = 1; }
   }
-  const lv = { L, seed, W, H, g, deco: {}, S: id(2 * sc[0] + 1, 2 * sc[1] + 1), E: id(W - 2, 1), face0: L === 0 ? 0 : Math.floor(r() * 4), gem: -1, door: -1, note: -1, lasers: [], guards: [], cams: [], rotate: d.rotate, pings: d.pings, stains: [], safe: d.safe, flicker: d.flicker, vis: d.vis, limit: 0, name: PLACES[(L + (hashStr(seed) >>> 0)) % PLACES.length], best: 0 };
+  const lv = { L, seed, W, H, g, deco: {}, S: id(2 * sc[0] + 1, 2 * sc[1] + 1), E: id(W - 2, 1), face0: L === 0 ? 0 : Math.floor(r() * 4), gem: -1, door: -1, note: -1, lasers: [], guards: [], cams: [], rotate: d.rotate, pings: d.pings, stains: [], safe: d.safe, flicker: d.flicker, vis: d.vis, vr: d.vr, camr: d.camr, limit: 0, name: PLACES[(L + (hashStr(seed) >>> 0)) % PLACES.length], best: 0 };
   const dS = bfs(lv, lv.S, null, true);
   if (L > 0) {
     // exit: a random cell among the far half from the start
@@ -500,13 +529,14 @@ function tryGen(seed, L, tr, easy) {
   shuffle(wallC);
   const lmOrder = shuffle(LM.map((_, i) => i)), lmPos = [];
   for (const t of wallC) {
-    if (lmPos.length >= Math.min(LM.length, Math.max(8, Math.round(wallC.length / 6)))) break;
+    if (lmPos.length >= Math.min(LM.length, Math.max(6, Math.round(wallC.length / 9)))) break;
     const x = t % W, y = (t / W) | 0;
     if (lmPos.some(p => Math.max(Math.abs(p % W - x), Math.abs(((p / W) | 0) - y)) < 2)) continue;
     let li = lmOrder[lmPos.length % lmOrder.length];
     if (d.dupes && lmPos.length > 3 && r() < 0.3) li = lv.deco[lmPos[Math.floor(r() * lmPos.length)]];
     lv.deco[t] = li; lmPos.push(t);
   }
+  if (d.dupes && lmPos.length > 4 && new Set(lmPos.map(t => lv.deco[t])).size === lmPos.length) lv.deco[lmPos[lmPos.length - 1]] = lv.deco[lmPos[0]];
   // lasers sit in corridors between two cells
   const edges = [];
   for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) { const t = id(x, y); if (g[t] && (x % 2 === 0 || y % 2 === 0) && !special.has(t) && dS[t] > 2) edges.push(t); }
@@ -544,17 +574,24 @@ function tryGen(seed, L, tr, easy) {
     const x = t % W, y = (t / W) | 0, dirs = [];
     for (let k = 0; k < 4; k++) {
       const nx = x + DX[k], ny = y + DY[k]; if (nx < 0 || ny < 0 || nx >= W || ny >= H || !g[id(nx, ny)]) continue;
-      let ok = true, c = t; for (let s = 0; s < CAM_R; s++) { const cx2 = c % W + DX[k], cy2 = ((c / W) | 0) + DY[k]; if (cx2 < 0 || cy2 < 0 || cx2 >= W || cy2 >= H) break; c = id(cx2, cy2); if (!g[c]) break; if (dS[c] < 3 || c === lv.E) ok = false; }
+      let ok = true, c = t; for (let s = 0; s < lv.camr; s++) { const cx2 = c % W + DX[k], cy2 = ((c / W) | 0) + DY[k]; if (cx2 < 0 || cy2 < 0 || cx2 >= W || cy2 >= H) break; c = id(cx2, cy2); if (!g[c]) break; if (dS[c] < 3 || c === lv.E) ok = false; }
       if (ok) dirs.push(k);
     }
     if (!dirs.length || lv.cams.some(c => Math.abs(c.i % W - x) + Math.abs(((c.i / W) | 0) - y) < 4)) continue;
     lv.cams.push({ i: t, dirs: dirs.length === 1 ? [dirs[0], -1] : shuffle(dirs).slice(0, 3) });
   }
+  if (lv.guards.length && !easy) {
+    const pathT = new Set(), walk = (a, b) => { const dd = bfs(lv, b, null, true); let c = a; pathT.add(c); for (let n = 0; n < 400 && c !== b; n++) { const x = c % W, y = (c / W) | 0; let nx = -1; for (let k = 0; k < 4; k++) { const q = id(x + DX[k], y + DY[k]); if (x + DX[k] >= 0 && y + DY[k] >= 0 && x + DX[k] < W && y + DY[k] < H && g[q] && dd[q] === dd[c] - 1) { nx = q; break; } } if (nx < 0) break; c = nx; pathT.add(c); } };
+    if (lv.note >= 0) { walk(lv.S, lv.note); walk(lv.note, lv.gem); } else walk(lv.S, lv.gem);
+    walk(lv.gem, lv.E);
+    const threat = lv.guards.some(gd => { const P = 2 * (gd.path.length - 1); for (let t = 0; t < P; t++) { const q = guardAt(gd, t); if (pathT.has(q.i) || ray(lv, q.i, q.face, lv.vr).some(c => pathT.has(c))) return true; } return false; });
+    if (!threat) return null;
+  }
   // coffee stains: parts of the blueprint the navigator cannot read (never over hazards or key tiles)
   if (d.stains) {
     const haz = new Set(lv.lasers.map(l => l.i));
-    for (const gd of lv.guards) { const P = 2 * (gd.path.length - 1); for (let t = 0; t < P; t++) { const q = guardAt(gd, t); haz.add(q.i); ray(lv, q.i, q.face, VR).forEach(c => haz.add(c)); } }
-    for (const c of lv.cams) { haz.add(c.i); for (const k of c.dirs) if (k >= 0) ray(lv, c.i, k, CAM_R).forEach(x => haz.add(x)); }
+    for (const gd of lv.guards) { const P = 2 * (gd.path.length - 1); for (let t = 0; t < P; t++) { const q = guardAt(gd, t); haz.add(q.i); ray(lv, q.i, q.face, lv.vr).forEach(c => haz.add(c)); } }
+    for (const c of lv.cams) { haz.add(c.i); for (const k of c.dirs) if (k >= 0) ray(lv, c.i, k, lv.camr).forEach(x => haz.add(x)); }
     for (let si = 0; si < d.stains; si++) for (let at = 0; at < 80; at++) {
       const sw = 3 + Math.floor(r() * 2), sh = 3 + Math.floor(r() * 2), x0 = 1 + Math.floor(r() * (W - sw - 1)), y0 = 1 + Math.floor(r() * (H - sh - 1));
       const cells = []; let ok = true;
@@ -562,12 +599,13 @@ function tryGen(seed, L, tr, easy) {
       if (!ok || cells.filter(t => g[t]).length < 4) continue;
       lv.stains.push({ x0, y0, w: sw, h: sh, set: new Set(cells) }); break;
     }
+    if (!easy && lv.stains.length < d.stains) return null;
   }
   if (seenBy(lv, 0, lv.S)) return null;
   const sol = solve(lv); if (!sol) return null;
-  if (!easy && sol.length > (L < 10 ? Math.min(110, 34 + L * 8) : L < 14 ? 130 : 160)) return null;
+  if (!easy && sol.length > (L < 10 ? Math.min(160, 48 + L * 12) : L < 14 ? 190 : 230)) return null;
   lv.best = sol.length; lv.sol = sol;
-  if (d.timer) lv.limit = Math.round((50 + sol.length * Math.max(2.8, 4.4 - L * 0.1) + (lv.door >= 0 ? 25 : 0) + (lv.safe ? 40 : 0)) / 5) * 5;
+  if (d.timer) lv.limit = Math.round((30 + sol.length * Math.max(2, 2.6 - L * 0.04) + (lv.door >= 0 ? 20 : 0) + (lv.safe ? 30 : 0)) / 5) * 5;
   return lv;
 }
 function guardAt(gd, t) {
@@ -583,8 +621,8 @@ function stepT(lv, c, k) { const x = c % lv.W + DX[k], y = ((c / lv.W) | 0) + DY
 function ray(lv, from, k, len) { const out = []; let c = from; for (let s = 0; s < len; s++) { c = stepT(lv, c, k); if (c < 0 || !lv.g[c] || c === lv.door) break; out.push(c); } return out; }
 function seenBy(lv, t, x) {
   curW = lv.W;
-  for (const gd of lv.guards) { const { i, face } = guardAt(gd, t); if (i === x || ray(lv, i, face, VR).includes(x)) return 'guard'; }
-  for (const c of lv.cams) { const k = camDir(c, t); if (k >= 0 && ray(lv, c.i, k, CAM_R).includes(x)) return 'cam'; }
+  for (const gd of lv.guards) { const { i, face } = guardAt(gd, t); if (i === x || ray(lv, i, face, lv.vr || VR).includes(x)) return 'guard'; }
+  for (const c of lv.cams) { const k = camDir(c, t); if (k >= 0 && ray(lv, c.i, k, lv.camr || CAM_R).includes(x)) return 'cam'; }
   for (const l of lv.lasers) if (l.i === x && laserOn(l, t)) return 'laser';
   return '';
 }
@@ -599,47 +637,52 @@ function solve(lv, from) {
   let P = 2;
   for (const gd of lv.guards) P = lcm(P, 2 * (gd.path.length - 1));
   for (const c of lv.cams) P = lcm(P, 2 * c.dirs.length);
-  const N = lv.W * lv.H, key = (p, t, f) => ((p * P + t) << 2) | f;
-  const p0 = from ? from.pos : lv.S, t0 = from ? from.t % P : 0, f0 = from ? ((from.gem ? 1 : 0) | (from.note || from.open ? 2 : 0)) : 0;
-  const prev = new Map(), q = [[p0, t0, f0]]; prev.set(key(p0, t0, f0), null);
+  const key = (p, d, t, f) => ((((p * 4 + d) * P) + t) << 2) | f;
+  const p0 = from ? from.pos : lv.S, d0 = from ? from.face : (lv.face0 || 0), t0 = from ? from.t % P : 0, f0 = from ? ((from.gem ? 1 : 0) | (from.note || from.open ? 2 : 0)) : 0;
+  const prev = new Map(), q = [[p0, d0, t0, f0]]; prev.set(key(p0, d0, t0, f0), null);
+  const ACTS = ['f', 'l', 'r', 'w'];
   for (let h = 0; h < q.length; h++) {
-    const [p, t, f] = q[h];
+    const [p, d, t, f] = q[h];
     if (p === lv.E && (f & 1)) {
-      const path = []; let k = key(p, t, f);
+      const path = []; let k = key(p, d, t, f);
       while (prev.get(k)) { const [pk, e] = prev.get(k); path.push(e); k = pk; }
       return path.reverse();
     }
-    for (let k = -1; k < 4; k++) {
-      const np = k < 0 ? p : stepT(lv, p, k);
-      if (np < 0 || !lv.g[np]) continue;
-      if (np === lv.door && !(f & 2)) continue;
+    for (const a of ACTS) {
+      let np = p, nd = d;
+      if (a === 'f') { np = stepT(lv, p, d); if (np < 0 || !lv.g[np] || (np === lv.door && !(f & 2))) continue; }
+      else if (a === 'l') nd = (d + 3) % 4; else if (a === 'r') nd = (d + 1) % 4;
       const nt = t + 1;
       if (caughtCheck(lv, p, np, nt)) continue;
       let nf = f; if (np === lv.gem) nf |= 1; if (np === lv.note || lv.note < 0) nf |= 2;
-      const kk = key(np, nt % P, nf); if (prev.has(kk)) continue;
-      prev.set(kk, [key(p, t, f), k < 0 ? 'w' : 'URDL'[k]]); q.push([np, nt % P, nf]);
+      const kk = key(np, nd, nt % P, nf); if (prev.has(kk)) continue;
+      prev.set(kk, [key(p, d, t, f), a]); q.push([np, nd, nt % P, nf]);
     }
-    if (q.length > 400000) return null;
+    if (q.length > 900000) return null;
   }
   return null;
 }
-function codeFor(seed, L, att) { return String(100 + ((hashStr(seed + '#' + L + '#' + att) >>> 0) % 900)); }
+function codeFor(seed, L, att) { return doorFor(seed, L, att).code; }
 
 /* ---------- simulation of one attempt: a list of events ---------- */
-const EV_RE = /^([URDLwlrfbz]|k[0-3]|[ox][a-z0-9]{3,8})$/;
+const EV_RE = /^([URDLwlrfbzg]|k[0-5]|[ox][a-z0-9]{3,8})$/;
 function newSim(lv) { return { pos: lv.S, face: lv.face0 || 0, t: 0, gem: false, note: lv.note < 0, open: lv.door < 0, caught: '', won: false, trail: [lv.S], wrong: 0, steps: 0, bumps: 0, sp: 0, strikes: 0 }; }
 function cloneSim(s) { return Object.assign({}, s, { trail: s.trail.slice() }); }
 function applyEv(lv, s, e) {
   if (s.caught || s.won || !EV_RE.test(e)) return false;
-  if (e === 'l') { s.face = (s.face + 3) % 4; return true; }
-  if (e === 'r') { s.face = (s.face + 1) % 4; return true; }
+  if (e === 'g') { if (s.go) return false; s.go = true; return true; }
+  if (e === 'l' || e === 'r') {
+    s.face = (s.face + (e === 'l' ? 3 : 1)) % 4; s.t++; s.steps++;
+    const why = caughtCheck(lv, s.pos, s.pos, s.t); if (why) s.caught = why;
+    return true;
+  }
   if (e[0] === 'o') { if (s.open) return false; s.open = true; return true; }
   if (e[0] === 'x') { s.wrong++; return true; }
   if (e === 'z') { s.caught = 'time'; return true; }
   if (e[0] === 'k') {
     if (!lv.safe || !curSafe || s.pos !== lv.gem || s.gem) return false;
     if (+e[1] === curSafe.order[s.sp]) { s.sp++; if (s.sp >= 4) s.gem = true; }
-    else { s.strikes++; if (s.strikes >= 3) s.caught = 'safe'; }
+    else { s.strikes++; if (s.strikes >= curSafe.maxStrikes) s.caught = 'safe'; }
     return true;
   }
   let np = s.pos;
@@ -685,6 +728,7 @@ function sync(full) {
   const k = s.code + '|' + s.lvl;
   if (!lv || lvKey !== k) { lv = getLevel(s.code, s.lvl); lvKey = k; full = true; viewX = lv.S % lv.W; viewY = (lv.S / lv.W) | 0; viewA = 0; codeBuf = ''; }
   curSafe = lv.safe ? safeFor(s.code, s.lvl, s.att) : null;
+  curDoor = lv.door >= 0 ? doorFor(s.code, s.lvl, s.att) : null;
   if (full || s.att !== simAtt || s.log.length < simLen) {
     sim = simulate(lv, s.log); simAtt = s.att; simLen = s.log.length; codeBuf = '';
     if (full) { viewX = sim.pos % lv.W; viewY = (sim.pos / lv.W) | 0; viewA = -sim.face * Math.PI / 2; }
@@ -696,16 +740,17 @@ function sync(full) {
 function evFx(e, was) {
   const r = role();
   if (e[0] === 'o') { sfxUnlock(); toast('🔓 Дверь открыта!'); codeBuf = ''; flashSlots('ok'); return; }
-  if (e[0] === 'x') { sfxBad(); toast(r === 'runner' ? 'Штурман ввёл неверный код' : 'Неверный код'); codeBuf = ''; flashSlots('bad'); return; }
-  if (e === 'l' || e === 'r') { sfxTurn(); return; }
+  if (e[0] === 'x') { sfxBad(); toast(r === 'nav' ? '✖ Вор ввёл неверный код (−10 с)' : '✖ Неверный код! −10 секунд'); codeBuf = ''; flashSlots('bad'); return; }
+  if ((e === 'l' || e === 'r') && !sim.caught) { sfxTurn(); return; }
   if (e[0] === 'k') {
     if (sim.caught) { sfxAlarm(); buzz(200); $('#flash').classList.remove('on'); void $('#flash').offsetWidth; $('#flash').classList.add('on'); return; }
-    if (sim.strikes > was.strikes) { sfxBad(); buzz(60); toast(`✖ Не тот символ! Ошибок: ${sim.strikes} из 3`); }
+    if (sim.strikes > was.strikes) { sfxBad(); buzz(60); toast(`✖ Не тот символ! −15 с. Ошибок: ${sim.strikes} из ${curSafe.maxStrikes}`); }
     else if (sim.gem) { sfxGem(); toast('🔓 Сейф открыт! 💎 у вора. Теперь к выходу 🚪'); }
     else sfxKey();
     return;
   }
-  if (e === 'b' && !sim.caught) { sfxBump(); buzz(30); toast(r === 'nav' ? `💥 БУМ! ${mode === 'online' ? partnerName() : 'Вор'} врезался в стену` : '💥 Стена! Ход потрачен'); return; }
+  if (e === 'g') return;
+  if (e === 'b' && !sim.caught) { sfxBump(); buzz(30); toast(r === 'nav' ? `💥 БУМ! ${mode === 'online' ? partnerName() : 'Вор'} врезался в стену (−5 с)` : '💥 Стена! Ход потрачен, −5 секунд'); return; }
   if (sim.caught) { sfxAlarm(); buzz(200); $('#flash').classList.remove('on'); void $('#flash').offsetWidth; $('#flash').classList.add('on'); return; }
   if (sim.gem && !was.gem) { sfxGem(); toast('💎 Добыча у вора! Теперь к выходу 🚪'); }
   if (sim.note && !was.note && lv.note >= 0) { sfxNote(); if (r !== 'nav') toast('📝 Записка! Продиктуй код штурману'); else toast(`📝 ${partnerName()} нашёл записку, спроси код`); }
@@ -721,7 +766,6 @@ function act(e) {
     e = 'b'; if (!applyEv(lv, cloneSim(sim), e)) return;   // walking into a wall costs a move
   }
   pushEv(e);
-  if (mode === 'solo' && solo.blind && lv.door >= 0 && sim.note && !sim.open && !sim.caught && !sim.won) setTimeout(() => handleCode(rid5(), codeFor(solo.code, solo.lvl, solo.att)), 500);
 }
 function pushEv(e) {
   const s = src(); if (!s.log.length && !s.t0) s.t0 = Date.now();
@@ -731,7 +775,8 @@ function pushEv(e) {
 }
 function pressSafe(i) { if (!amWriter() || !sim || sim.caught || sim.won || !lv || !lv.safe || sim.pos !== lv.gem || sim.gem) return; ensureAudio(); pushEv('k' + i); }
 function limitMs() { return lv && lv.limit ? lv.limit * 1000 * (mode === 'solo' && solo && solo.blind ? 2 : 1) : 0; }
-function timerLeft() { const s = src(); if (!s || !lv || !lv.limit || mode === 'idle') return null; if (!s.t0) return limitMs(); return limitMs() - (Date.now() - s.t0); }
+function penaltyMs() { return sim ? (sim.bumps * 5 + sim.strikes * 15 + sim.wrong * 10) * 1000 : 0; }
+function timerLeft() { const s = src(); if (!s || !lv || !lv.limit || mode === 'idle') return null; if (!s.t0) return limitMs(); const now = (mode === 'solo' && menuAt) ? menuAt : Date.now(); return limitMs() - (now - s.t0) - penaltyMs(); }
 function handleCode(rid, val) {
   const s = src(); if (!s || !sim || sim.open || sim.caught || sim.won) return;
   if (s.log.some(x => x.slice(1) === rid && (x[0] === 'o' || x[0] === 'x'))) return;
@@ -742,6 +787,7 @@ function submitCode(val) {
   const s = src(); if (!s) return;
   const rid = rid5();
   if (amWriter()) { handleCode(rid, val); return; }
+  if (role() !== 'nav') return;
   net.pending = { rid, val, lvl: s.lvl, att: s.att, n: 0 };
   sendPending();
   toast('Код отправлен, проверяем…');
@@ -762,7 +808,7 @@ function nextLevel() {
   const s = src(); if (!s) return;
   if (mode === 'solo' && !s.blind) { trainLvl = Math.min(60, s.lvl + 2); store.set('trainLvl', trainLvl); renderTrain(); }
   s.lvl++; s.att = 0; s.log = []; s.t0 = 0; s.best = Math.max(s.best || 0, s.lvl); saveSrc();
-  const b = store.get('best', 0); if (s.lvl > b) store.set('best', s.lvl);
+  const b = store.get('best', 0); if (s.lvl > b && (mode === 'online' || s.blind)) store.set('best', s.lvl);
   if (mode === 'online') send('state', { room: s });
   $('#won').hidden = true; sync(true);
 }
@@ -773,38 +819,45 @@ function ui() {
   if (!s || !lv) return;
   const online = mode === 'online', ready = !online || started(net.room);
   document.title = `Ограбление · Дело №${s.lvl + 1}`;
-  $('#caseTitle').textContent = `Дело №${s.lvl + 1} · ${lv.name}`;
+  $('#caseNum').textContent = `Дело №${s.lvl + 1}`; $('#caseName').textContent = lv.name;
   let sub = `Ход ${sim.t}`;
   if (mode === 'solo' && solo.blind) sub += ` · код дела ${s.code}`;
   if (s.att) sub += ` · попытка ${s.att + 1}`;
   if (online) { const pid = net.room.seats[1 - Math.max(0, mySeat())]; sub += pid && net.online.has(pid) ? ` · ${partnerName()} в сети` : pid ? ` · ${partnerName()} не в сети` : ' · ждём брата'; }
   $('#caseSub').textContent = sub;
-  const tag = $('#roleTag'); tag.className = 'role ' + r; tag.textContent = r === 'runner' ? '🥷 ВОР' : r === 'nav' ? '🗺️ ШТУРМАН' : 'ТРЕНИРОВКА';
+  const tag = $('#roleTag'); tag.className = 'role ' + r; tag.innerHTML = r === 'runner' ? '🥷<span class="rt"> ВОР</span>' : r === 'nav' ? '🗺️<span class="rt"> ШТУРМАН</span>' : '🔎<span class="rt"> ТРЕНИРОВКА</span>';
   const canMove = (r === 'runner' || r === 'both') && ready && !sim.caught && !sim.won;
   $('#padAbs').hidden = !(canMove && !lv.rotate); $('#padRot').hidden = !(canMove && lv.rotate);
   const showNote = (r === 'runner' || r === 'both') && sim.note && lv.note >= 0 && !sim.open;
-  $('#noteBox').hidden = !showNote; if (showNote) $('#noteCode').textContent = codeFor(s.code, s.lvl, s.att);
+  $('#noteBox').hidden = !showNote; if (showNote) $('#noteCode').textContent = curDoor.pos.map(k => '№' + (k + 1)).join(' ');
   const atSafe = lv.safe && curSafe && sim.pos === lv.gem && !sim.gem && !sim.caught && !sim.won && ready;
   $('#safeBox').hidden = !(atSafe && (r === 'runner' || r === 'both'));
   if (!$('#safeBox').hidden) {
-    $('#sbtns').innerHTML = curSafe.shown.map((g, i) => `<button data-i="${i}" class="${curSafe.order.indexOf(i) < sim.sp ? 'done' : ''}"><small>${i + 1}</small>${g}</button>`).join('');
-    $('#strikes').textContent = '✖'.repeat(sim.strikes) + '○'.repeat(3 - sim.strikes);
+    $('#sbtns').innerHTML = curSafe.shown.map((g, i) => `<button data-i="${i}" class="${curSafe.order.indexOf(i) >= 0 && curSafe.order.indexOf(i) < sim.sp ? 'done' : ''}"><small>${i + 1}</small>${g}</button>`).join('');
+    $('#strikes').textContent = '✖'.repeat(sim.strikes) + '○'.repeat(Math.max(0, curSafe.maxStrikes - sim.strikes));
+    $('#lamp').className = 'lamp ' + curSafe.lamp;
   }
   $('#manualBox').hidden = !(atSafe && (r === 'nav' || r === 'both'));
   if (!$('#manualBox').hidden) {
     $('#mcols').innerHTML = curSafe.cols.map((col, c) => `<div class="mcol"><em>${c + 1}</em>${col.map(g => `<i>${g}</i>`).join('')}</div>`).join('');
-    $('#safeProg').textContent = `Нажато ${sim.sp} из 4, ошибок ${sim.strikes}.`;
+    $('#safeProg').textContent = `Нажато ${sim.sp} из 4, ошибок ${sim.strikes} из ${curSafe.maxStrikes}.`;
+    $('#lampRule').textContent = s.lvl >= 5 ? 'Если у вора лампа КРАСНАЯ — порядок снизу вверх!' : '';
   }
-  const showLock = (r === 'nav' || r === 'both') && lv.door >= 0 && ready && !sim.caught && !sim.won && !atSafe;
-  $('#lockBox').hidden = !showLock;
-  if (showLock) {
-    $('#lockText').textContent = sim.open ? '🔓 Дверь открыта. Ведите вора к добыче.' : sim.note ? '🔒 Вор прочитал записку. Спроси код и введи его.' : '🔒 Дверь к добыче. Код на записке 📝: доведи вора до неё.';
-    $('#digits').style.display = sim.open ? 'none' : '';
+  const live = ready && !sim.caught && !sim.won && lv.door >= 0 && !sim.open && !atSafe;
+  const nearDoor = live && Math.abs(sim.pos % lv.W - lv.door % lv.W) + Math.abs(((sim.pos / lv.W) | 0) - ((lv.door / lv.W) | 0)) === 1;
+  const thiefLock = (r === 'runner' || r === 'both') && nearDoor, navLock = (r === 'nav' || r === 'both') && live;
+  $('#lockBox').hidden = !(thiefLock || navLock);
+  if (thiefLock || navLock) {
+    $('#lockText').textContent = thiefLock ? '🔒 Ты у двери. Введи 3 цифры кода.' : sim.note ? '🔒 Вор прочитал записку: спроси номера цифр и назови ему цифры серийника. Вводит он сам.' : '🔒 Серийный номер двери (виден только тебе). Какие цифры нужны — написано на записке 📝 у вора.';
+    $('#serial').hidden = !navLock;
+    if (navLock) $('#serial').innerHTML = curDoor.serial.split('').map((d, i) => `<div><b>${d}</b><small>№${i + 1}</small></div>`).join('');
+    $('#digits').style.display = thiefLock ? '' : 'none'; $('#slots').style.display = thiefLock ? '' : 'none';
     renderSlots();
   }
+  $('#lgGuard').textContent = `💂 видит ${lv.vr} клетки вперёд`; $('#lgCam').textContent = `📹 видит ${lv.camr} клетки`;
   $('#legend').hidden = !(r === 'nav' || r === 'both') || !lv || atSafe || (lv.guards.length + lv.cams.length + lv.lasers.length === 0);
   const ak0 = s.code + '|' + s.lvl + '|' + s.att;
-  if (pingKey !== ak0) { pingKey = ak0; pingLeft = lv.pings; pingUntil = 0; }
+  if (pingKey !== ak0) { pingKey = ak0; const sv = store.get('ping', null); pingLeft = sv && sv.k === ak0 ? sv.n : lv.pings; pingUntil = 0; }
   $('#pingRow').hidden = !(r === 'nav' && ready && !sim.caught && !sim.won);
   $('#pingLeft').textContent = '×' + pingLeft; $('#btnPing').disabled = pingLeft <= 0;
   let st = '';
@@ -843,9 +896,9 @@ function showBrief() {
   const blind = mode === 'solo' && solo.blind;
   const pn = esc(mode === 'online' ? partnerName() : blind ? 'Claude' : '');
   $('#briefRole').innerHTML = r === 'runner'
-    ? `<span class="e">🥷</span><div><b>Ты — ВОР</b><p>Видишь только то, что рядом. Охрану, камеры и лазеры не видишь. ${pn} — штурман: видит план, но не видит тебя. Рассказывай, что вокруг (картины, статуи, тупики), и делай, что он говорит. Найди 💎 и уходи через 🚪. Кнопки: поворот налево, поворот направо, шаг вперёд.${lv.safe ? ' У добычи сейф: опиши символы штурману.' : ''}${blind ? ` <b>Напиши Claude: «дело №${s.lvl + 1}, код ${esc(s.code)}»</b> и что видишь на старте. Код от двери тут откроется сам, когда встанешь на записку.` : ''}</p></div>`
+    ? `<span class="e">🥷</span><div><b>Ты — ВОР</b><p>Видишь только то, что рядом. Охрану, камеры и лазеры не видишь. ${pn} — штурман: видит план, но не видит тебя. Рассказывай, что вокруг (картины, статуи, тупики), и делай, что он говорит. Найди 💎 и уходи через 🚪. Кнопки: поворот налево, поворот направо, шаг вперёд — каждая тратит ход.${lv.safe ? ' У добычи сейф: опиши символы штурману.' : ''}${blind ? ` <b>Напиши Claude: «дело №${s.lvl + 1}, код ${esc(s.code)}»</b> и что видишь на старте.` : ''}</p></div>`
     : r === 'nav'
-    ? `<span class="e">🗺️</span><div><b>Ты — ШТУРМАН</b><p>Видишь план с охраной, камерами и лазерами, но <b>не видишь, где ${pn || 'вор'}</b>. Спрашивай, что он видит рядом, ищи эти ориентиры на плане и веди его голосом к 💎 и к выходу 🚪. 📡 Пеленг покажет его ${lv.pings} ${lv.pings === 1 ? 'раз' : 'раза'} за попытку.${lv.door >= 0 ? ' Код от двери вводишь ты.' : ''}${lv.safe ? ' Инструкция к сейфу тоже у тебя.' : ''} Помни: «налево» для вора — это от его лица, а он может смотреть куда угодно.</p></div>`
+    ? `<span class="e">🗺️</span><div><b>Ты — ШТУРМАН</b><p>Видишь план с охраной, камерами и лазерами, но <b>не видишь, где ${pn || 'вор'}</b>. Спрашивай, что он видит рядом, ищи эти ориентиры на плане и веди его голосом к 💎 и к выходу 🚪. ${lv.pings ? `📡 Пеленг покажет его ${lv.pings} ${lv.pings === 1 ? 'раз' : 'раза'} за попытку.` : 'Пеленга нет.'}${lv.door >= 0 ? ' Серийный номер двери есть только у тебя.' : ''}${lv.safe ? ' Инструкция к сейфу тоже у тебя.' : ''} Помни: «налево» для вора — это от его лица, а он может смотреть куда угодно.</p></div>`
     : `<span class="e">🔎</span><div><b>Тренировка</b><p>Ты видишь всё сам: так удобно посмотреть уровни. Настоящая игра — вдвоём по звонку.</p></div>`;
   const n = NEWS[s.lvl];
   $('#briefNew').hidden = !n; if (n) $('#briefNew').innerHTML = `<b>Новое:</b> ${n}`;
@@ -867,16 +920,17 @@ $('#digits').addEventListener('click', e => {
   renderSlots();
   if (codeBuf.length === 3) { const v = codeBuf; setTimeout(() => submitCode(v), 200); }
 });
-document.querySelectorAll('.pad .key').forEach(b => b.addEventListener('click', () => { ensureAudio(); act(b.dataset.e); }));
+document.querySelectorAll('.pad .key').forEach(b => b.addEventListener('click', () => { ensureAudio(); act(b.dataset.e); b.blur(); }));
 document.addEventListener('keydown', e => {
   if (e.target && e.target.tagName === 'INPUT') return;
+  if (!$('#menu').hidden || !$('#brief').hidden || !$('#caught').hidden || !$('#won').hidden) return;
   const r = role(); if (r !== 'runner' && r !== 'both') return;
   const m = lv && lv.rotate ? { ArrowLeft: 'l', ArrowRight: 'r', ArrowUp: 'f', ' ': 'w' } : { ArrowUp: 'U', ArrowDown: 'D', ArrowLeft: 'L', ArrowRight: 'R', ' ': 'w' };
   if (m[e.key]) { e.preventDefault(); act(m[e.key]); }
 });
 $('#sbtns').addEventListener('click', e => { const b = e.target.closest('button'); if (b) pressSafe(+b.dataset.i); });
-$('#btnPing').addEventListener('click', () => { if (pingLeft <= 0 || !sim || sim.caught || sim.won) return; ensureAudio(); pingLeft--; pingUntil = performance.now() + 3000; sfxPingRadar(); ui(); });
-$('#btnBrief').addEventListener('click', () => { ensureAudio(); $('#brief').hidden = true; });
+$('#btnPing').addEventListener('click', () => { if (pingLeft <= 0 || !sim || sim.caught || sim.won) return; ensureAudio(); pingLeft--; store.set('ping', { k: pingKey, n: pingLeft }); pingUntil = performance.now() + 3000; sfxPingRadar(); ui(); });
+$('#btnBrief').addEventListener('click', () => { ensureAudio(); $('#brief').hidden = true; const s = src(); if (s && amWriter() && !s.log.length && sim && !sim.caught) pushEv('g'); });
 $('#btnRetry').addEventListener('click', () => { ensureAudio(); restartLevel(); });
 $('#btnNext').addEventListener('click', () => { ensureAudio(); nextLevel(); });
 let toastT = 0;
@@ -890,7 +944,7 @@ let CWp = 300, CHp = 300, dpr = 1;
 function resize() {
   const r = stage.getBoundingClientRect();
   dpr = Math.min(3, window.devicePixelRatio || 1);
-  CWp = Math.max(160, Math.floor(r.width)); CHp = Math.max(160, Math.floor(r.height));
+  CWp = Math.max(1, Math.floor(r.width)); CHp = Math.max(1, Math.floor(r.height));
   cv.width = CWp * dpr; cv.height = CHp * dpr; cv.style.width = CWp + 'px'; cv.style.height = CHp + 'px';
 }
 new ResizeObserver(resize).observe(stage);
@@ -920,8 +974,8 @@ function drawNav(now) {
   const t = sim.t; curW = W;
   // hazard zones
   const zone = (cells, col) => { ctx.fillStyle = col; for (const c of cells) ctx.fillRect(ox + (c % W) * T + 1, oy + ((c / W) | 0) * T + 1, T - 2, T - 2); };
-  for (const c of lv.cams) { const k = camDir(c, t); if (k >= 0) zone(ray(lv, c.i, k, CAM_R), 'rgba(255,170,40,.32)'); const k2 = camDir(c, t + 1); if (k2 >= 0 && k2 !== k) { ctx.save(); ctx.setLineDash([3, 3]); ctx.strokeStyle = 'rgba(255,170,40,.55)'; for (const cc of ray(lv, c.i, k2, CAM_R)) ctx.strokeRect(ox + (cc % W) * T + 3, oy + ((cc / W) | 0) * T + 3, T - 6, T - 6); ctx.restore(); } }
-  for (const gd of lv.guards) { const { i, face } = guardAt(gd, t); zone([i, ...ray(lv, i, face, VR)], 'rgba(255,60,60,.30)'); }
+  for (const c of lv.cams) { const k = camDir(c, t); if (k >= 0) zone(ray(lv, c.i, k, lv.camr), 'rgba(255,170,40,.32)'); const k2 = camDir(c, t + 1); if (k2 >= 0 && k2 !== k) { ctx.save(); ctx.setLineDash([3, 3]); ctx.strokeStyle = 'rgba(255,170,40,.55)'; for (const cc of ray(lv, c.i, k2, lv.camr)) ctx.strokeRect(ox + (cc % W) * T + 3, oy + ((cc / W) | 0) * T + 3, T - 6, T - 6); ctx.restore(); } }
+  for (const gd of lv.guards) { const { i, face } = guardAt(gd, t); zone([i, ...ray(lv, i, face, lv.vr)], 'rgba(255,60,60,.30)'); }
   // walls
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     const c = y * W + x; if (lv.g[c]) continue;
@@ -1001,21 +1055,25 @@ function drawRunner(now) {
   ctx.fillStyle = '#020604'; ctx.fillRect(0, 0, CWp, CHp);
   ctx.save(); ctx.translate(cx, cy); if (lv.rotate) ctx.rotate(viewA);
   const px = Math.round(viewX), py = Math.round(viewY);
+  const sx0 = sim.pos % W, sy0 = (sim.pos / W) | 0;
+  const los = (x1, y1) => { const n = Math.ceil(Math.max(Math.abs(x1 - sx0), Math.abs(y1 - sy0)) * 4); for (let i = 1; i < n; i++) { const cx2 = Math.round(sx0 + (x1 - sx0) * i / n), cy2 = Math.round(sy0 + (y1 - sy0) * i / n); if ((cx2 === x1 && cy2 === y1) || (cx2 === sx0 && cy2 === sy0)) continue; const c2 = cy2 * W + cx2; if (!lv.g[c2] || (c2 === lv.door && !sim.open)) return false; } return true; };
   const er = lv.rotate ? -viewA : 0;
   for (let dy = -R - 1; dy <= R + 1; dy++) for (let dx = -R - 1; dx <= R + 1; dx++) {
     const x = px + dx, y = py + dy;
     const X = (x - viewX) * T - T / 2, Y = (y - viewY) * T - T / 2;
-    const dist = Math.hypot(x - viewX, y - viewY); if (dist > SEE + 0.6) continue;
-    const a = Math.max(0, Math.min(1, (SEE + 0.6 - dist) / 0.9));
+    const dist = Math.hypot(x - viewX, y - viewY); if (dist > SEE + 0.35) continue;
+    const a = Math.max(0, Math.min(1, (SEE + 0.35 - dist) / 0.5));
     ctx.globalAlpha = a;
     if (x < 0 || y < 0 || x >= W || y >= H) { ctx.fillStyle = '#0A2414'; ctx.fillRect(X, Y, T, T); continue; }
     const c = y * W + x;
+    if (!los(x, y)) { ctx.fillStyle = '#010302'; ctx.fillRect(X, Y, T, T); continue; }
+    const near = Math.abs(x - sx0) <= 1 && Math.abs(y - sy0) <= 1;
     if (lv.g[c]) {
       ctx.fillStyle = '#12492A'; ctx.fillRect(X, Y, T, T);
       ctx.strokeStyle = 'rgba(57,255,136,.16)'; ctx.lineWidth = 1; ctx.strokeRect(X + .5, Y + .5, T - 1, T - 1);
-      if (c === lv.E) { ctx.fillStyle = 'rgba(57,255,136,.25)'; ctx.fillRect(X + 2, Y + 2, T - 4, T - 4); emoji('🚪', X + T / 2, Y + T / 2, T * 0.6, er); }
-      if (c === lv.gem && !sim.gem) emoji('💎', X + T / 2, Y + T / 2, T * 0.6, er);
-      if (c === lv.note) emoji('📝', X + T / 2, Y + T / 2, T * 0.55, er);
+      if (c === lv.E && near) { ctx.fillStyle = 'rgba(57,255,136,.25)'; ctx.fillRect(X + 2, Y + 2, T - 4, T - 4); emoji('🚪', X + T / 2, Y + T / 2, T * 0.6, er); }
+      if (c === lv.gem && !sim.gem && near) emoji(lv.safe ? '🔐' : '💎', X + T / 2, Y + T / 2, T * 0.6, er);
+      if (c === lv.note && near) emoji('📝', X + T / 2, Y + T / 2, T * 0.55, er);
       if (c === lv.door) { if (!sim.open) { ctx.fillStyle = '#C9A800'; ctx.fillRect(X + 3, Y + 3, T - 6, T - 6); emoji('🔒', X + T / 2, Y + T / 2, T * 0.5, er); } else emoji('🔓', X + T / 2, Y + T / 2, T * 0.42, er); }
     } else {
       ctx.fillStyle = '#04120A'; ctx.fillRect(X, Y, T, T);
@@ -1058,7 +1116,7 @@ function tickClock() {
   el.textContent = `⏱ ${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
   el.classList.toggle('idle', !started0); el.classList.toggle('low', started0 && sec <= 20 && !sim.caught && !sim.won);
   if (started0 && sec <= 10 && sec !== lastClockSec && !sim.caught && !sim.won) { lastClockSec = sec; tone(1500, 0.05, { type: 'square', v: 0.05 }); }
-  if (started0 && tl <= 0 && amWriter() && !sim.caught && !sim.won) pushEv('z');
+  if (started0 && tl <= 0 && amWriter() && !sim.caught && !sim.won && !(mode === 'solo' && !$('#menu').hidden)) pushEv('z');
 }
 function frame(now) {
   requestAnimationFrame(frame);
@@ -1363,8 +1421,17 @@ async function shareInvite() {
 
 /* ---------- menu ---------- */
 function hideOverlays(keepBrief) { $('#caught').hidden = true; $('#won').hidden = true; if (!keepBrief) $('#brief').hidden = true; }
+let menuAt = 0;
+function inGame() { return (mode === 'solo' && !!solo) || (mode === 'online' && net.room && started(net.room)); }
+function closeMenu() {
+  $('#menu').hidden = true;
+  const s = src(); if (mode === 'solo' && s && s.t0 && menuAt && !sim.caught && !sim.won) { s.t0 += Date.now() - menuAt; saveSrc(); }
+  menuAt = 0; if (lv) ui();
+}
 function openMenu() {
+  if (mode === 'solo') menuAt = Date.now();
   if (net.on) { showRoomPanel(); return; }
+  $('#btnResume').hidden = !inGame();
   $('#vMain').hidden = false; $('#vRoom').hidden = true; $('#menu').hidden = false;
   const n1 = $('#inName'); if (document.activeElement !== n1) n1.value = myName();
   const b = store.get('best', 0); $('#bestLine').textContent = b ? `Лучшее: дошли до дела №${b + 1}` : 'Лучшее дело: —';
@@ -1385,6 +1452,7 @@ function startSolo(blind) {
   lv = null; lvKey = ''; briefedKey = ''; hideOverlays();
   $('#menu').hidden = true; sync(true); keepAwake();
 }
+$('#btnResume').addEventListener('click', () => { ensureAudio(); closeMenu(); });
 $('#btnSolo').addEventListener('click', () => { ensureAudio(); startSolo(false); });
 $('#btnBlind').addEventListener('click', () => { ensureAudio(); startSolo(true); });
 $('#btnCreate').addEventListener('click', () => { ensureAudio(); createRoom(); });
@@ -1405,9 +1473,9 @@ function onNameInput(e) {
 $('#inName').addEventListener('input', onNameInput); $('#inName2').addEventListener('input', onNameInput);
 $('#btnShare').addEventListener('click', shareInvite);
 $('#btnLeave').addEventListener('click', () => { leaveRoom(); openMenu(); });
-$('#btnRoomClose').addEventListener('click', () => { $('#menu').hidden = true; ui(); });
+$('#btnRoomClose').addEventListener('click', () => { closeMenu(); });
 $('#btnMenu').addEventListener('click', () => {
-  if (!$('#menu').hidden) { if ((mode === 'online' && started(net.room)) || mode === 'solo') $('#menu').hidden = true; return; }
+  if (!$('#menu').hidden) { if (inGame()) closeMenu(); return; }
   openMenu();
 });
 document.addEventListener('visibilitychange', () => { if (document.hidden) return; if (mode !== 'idle') keepAwake(); if (net.on && net.ch) { hello(); ping(); } });
@@ -1425,11 +1493,15 @@ async function checkUpdate() {
 $('#btnUpdate').addEventListener('click', () => { location.reload(); });
 setTimeout(checkUpdate, 1500); setInterval(checkUpdate, 90000);
 let warnedBuild = false;
-function checkPeerBuild(v) { if (v && v !== BUILD && !warnedBuild) { warnedBuild = true; toast('У напарника другая версия игры! Обновите страницу у обоих'); checkUpdate(); } }
+function checkPeerBuild(v) {
+  if (v === BUILD || warnedBuild) return;
+  warnedBuild = true; checkUpdate();
+  $('#updateText').textContent = 'У напарника другая версия игры. Обновите страницу у обоих'; $('#update').hidden = false;
+}
 
 /* ---------- boot ---------- */
 renderSoundBtn(); resize();
-try { if (/\.test$|^localhost$|^127\./.test(location.hostname)) window.__game = { setRole: v => { forceRole = v; }, setSafe: v => { curSafe = v; }, safeFor, pressSafe, get curSafe() { return curSafe; }, getLevel, solve, simulate, codeFor, act, submitCode, restartLevel, nextLevel, net, role, amWriter, get sim() { return sim; }, get lv() { return lv; }, src: () => src(), get myId() { return myId; } }; } catch (e) {}
+try { if (/\.test$|^localhost$|^127\./.test(location.hostname)) window.__game = { setRole: v => { forceRole = v; }, setSafe: v => { curSafe = v; }, doorFor, LM, get curDoor() { return curDoor; }, safeFor, pressSafe, get curSafe() { return curSafe; }, getLevel, solve, simulate, codeFor, act, submitCode, restartLevel, nextLevel, net, role, amWriter, get sim() { return sim; }, get lv() { return lv; }, src: () => src(), get myId() { return myId; } }; } catch (e) {}
 requestAnimationFrame(frame);
 const code0 = codeFromHash();
 if (code0) joinRoom(code0); else openMenu();
