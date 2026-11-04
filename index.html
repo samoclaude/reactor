@@ -1,0 +1,1736 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0C0E21">
+<meta name="description" content="Цепные реакции на одном телефоне или онлайн с другом.">
+<meta property="og:title" content="Реактор">
+<meta property="og:description" content="Цепные реакции на одном телефоне или онлайн с другом. Заходи в комнату!">
+<meta property="og:type" content="website">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3CradialGradient id='g' cx='.35' cy='.3' r='.75'%3E%3Cstop offset='0' stop-color='%23fff'/%3E%3Cstop offset='.35' stop-color='%23FFB13B'/%3E%3Cstop offset='1' stop-color='%23a5620a'/%3E%3C/radialGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='16' fill='%230C0E21'/%3E%3Ccircle cx='32' cy='32' r='18' fill='url(%23g)'/%3E%3C/svg%3E">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}[hidden]{display:none!important}img{max-width:100%}</style>
+<title>Реактор</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@600;800;900&display=swap">
+<style>
+@property --turn { syntax: '<color>'; inherits: true; initial-value: #FFB13B; }
+:root {
+  /* Layout: one-screen arcade. HUD on top, the reactor board fills the middle, turn controls at the bottom.
+     Ambient glow and the board frame take the colour of whoever moves next. Single dark look by choice. */
+  --bg: #0C0E21;
+  --surface: #15193A;
+  --cell: #1B2048;
+  --line: #2A316A;
+  --fg: #EEF0FF;
+  --muted: #8B91C6;
+  --ok: #5BE3A1;
+  --p0: #FFB13B;
+  --p1: #47C9FF;
+  --p2: #FF5C93;
+  --p3: #A6E64B;
+  --turn: #FFB13B;
+  --font-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --font-ui: "Onest", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color-scheme: dark;
+  transition: --turn .5s ease;
+}
+* { box-sizing: border-box; }
+html { height: 100%; box-sizing: border-box; }
+body {
+  height: 100%; margin: 0; overflow: hidden;
+  background: var(--bg); color: var(--fg);
+  font-family: var(--font-ui); font-size: 14px;
+  touch-action: manipulation; -webkit-user-select: none; user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+button { font-family: inherit; color: inherit; }
+button:focus-visible, summary:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+
+.glow {
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background:
+    radial-gradient(120% 50% at 50% -12%, color-mix(in srgb, var(--turn) 22%, transparent), transparent 62%),
+    radial-gradient(90% 38% at 50% 112%, color-mix(in srgb, var(--turn) 13%, transparent), transparent 70%);
+}
+.app {
+  position: relative; z-index: 1; height: 100%;
+  max-width: 560px; margin: 0 auto;
+  display: flex; flex-direction: column; gap: 9px;
+  padding-block: 10px 12px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+/* top bar */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand {
+  display: flex; align-items: center; gap: 9px;
+  font-family: var(--font-display); font-weight: 800; font-size: 13px;
+  letter-spacing: .2em; text-transform: uppercase;
+}
+.brand i { width: 10px; height: 10px; border-radius: 50%; background: var(--turn); box-shadow: 0 0 12px var(--turn); }
+.top-actions { display: flex; gap: 8px; }
+.icon-btn {
+  width: 40px; height: 40px; border-radius: 12px; cursor: pointer;
+  display: grid; place-items: center;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface) 85%, transparent);
+}
+.icon-btn:active { transform: scale(.94); }
+
+/* players */
+.players { display: grid; grid-template-columns: repeat(var(--n, 2), minmax(0, 1fr)); gap: 8px; }
+.chip {
+  --c: var(--fg);
+  display: flex; align-items: center; gap: 9px; min-width: 0;
+  padding: 8px 11px; border-radius: 14px;
+  background: var(--surface); border: 1px solid var(--line);
+  transition: transform .25s, border-color .25s, box-shadow .25s, opacity .3s;
+}
+.chip.active { border-color: var(--c); box-shadow: 0 0 0 1px var(--c), 0 10px 26px -12px var(--c); transform: translateY(-1px); }
+.chip.out { opacity: .32; }
+.chip.out .chip-name { text-decoration: line-through; }
+.chip.offline .chip-orb { filter: grayscale(1); opacity: .45; }
+.chip-orb {
+  width: 16px; height: 16px; border-radius: 50%; flex: none;
+  background: radial-gradient(circle at 34% 30%, #fff 0 9%, var(--c) 46%, color-mix(in srgb, var(--c) 55%, #000) 100%);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--c) 70%, transparent);
+}
+.chip-text { min-width: 0; display: flex; flex-direction: column; gap: 1px; line-height: 1.15; }
+.chip-name { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chip-wins { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chip-count { margin-left: auto; font-family: var(--font-display); font-weight: 800; font-size: 19px; color: var(--c); font-variant-numeric: tabular-nums; }
+.players.compact .chip {
+  display: grid; grid-template-columns: auto 1fr; grid-template-areas: "orb count" "text text";
+  row-gap: 3px; column-gap: 6px; padding: 7px 9px;
+}
+.players.compact .chip-orb { grid-area: orb; width: 13px; height: 13px; }
+.players.compact .chip-count { grid-area: count; justify-self: end; font-size: 16px; }
+.players.compact .chip-text { grid-area: text; }
+.players.compact .chip-name { font-size: 12px; }
+.players.compact .chip-wins { display: none; }
+.players.compact .chip.me .chip-name::after { content: " · ты"; color: var(--muted); font-weight: 500; }
+
+.meter { display: flex; gap: 3px; height: 5px; border-radius: 99px; overflow: hidden; }
+.meter span { flex: 1 1 0; min-width: 4px; border-radius: 99px; transition: flex-grow .45s ease, opacity .3s; }
+
+/* board */
+.stage { flex: 1; min-height: 0; display: grid; place-items: center; position: relative; }
+.board-wrap {
+  position: relative; padding: 6px; border-radius: 20px;
+  background: var(--surface);
+  box-shadow:
+    0 0 0 1.5px color-mix(in srgb, var(--turn) 62%, transparent),
+    0 0 48px -6px color-mix(in srgb, var(--turn) 42%, transparent),
+    inset 0 0 0 1px var(--line);
+}
+#board { display: block; touch-action: none; border-radius: 14px; cursor: pointer; }
+.combo {
+  --cc: var(--turn);
+  position: absolute; left: 50%; top: 16%;
+  transform: translate(-50%, -50%) scale(.7); opacity: 0;
+  pointer-events: none; text-align: center; line-height: 1;
+  transition: opacity .3s, transform .3s cubic-bezier(.2,.9,.3,1.4);
+}
+.combo.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+.combo small { display: block; margin-bottom: 4px; font: 600 11px var(--font-ui); letter-spacing: .28em; text-transform: uppercase; color: var(--fg); opacity: .85; }
+.combo span {
+  display: inline-block;
+  font-family: var(--font-display); font-weight: 900; font-size: clamp(36px, 12vw, 60px);
+  color: var(--cc); text-shadow: 0 0 26px var(--cc), 0 2px 0 rgba(0,0,0,.35);
+}
+.combo span.bump { animation: bump .22s ease-out; }
+@keyframes bump { 0% { transform: scale(1.25); } 100% { transform: scale(1); } }
+
+/* bottom */
+.bottom { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 42px; }
+.status { display: flex; align-items: center; gap: 9px; min-width: 0; font-size: 15px; }
+.status .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--turn); box-shadow: 0 0 10px var(--turn); }
+.status b { font-weight: 700; color: var(--c, var(--fg)); }
+.status .hint { color: var(--muted); }
+#statusText { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pill {
+  display: inline-flex; align-items: center; gap: 7px; flex: none;
+  height: 40px; padding: 0 14px; border-radius: 99px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--surface);
+  font-weight: 600; font-size: 13px;
+}
+.pill:disabled { opacity: .35; cursor: default; }
+.pill:not(:disabled):active { transform: scale(.96); }
+.pill b { font-family: var(--font-display); letter-spacing: .12em; font-size: 12px; }
+
+/* sheet (start / menu / room) */
+.overlay {
+  position: fixed; inset: 0; z-index: 20;
+  display: flex; align-items: flex-end; justify-content: center;
+  pointer-events: none;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(to bottom, transparent 30%, color-mix(in srgb, var(--bg) 82%, transparent) 62%);
+}
+.sheet {
+  pointer-events: auto; width: 100%; max-width: 520px;
+  padding: 20px 18px 16px; border-radius: 26px;
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  border: 1px solid var(--line);
+  -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+  box-shadow: 0 -20px 60px -30px rgba(0,0,0,.8);
+  animation: rise .45s cubic-bezier(.2,.8,.2,1);
+  max-height: calc(100% - 24px); overflow-y: auto;
+}
+.view { display: flex; flex-direction: column; gap: 15px; }
+@keyframes rise { from { transform: translateY(26px); opacity: 0; } to { transform: none; opacity: 1; } }
+.logo { margin: 0; font-family: var(--font-display); font-weight: 900; font-size: clamp(32px, 10vw, 46px); line-height: 1; letter-spacing: .01em; display: flex; align-items: center; }
+.logo .o {
+  display: inline-block; width: .74em; height: .74em; margin: 0 .04em; border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #fff 0 9%, var(--p0) 46%, color-mix(in srgb, var(--p0) 55%, #000) 100%);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--p0) 70%, transparent);
+  animation: spinGlow 3.2s ease-in-out infinite;
+}
+@keyframes spinGlow { 50% { box-shadow: 0 0 34px color-mix(in srgb, var(--p1) 70%, transparent); background: radial-gradient(circle at 34% 30%, #fff 0 9%, var(--p1) 46%, color-mix(in srgb, var(--p1) 55%, #000) 100%); } }
+.tag { margin: -4px 0 0; color: var(--muted); font-size: 14px; line-height: 1.45; max-width: 44ch; text-wrap: pretty; }
+.field { display: flex; flex-direction: column; gap: 8px; }
+.label { font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.seg { display: grid; grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr)); gap: 6px; }
+.seg button {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 9px 4px 8px; border-radius: 13px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--cell);
+  transition: background .2s, border-color .2s, color .2s;
+}
+.seg b { font-family: var(--font-display); font-weight: 800; font-size: 16px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.seg span { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.seg button[aria-pressed="true"] { background: var(--fg); border-color: var(--fg); color: var(--bg); }
+.seg button[aria-pressed="true"] span { color: color-mix(in srgb, var(--bg) 70%, var(--fg)); }
+.actions { display: flex; gap: 8px; }
+.cta {
+  flex: 1; height: 54px; border: 0; border-radius: 17px; cursor: pointer;
+  background: var(--p0); color: #1F1404;
+  font: 800 16px var(--font-display); letter-spacing: .05em; text-transform: uppercase;
+  box-shadow: 0 12px 30px -12px var(--p0);
+}
+.cta.blue { background: var(--p1); color: #04131C; box-shadow: 0 12px 30px -12px var(--p1); }
+.cta:active { transform: scale(.98); }
+.ghost {
+  height: 54px; padding: 0 18px; border-radius: 17px; cursor: pointer;
+  border: 1px solid var(--line); background: transparent; font-weight: 600; font-size: 15px;
+}
+.ghost.small { height: 40px; padding: 0 14px; border-radius: 12px; font-size: 13px; }
+.ghost.ready { background: var(--p1); border-color: var(--p1); color: #04131C; }
+.inp {
+  width: 100%; min-width: 0; height: 50px; padding: 0 14px; border-radius: 14px;
+  border: 1px solid var(--line); background: var(--cell); color: var(--fg);
+  font: 500 16px var(--font-ui); -webkit-user-select: text; user-select: text;
+}
+.inp::placeholder { color: var(--muted); }
+.inp:focus { outline: 2px solid var(--p1); outline-offset: 1px; }
+.join-row { display: flex; gap: 8px; }
+.join-row .inp { flex: 1; font-family: var(--font-display); font-weight: 800; letter-spacing: .3em; text-transform: uppercase; text-align: center; }
+.join-row .ghost { height: 50px; }
+.rules { border-top: 1px solid var(--line); padding-top: 12px; }
+.rules summary { cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; font-weight: 600; font-size: 14px; }
+.rules summary::-webkit-details-marker { display: none; }
+.rules summary::after { content: "+"; font-family: var(--font-display); color: var(--muted); font-size: 18px; }
+.rules[open] summary::after { content: "–"; }
+.rules ul { margin: 10px 0 2px; padding-left: 18px; display: flex; flex-direction: column; gap: 7px; color: color-mix(in srgb, var(--fg) 82%, var(--muted)); line-height: 1.45; font-size: 13.5px; }
+.rules li::marker { color: var(--p0); }
+.foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.link-btn { border: 0; background: none; padding: 4px 0; color: var(--muted); font-size: 12px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+
+/* room panel */
+.room-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.code { font-family: var(--font-display); font-weight: 900; font-size: clamp(40px, 13vw, 56px); letter-spacing: .14em; line-height: 1.05; -webkit-user-select: text; user-select: text; }
+.link-box { display: flex; gap: 8px; align-items: center; }
+.link-text {
+  flex: 1; min-width: 0; padding: 11px 12px; border-radius: 12px;
+  background: var(--cell); border: 1px solid var(--line); color: var(--muted); font-size: 13px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; -webkit-user-select: all; user-select: all;
+}
+.seats { display: flex; flex-direction: column; gap: 6px; }
+.seat { --c: var(--fg); display: flex; align-items: center; gap: 10px; min-width: 0; padding: 10px 12px; border-radius: 14px; background: var(--cell); border: 1px solid var(--line); }
+.seat-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.seat.empty .seat-name { color: var(--muted); font-weight: 500; }
+.seat.empty .chip-orb { opacity: .35; }
+.seat-state { margin-left: auto; flex: none; font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.seat-state.on::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+.net-note { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.45; }
+.net-note.err { color: var(--p2); }
+
+/* win */
+.overlay.center { align-items: center; pointer-events: auto; background: color-mix(in srgb, var(--bg) 72%, transparent); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.card {
+  --wc: var(--p0);
+  width: 100%; max-width: 400px; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  padding: 26px 20px 20px; border-radius: 28px;
+  background: var(--surface); border: 1px solid color-mix(in srgb, var(--wc) 45%, var(--line));
+  box-shadow: 0 30px 90px -30px var(--wc);
+  animation: rise .5s cubic-bezier(.2,.8,.2,1);
+}
+.eyebrow { font-size: 11px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); }
+.win-name { font-family: var(--font-display); font-weight: 900; font-size: clamp(38px, 12vw, 56px); line-height: 1; color: var(--wc); text-shadow: 0 0 34px color-mix(in srgb, var(--wc) 55%, transparent); overflow-wrap: anywhere; }
+.win-sub { margin-top: -8px; font-size: 15px; color: color-mix(in srgb, var(--fg) 85%, var(--muted)); }
+.tally { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; width: 100%; }
+.tally-item { flex: 1 1 0; min-width: 64px; max-width: 110px; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 10px 6px; border-radius: 14px; background: var(--cell); }
+.tally-item b { font-family: var(--font-display); font-weight: 800; font-size: 26px; color: var(--c); font-variant-numeric: tabular-nums; line-height: 1.1; }
+.tally-item span { font-size: 12px; color: var(--muted); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.win-stat { font-size: 13px; color: var(--muted); line-height: 1.5; max-width: 34ch; }
+.win-stat b { color: var(--fg); font-weight: 600; }
+.card .actions { width: 100%; }
+
+.toast {
+  position: fixed; left: 50%; z-index: 30;
+  top: calc(env(safe-area-inset-top, 0px) + 64px);
+  transform: translate(-50%, -8px); opacity: 0; pointer-events: none;
+  max-width: calc(100% - 32px); padding: 10px 16px; border-radius: 99px;
+  background: var(--fg); color: var(--bg); font-weight: 600; font-size: 14px; text-align: center;
+  transition: opacity .25s, transform .25s;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+
+
+<div class="glow" aria-hidden="true"></div>
+
+<div class="app">
+  <header class="top">
+    <div class="brand"><i></i>Реактор</div>
+    <div class="top-actions">
+      <button class="icon-btn" id="btnSound" aria-label="Звук"></button>
+      <button class="icon-btn" id="btnMenu" aria-label="Меню">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <section class="players" id="players" aria-label="Игроки"></section>
+  <div class="meter" id="meter" aria-hidden="true"></div>
+
+  <main class="stage" id="stage">
+    <div class="board-wrap" id="boardWrap">
+      <canvas id="board" aria-label="Игровое поле"></canvas>
+      <div class="combo" id="combo" aria-hidden="true"><small>цепь</small><span id="comboNum">×4</span></div>
+    </div>
+  </main>
+
+  <footer class="bottom">
+    <div class="status"><span class="dot"></span><span id="statusText">Демо-партия</span></div>
+    <button class="pill" id="btnUndo" disabled>
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
+      Отменить ход
+    </button>
+    <button class="pill" id="btnRoom" hidden>Комната <b id="roomPillCode"></b></button>
+  </footer>
+</div>
+
+<div class="overlay" id="sheet">
+  <div class="sheet" role="dialog" aria-label="Меню игры">
+    <div class="view" id="vMain">
+      <h1 class="logo">РЕАКТ<span class="o" aria-hidden="true"></span>Р</h1>
+      <p class="tag">Цепные реакции на одном телефоне или онлайн. Ходите по очереди, копите атомы и взрывайте клетки соперника.</p>
+
+      <div class="field">
+        <div class="label">Где играем</div>
+        <div class="seg" id="segWhere" style="--cols:2">
+          <button id="wl" data-v="local"><b>Рядом</b><span>один телефон</span></button>
+          <button id="wo" data-v="online"><b>Онлайн</b><span>каждый со своего</span></button>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="label">Сколько игроков</div>
+        <div class="seg" id="segPlayers">
+          <button id="m2" data-v="2"><b>2</b><span>вдвоём</span></button>
+          <button id="m3" data-v="3"><b>3</b><span>втроём</span></button>
+          <button id="m4" data-v="4"><b>4</b><span>вчетвером</span></button>
+          <button id="mbot" data-v="bot"><b>1</b><span>с ботом</span></button>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="label">Размер поля</div>
+        <div class="seg" id="segSize" style="--cols:3">
+          <button id="ss" data-v="s"><b>5×8</b><span>быстрая</span></button>
+          <button id="sm" data-v="m"><b>6×9</b><span>классика</span></button>
+          <button id="sl" data-v="l"><b>7×11</b><span>долгая</span></button>
+        </div>
+      </div>
+
+      <div class="field" id="fName" hidden>
+        <label class="label" for="inName">Твоё имя</label>
+        <input class="inp" id="inName" maxlength="12" autocomplete="nickname" placeholder="Как тебя звать">
+      </div>
+
+      <div class="actions" id="localActions">
+        <button class="ghost" id="btnContinue" hidden>Продолжить</button>
+        <button class="cta" id="btnStart">Играть</button>
+      </div>
+
+      <div class="view" id="onlineActions" hidden>
+        <button class="cta blue" id="btnCreate">Создать комнату</button>
+        <div class="join-row">
+          <input class="inp" id="inCode" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="код" aria-label="Код комнаты">
+          <button class="ghost" id="btnJoin">Войти</button>
+        </div>
+      </div>
+
+      <details class="rules" id="rules">
+        <summary>Как играть</summary>
+        <ul>
+          <li>Нажми на пустую клетку или на свою, чтобы добавить туда атом.</li>
+          <li>Клетка взрывается, когда атомов в ней столько, сколько у неё соседей: в углу 2, у края 3, в середине 4. Точки внизу клетки показывают этот запас.</li>
+          <li>Взрыв отправляет по атому в каждую соседнюю клетку и перекрашивает её в твой цвет. Если соседняя тоже переполнится, взорвётся и она. Так и начинаются цепные реакции.</li>
+          <li>Быстро крутящиеся атомы готовы взорваться от следующего хода. Следи и за своими, и за чужими.</li>
+          <li>Кто остался без атомов, выбывает. Последний на поле забирает победу.</li>
+        </ul>
+      </details>
+      <div class="foot">
+        <span class="label" id="scoreLine"></span>
+        <button class="link-btn" id="btnReset">Сбросить счёт</button>
+      </div>
+    </div>
+
+    <div class="view" id="vRoom" hidden>
+      <div class="room-top">
+        <div>
+          <div class="eyebrow">Комната</div>
+          <div class="code" id="roomCode">····</div>
+        </div>
+        <button class="ghost small" id="btnLeave">Выйти</button>
+      </div>
+      <div class="link-box">
+        <span class="link-text" id="roomLink"></span>
+        <button class="pill" id="btnShare">Поделиться</button>
+      </div>
+      <div class="seats" id="seats"></div>
+      <p class="net-note" id="netNote">Подключаюсь…</p>
+      <div class="field">
+        <label class="label" for="inName2">Твоё имя</label>
+        <input class="inp" id="inName2" maxlength="12" autocomplete="nickname" placeholder="Как тебя звать">
+      </div>
+      <div class="actions">
+        <button class="ghost" id="btnStartNow" hidden>Начать без остальных</button>
+        <button class="cta blue" id="btnRoomClose" hidden>К игре</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay center" id="win" hidden>
+  <div class="card" id="winCard" role="dialog" aria-label="Итог партии">
+    <div class="eyebrow">Партия окончена</div>
+    <div class="win-name" id="winName">Янтарь</div>
+    <div class="win-sub" id="winSub">забирает реактор</div>
+    <div class="tally" id="tally"></div>
+    <div class="win-stat" id="winStat"></div>
+    <div class="actions">
+      <button class="ghost" id="btnToMenu">Меню</button>
+      <button class="cta" id="btnAgain">Реванш</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+(() => {
+'use strict';
+const SB_URL = 'https://ulfqprrjdyycznobirxw.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVsZnFwcnJqZHl5Y3pub2Jpcnh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM3OTg4NTMsImV4cCI6MjEwOTM3NDg1M30.zIjRlMNnqg59jZRprHcCoIkoBiIis45vw5vP4bhF_tc';
+
+const $ = s => document.querySelector(s);
+const root = document.documentElement;
+const cs = getComputedStyle(root);
+const tok = (n, d) => (cs.getPropertyValue(n).trim() || d);
+
+/* ---------- colour helpers ---------- */
+function rgb(hex) {
+  hex = hex.replace('#', '');
+  if (hex.length === 3) hex = hex.split('').map(x => x + x).join('');
+  const n = parseInt(hex, 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+const hexA = (hex, a) => { const [r, g, b] = rgb(hex); return `rgba(${r},${g},${b},${a})`; };
+const mix = (h1, h2, k) => { const a = rgb(h1), b = rgb(h2); return `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * k)).join(',')})`; };
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+const COL = { cell: tok('--cell', '#1B2048'), line: tok('--line', '#2A316A'), muted: tok('--muted', '#8B91C6') };
+COL.dot = hexA(COL.muted, 0.32);
+const PD = [
+  { name: 'Янтарь', color: tok('--p0', '#FFB13B'), base: 220 },
+  { name: 'Лёд',    color: tok('--p1', '#47C9FF'), base: 261.63 },
+  { name: 'Роза',   color: tok('--p2', '#FF5C93'), base: 196 },
+  { name: 'Лайм',   color: tok('--p3', '#A6E64B'), base: 293.66 },
+];
+const SIZES = { s: [5, 8], m: [6, 9], l: [7, 11] };
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('reactor:' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('reactor:' + k, JSON.stringify(v)); } catch (e) {} }
+};
+const sess = {
+  get(k) { try { return sessionStorage.getItem('reactor:' + k); } catch (e) { return null; } },
+  set(k, v) { try { sessionStorage.setItem('reactor:' + k, v); } catch (e) {} }
+};
+let settings = Object.assign({ mode: '2', size: 'm', where: 'local' }, store.get('settings', {}));
+if (!['2', '3', '4', 'bot'].includes(settings.mode)) settings.mode = '2';
+if (!SIZES[settings.size]) settings.size = 'm';
+if (!['local', 'online'].includes(settings.where)) settings.where = 'local';
+let soundOn = store.get('sound', true);
+let wins = store.get('wins', {}) || {};
+
+const plural = (n, a, b, c) => {
+  const m10 = n % 10, m100 = n % 100;
+  if (m10 === 1 && m100 !== 11) return a;
+  if (m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20)) return b;
+  return c;
+};
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+/* ---------- game state ---------- */
+let cols = 6, rows = 9, N = 54;
+let owner, count, crit, neigh, phase, pulse, shake;
+let players = [], turn = 0, firstTurn = 0;
+let gen = 0, busy = false, demo = true, inGame = false, paused = false, finished = false;
+let undoStack = [];
+let stats = { bestChain: 0, bestBy: -1, moves: 0 };
+let chipEls = [], meterEls = [];
+let botTimer = 0;
+
+function setupBoard(c, r) {
+  cols = c; rows = r; N = c * r;
+  owner = new Int8Array(N).fill(-1);
+  count = new Int8Array(N);
+  crit = new Int8Array(N);
+  neigh = [];
+  phase = new Float32Array(N);
+  pulse = new Float64Array(N).fill(-1e9);
+  shake = new Float64Array(N).fill(-1e9);
+  for (let i = 0; i < N; i++) {
+    const x = i % c, y = (i / c) | 0, n = [];
+    if (y > 0) n.push(i - c);
+    if (y < r - 1) n.push(i + c);
+    if (x > 0) n.push(i - 1);
+    if (x < c - 1) n.push(i + 1);
+    neigh.push(n); crit[i] = n.length;
+    phase[i] = Math.random() * Math.PI * 2;
+  }
+  flyers = []; fx = [];
+  resize();
+}
+
+function makePlayers(mode) {
+  const n = mode === 'bot' ? 2 : +mode;
+  return Array.from({ length: n }, (_, i) => ({
+    id: i, color: PD[i].color,
+    name: mode === 'bot' && i === 1 ? 'Бот' : PD[i].name,
+    bot: mode === 'bot' && i === 1,
+    alive: true, moved: false
+  }));
+}
+
+function totals(o = owner, c = count) {
+  const t = [0, 0, 0, 0];
+  for (let i = 0; i < N; i++) if (o[i] >= 0) t[o[i]] += c[i];
+  return t;
+}
+function decided() {
+  const t = totals();
+  let alive = 0;
+  for (const p of players) if (p.alive && !(p.moved && t[p.id] === 0)) alive++;
+  return alive <= 1;
+}
+
+/* ---------- canvas ---------- */
+const canvas = $('#board'), ctx = canvas.getContext('2d');
+const stage = $('#stage');
+let W = 0, H = 0, cell = 40, dpr = 1, sprites = [];
+let flyers = [], fx = [];
+
+function resize() {
+  const r = stage.getBoundingClientRect();
+  if (!r.width || !r.height) return;
+  cell = Math.max(18, Math.floor(Math.min((r.width - 12) / cols, (r.height - 12) / rows)));
+  W = cell * cols; H = cell * rows;
+  dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  sprites = PD.map(p => makeOrb(p.color, cell * 0.2));
+}
+if (window.ResizeObserver) new ResizeObserver(() => resize()).observe(stage);
+else window.addEventListener('resize', resize);
+
+function makeOrb(color, R) {
+  const g = 2.1, r = R * dpr, S = Math.ceil(r * 2 * g), c = S / 2;
+  const cv = document.createElement('canvas'); cv.width = cv.height = S;
+  const x = cv.getContext('2d');
+  let grd = x.createRadialGradient(c, c, r * 0.5, c, c, r * g);
+  grd.addColorStop(0, hexA(color, 0.5)); grd.addColorStop(1, hexA(color, 0));
+  x.fillStyle = grd; x.beginPath(); x.arc(c, c, r * g, 0, 7); x.fill();
+  grd = x.createRadialGradient(c - r * 0.35, c - r * 0.4, r * 0.08, c, c, r);
+  grd.addColorStop(0, mix(color, '#ffffff', 0.7)); grd.addColorStop(0.45, color); grd.addColorStop(1, mix(color, '#000000', 0.38));
+  x.fillStyle = grd; x.beginPath(); x.arc(c, c, r, 0, 7); x.fill();
+  x.fillStyle = 'rgba(255,255,255,0.8)';
+  x.beginPath(); x.ellipse(c - r * 0.36, c - r * 0.42, r * 0.22, r * 0.13, -0.6, 0, 7); x.fill();
+  return { cv, R, S: S / dpr };
+}
+function drawOrb(p, x, y, r) {
+  const sp = sprites[p]; if (!sp) return;
+  const s = sp.S * (r / sp.R);
+  ctx.drawImage(sp.cv, x - s / 2, y - s / 2, s, s);
+}
+function rr(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+const cx = i => (i % cols) * cell + cell / 2;
+const cy = i => ((i / cols) | 0) * cell + cell * 0.45;
+
+const ORB_R = [0, 0.2, 0.17, 0.155, 0.14], ORB_D = [0, 0, 0.115, 0.135, 0.15];
+function drawAtoms(i, x, y, n, o, danger, t, now) {
+  const m = Math.min(n, 4);
+  const speed = (danger ? 3.6 : 0.8) * (reduceMotion ? 0.25 : 1);
+  const ang = t * speed + phase[i];
+  const pu = now - pulse[i];
+  const bump = pu < 280 ? 1 + 0.28 * Math.sin(pu / 280 * Math.PI) : 1;
+  let jx = 0, jy = 0;
+  if (danger && !reduceMotion) { jx = Math.sin(t * 47 + phase[i]) * cell * 0.012; jy = Math.cos(t * 39 + phase[i]) * cell * 0.012; }
+  let R = cell * ORB_R[m] * bump;
+  if (m === 1) R *= 1 + 0.045 * Math.sin(t * 2.6 + phase[i]);
+  const d = cell * ORB_D[m];
+  for (let k = 0; k < m; k++) {
+    const a = ang + k * 6.2832 / m;
+    drawOrb(o, x + jx + Math.cos(a) * d, y + jy + Math.sin(a) * d, R);
+  }
+}
+
+function draw(now) {
+  requestAnimationFrame(draw);
+  if (!W || !owner || !ctx) return;
+  const t = now / 1000;
+  ctx.clearRect(0, 0, W, H);
+  const inset = cell * 0.055, rad = cell * 0.2, sz = cell - 2 * inset;
+  const dotR = Math.max(1.3, cell * 0.03), dotGap = cell * 0.105;
+  for (let i = 0; i < N; i++) {
+    let ox = 0;
+    const sh = now - shake[i];
+    if (sh < 400 && !reduceMotion) ox = Math.sin(sh / 400 * Math.PI * 7) * cell * 0.07 * (1 - sh / 400);
+    const x = (i % cols) * cell + ox, y = ((i / cols) | 0) * cell;
+    const o = owner[i], n = count[i], cr = crit[i];
+    const col = o >= 0 ? PD[o].color : null;
+    const danger = !!col && n >= cr - 1;
+    rr(x + inset, y + inset, sz, sz, rad);
+    ctx.fillStyle = COL.cell; ctx.fill();
+    if (col) { ctx.fillStyle = hexA(col, danger ? 0.17 : 0.09); ctx.fill(); }
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = danger ? hexA(col, 0.4 + 0.3 * Math.sin(t * 6 + phase[i])) : (col ? hexA(col, 0.22) : COL.line);
+    ctx.stroke();
+    const gy = y + cell * 0.84, gx = x + cell / 2 - (cr - 1) * dotGap / 2;
+    for (let k = 0; k < cr; k++) {
+      ctx.fillStyle = (col && k < n) ? col : COL.dot;
+      ctx.beginPath(); ctx.arc(gx + k * dotGap, gy, dotR, 0, 6.2832); ctx.fill();
+    }
+    if (col && n > 0) drawAtoms(i, x + cell / 2, y + cell * 0.45, n, o, danger, t, now);
+  }
+
+  if (flyers.length) {
+    const keep = [];
+    for (const f of flyers) {
+      const k = (now - f.t0) / f.dur;
+      if (k >= 1) continue;
+      keep.push(f);
+      if (k < 0) continue;
+      const ax = cx(f.a), ay = cy(f.a), bx = cx(f.b), by = cy(f.b);
+      for (let j = 2; j >= 0; j--) {
+        const kk = Math.max(0, k - j * 0.1), e = 1 - Math.pow(1 - kk, 3);
+        ctx.globalAlpha = j ? 0.25 / j : 1;
+        drawOrb(f.o, ax + (bx - ax) * e, ay + (by - ay) * e, cell * 0.14 * (j ? 0.8 : 1));
+      }
+    }
+    ctx.globalAlpha = 1; flyers = keep;
+  }
+
+  if (fx.length) {
+    ctx.globalCompositeOperation = 'lighter';
+    const keep = [];
+    for (const f of fx) {
+      const k = (now - f.t0) / f.dur;
+      if (k >= 1) continue;
+      keep.push(f);
+      if (k < 0) continue;
+      if (f.type === 'ring') {
+        ctx.globalAlpha = (1 - k) * 0.8;
+        ctx.strokeStyle = f.c; ctx.lineWidth = Math.max(1, cell * 0.06 * (1 - k));
+        ctx.beginPath(); ctx.arc(f.x, f.y, cell * (0.18 + 0.55 * k), 0, 6.2832); ctx.stroke();
+      } else {
+        const tt = (now - f.t0) / 1000;
+        ctx.globalAlpha = 1 - k; ctx.fillStyle = f.c;
+        ctx.beginPath(); ctx.arc(f.x + f.vx * tt, f.y + f.vy * tt + 0.5 * f.g * tt * tt, Math.max(0.5, f.s * (1 - k * 0.5)), 0, 6.2832); ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; fx = keep;
+  }
+}
+requestAnimationFrame(draw);
+
+function addBurst(i, p, now) {
+  if (fx.length > 420) return;
+  const x = cx(i), y = cy(i), c = PD[p].color;
+  fx.push({ type: 'ring', x, y, c, t0: now, dur: 420 });
+  if (reduceMotion) return;
+  for (let k = 0; k < 4; k++) {
+    const a = Math.random() * Math.PI * 2, sp = cell * (1.2 + Math.random() * 1.6);
+    fx.push({ type: 'spark', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, g: cell * 3, s: cell * (0.035 + Math.random() * 0.03), c, t0: now, dur: 380 + Math.random() * 240 });
+  }
+}
+function confetti(c) {
+  if (reduceMotion) return;
+  const now = performance.now();
+  for (let k = 0; k < 140; k++) {
+    const a = -Math.PI / 2 + (Math.random() - 0.5) * 2.2, sp = cell * (1.5 + Math.random() * 4);
+    fx.push({ type: 'spark', x: Math.random() * W, y: Math.random() * H * 0.7, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, g: cell * 6,
+      s: cell * (0.03 + Math.random() * 0.05), c: Math.random() < 0.25 ? '#ffffff' : c, t0: now + Math.random() * 400, dur: 900 + Math.random() * 900 });
+  }
+}
+
+/* ---------- sound ---------- */
+let actx = null, master = null;
+function ensureAudio() {
+  if (!soundOn) return;
+  try {
+    if (!actx) {
+      const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+      actx = new AC(); master = actx.createGain(); master.gain.value = 0.5;
+      const comp = actx.createDynamicsCompressor(); master.connect(comp); comp.connect(actx.destination);
+    }
+    if (actx.state === 'suspended') actx.resume();
+  } catch (e) {}
+}
+function tone(f, d, o = {}) {
+  if (!soundOn || !actx || demo) return;
+  const { type = 'sine', v = 0.2, at = 0, slide = 0 } = o;
+  try {
+    const t = actx.currentTime + at, osc = actx.createOscillator(), g = actx.createGain();
+    osc.type = type; osc.frequency.setValueAtTime(f, t);
+    if (slide) osc.frequency.exponentialRampToValueAtTime(Math.max(30, f * slide), t + d);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v, t + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+    osc.connect(g); g.connect(master); osc.start(t); osc.stop(t + d + 0.03);
+  } catch (e) {}
+}
+const PENTA = [0, 2, 4, 7, 9];
+const sfxPlace = p => { const b = PD[p].base * 2; tone(b, 0.13, { v: 0.22, slide: 0.6 }); tone(b * 2, 0.06, { type: 'triangle', v: 0.05 }); };
+const sfxExplode = (p, w) => {
+  const s = Math.min(w, 17), f = PD[p].base * Math.pow(2, (12 * Math.floor(s / 5) + PENTA[s % 5]) / 12);
+  tone(f, 0.24, { type: 'triangle', v: 0.17 }); tone(f * 2, 0.12, { v: 0.06, at: 0.01 }); tone(90, 0.12, { v: 0.12, slide: 0.5 });
+};
+const sfxInvalid = () => tone(150, 0.12, { type: 'square', v: 0.045, slide: 0.75 });
+const sfxWin = p => { const b = PD[p].base * 2; [0, 4, 7, 12, 16].forEach((s, k) => tone(b * Math.pow(2, s / 12), 0.45, { type: 'triangle', v: 0.15, at: k * 0.09 })); };
+const sfxTurn = () => { tone(784, 0.12, { v: 0.12 }); tone(1175, 0.2, { v: 0.1, at: 0.1 }); };
+const buzz = (ms = 10) => { if (demo) return; try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} };
+
+const ICON_ON = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>';
+const ICON_OFF = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="m16 9 5 6"/><path d="m21 9-5 6"/></svg>';
+function renderSoundBtn() { const b = $('#btnSound'); b.innerHTML = soundOn ? ICON_ON : ICON_OFF; b.setAttribute('aria-label', soundOn ? 'Выключить звук' : 'Включить звук'); }
+
+/* ---------- HUD ---------- */
+function buildChips() {
+  const box = $('#players'); box.innerHTML = '';
+  box.style.setProperty('--n', players.length);
+  box.classList.toggle('compact', players.length > 2);
+  chipEls = players.map(p => {
+    const el = document.createElement('div');
+    el.className = 'chip'; el.style.setProperty('--c', p.color);
+    el.innerHTML = '<span class="chip-orb"></span><span class="chip-text"><span class="chip-name"></span><span class="chip-wins"></span></span><span class="chip-count">0</span>';
+    el.querySelector('.chip-name').textContent = p.name;
+    box.appendChild(el); return el;
+  });
+  const meter = $('#meter'); meter.innerHTML = '';
+  meterEls = players.map(p => { const s = document.createElement('span'); s.style.background = p.color; meter.appendChild(s); return s; });
+}
+function updateHUD() {
+  if (!players.length) return;
+  const t = totals(), sum = t.reduce((a, b) => a + b, 0);
+  const r = net.on ? net.room : null;
+  const me = mySeat();
+  players.forEach((p, k) => {
+    const el = chipEls[k]; if (!el) return;
+    el.classList.toggle('active', k === turn && p.alive && !finished && (!net.on || (r && started(r))));
+    el.classList.toggle('out', !p.alive);
+    el.querySelector('.chip-name').textContent = p.name;
+    el.querySelector('.chip-count').textContent = t[k];
+    let sub;
+    if (net.on) {
+      const id = r ? r.seats[k] : null;
+      const w = r ? r.results.filter(x => x === k).length : 0;
+      const st = k === me ? 'ты' : !id ? 'ждём…' : isOnline(id) ? 'в сети' : 'не в сети';
+      sub = `${st} · ${w} ${plural(w, 'победа', 'победы', 'побед')}`;
+      el.classList.toggle('me', k === me);
+      el.classList.toggle('offline', !!id && !isOnline(id));
+    } else {
+      const w = wins[p.name] || 0;
+      sub = demo ? 'демо' : `${w} ${plural(w, 'победа', 'победы', 'побед')}`;
+      el.classList.remove('me', 'offline');
+    }
+    el.querySelector('.chip-wins').textContent = sub;
+    meterEls[k].style.flexGrow = sum ? t[k] : 1;
+    meterEls[k].style.opacity = sum && t[k] ? 1 : 0.22;
+  });
+  const cur = players[turn] || players[0];
+  root.style.setProperty('--turn', cur.color);
+  const st = $('#statusText');
+  let title = 'Реактор';
+  if (net.on) {
+    if (!r) st.textContent = 'Подключаюсь…';
+    else if (!started(r)) st.textContent = `Ждём игроков: ${filled(r)} из ${r.n}`;
+    else if (finished) st.textContent = 'Партия окончена';
+    else if (net.status !== 'ok') st.textContent = 'Нет связи, переподключаюсь…';
+    else if (turn === me) {
+      st.innerHTML = `<b style="--c:${cur.color}">Твой ход</b>` + (r.moves.length < r.n ? '<span class="hint"> · жми на клетку</span>' : '');
+      title = '● Твой ход · Реактор';
+    }
+    else st.innerHTML = `Ход: <b style="--c:${cur.color}">${esc(cur.name)}</b>`;
+  } else if (demo) st.textContent = 'Демо-партия';
+  else if (finished) st.textContent = 'Партия окончена';
+  else if (cur.bot) st.innerHTML = `<b style="--c:${cur.color}">Бот</b> думает…`;
+  else st.innerHTML = `Ход: <b style="--c:${cur.color}">${esc(cur.name)}</b>` + (stats.moves < players.length ? '<span class="hint"> · жми на клетку</span>' : '');
+  if (document.title !== title) document.title = title;
+  $('#btnUndo').hidden = net.on;
+  $('#btnRoom').hidden = !net.on;
+  if (net.on) $('#roomPillCode').textContent = net.code || '';
+  $('#btnUndo').disabled = !(inGame && !finished && !busy && undoStack.length && !cur.bot && !net.on);
+}
+const comboEl = $('#combo'), comboNum = $('#comboNum');
+let comboT = 0;
+function showCombo(n, p) {
+  comboEl.style.setProperty('--cc', PD[p].color);
+  comboNum.textContent = '×' + n;
+  comboEl.classList.add('show');
+  comboNum.classList.remove('bump'); void comboNum.offsetWidth; comboNum.classList.add('bump');
+  clearTimeout(comboT); comboT = setTimeout(() => comboEl.classList.remove('show'), 950);
+}
+let toastT = 0;
+function toast(msg) {
+  const el = $('#toast'); el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+/* ---------- engine ---------- */
+function endOfMove(p, animate) {
+  const t = totals();
+  for (const pl of players) {
+    if (pl.alive && pl.moved && t[pl.id] === 0) {
+      pl.alive = false;
+      if (animate && !demo && players.length > 2) toast(`${pl.name} выбывает`);
+    }
+  }
+  const alive = players.filter(x => x.alive);
+  if (alive.length <= 1) return alive[0] || players[p];
+  let nx = p;
+  do { nx = (nx + 1) % players.length; } while (!players[nx].alive);
+  turn = nx;
+  return null;
+}
+function resolveInstant() {
+  let wave = 0, boom = 0;
+  while (wave < 4000) {
+    const uns = [];
+    for (let i = 0; i < N; i++) if (count[i] >= crit[i]) uns.push(i);
+    if (!uns.length || decided()) break;
+    wave++;
+    const fl = [];
+    for (const i of uns) {
+      const o = owner[i];
+      count[i] -= crit[i];
+      if (count[i] <= 0) { count[i] = 0; owner[i] = -1; }
+      for (const n of neigh[i]) fl.push(n, o);
+      boom++;
+    }
+    for (let k = 0; k < fl.length; k += 2) { count[fl[k]]++; owner[fl[k]] = fl[k + 1]; }
+  }
+  return boom;
+}
+function instantMove(i) {
+  const p = turn;
+  if (i < 0 || i >= N || !(owner[i] === -1 || owner[i] === p)) return { bad: true };
+  owner[i] = p; count[i]++; players[p].moved = true; stats.moves++;
+  const boom = resolveInstant();
+  if (boom > stats.bestChain) { stats.bestChain = boom; stats.bestBy = p; }
+  return { w: endOfMove(p, false) };
+}
+
+async function resolve(myGen) {
+  let wave = 0, boom = 0;
+  while (wave < 4000) {
+    const uns = [];
+    for (let i = 0; i < N; i++) if (count[i] >= crit[i]) uns.push(i);
+    if (!uns.length || decided()) break;
+    wave++;
+    const dur = Math.max(60, 240 - wave * 15), now = performance.now(), fl = [];
+    const who = owner[uns[0]];
+    for (const i of uns) {
+      const o = owner[i];
+      count[i] -= crit[i];
+      if (count[i] <= 0) { count[i] = 0; owner[i] = -1; }
+      for (const n of neigh[i]) { fl.push(i, n, o); flyers.push({ a: i, b: n, o, t0: now, dur }); }
+      addBurst(i, o, now);
+      boom++;
+    }
+    sfxExplode(who, wave - 1); buzz();
+    if (boom >= 4) showCombo(boom, who);
+    updateHUD();
+    await sleep(dur);
+    if (myGen !== gen) return boom;
+    const t2 = performance.now();
+    for (let k = 0; k < fl.length; k += 3) { const n = fl[k + 1]; count[n]++; owner[n] = fl[k + 2]; pulse[n] = t2; }
+    updateHUD();
+  }
+  return boom;
+}
+
+async function play(i) {
+  if (busy || finished) return;
+  const p = turn;
+  if (!(owner[i] === -1 || owner[i] === p)) { shake[i] = performance.now(); sfxInvalid(); return; }
+  busy = true; clearTimeout(botTimer);
+  const myGen = gen;
+  if (!demo && !net.on && !players[p].bot) pushHistory();
+  owner[i] = p; count[i]++; players[p].moved = true; pulse[i] = performance.now();
+  if (!demo) stats.moves++;
+  sfxPlace(p);
+  updateHUD();
+  await sleep(110);
+  if (myGen !== gen) return;
+  const boom = await resolve(myGen);
+  if (myGen !== gen) return;
+  if (!demo && boom > stats.bestChain) { stats.bestChain = boom; stats.bestBy = p; }
+  const w = endOfMove(p, true);
+  busy = false;
+  if (w) { finish(w, myGen); return; }
+  updateHUD();
+  scheduleBot();
+}
+
+function pushHistory() {
+  undoStack.push({ o: owner.slice(), c: count.slice(), pl: players.map(p => ({ alive: p.alive, moved: p.moved })), turn, stats: { ...stats } });
+  if (undoStack.length > 80) undoStack.shift();
+}
+function undo() {
+  if (busy || !inGame || finished || !undoStack.length || net.on) return;
+  const h = undoStack.pop();
+  owner = h.o; count = h.c; turn = h.turn; stats = h.stats;
+  h.pl.forEach((s, k) => Object.assign(players[k], s));
+  flyers = []; fx = [];
+  updateHUD();
+}
+
+/* ---------- bot ---------- */
+function sim(o0, c0, i, p, opp, oppMoved) {
+  const o = o0.slice(), c = c0.slice();
+  o[i] = p; c[i]++;
+  for (let w = 0; w < 250; w++) {
+    let uns = null;
+    for (let k = 0; k < N; k++) if (c[k] >= crit[k]) (uns || (uns = [])).push(k);
+    if (!uns) break;
+    if (oppMoved) { let t = 0; for (let k = 0; k < N; k++) if (o[k] === opp) t += c[k]; if (t === 0) return { o, c, win: true }; }
+    for (const k of uns) {
+      const ow = o[k];
+      c[k] -= crit[k];
+      if (c[k] <= 0) { c[k] = 0; o[k] = -1; }
+      for (const n of neigh[k]) { c[n]++; o[n] = ow; }
+    }
+  }
+  let t = 0; for (let k = 0; k < N; k++) if (o[k] === opp) t += c[k];
+  return { o, c, win: oppMoved && t === 0 };
+}
+function evalPos(o, c, me) {
+  let sc = 0, mine = 0;
+  for (let k = 0; k < N; k++) {
+    if (o[k] !== me) continue;
+    mine += c[k];
+    let vulnerable = false;
+    for (const n of neigh[k]) if (o[n] >= 0 && o[n] !== me && c[n] === crit[n] - 1) { sc -= 5 - crit[k]; vulnerable = true; }
+    if (!vulnerable) {
+      if (crit[k] === 3) sc += 2; else if (crit[k] === 2) sc += 3;
+      if (c[k] === crit[k] - 1) sc += 2;
+    }
+  }
+  const seen = new Uint8Array(N);
+  for (let k = 0; k < N; k++) {
+    if (seen[k] || o[k] !== me || c[k] !== crit[k] - 1) continue;
+    let size = 0; const st = [k]; seen[k] = 1;
+    while (st.length) {
+      const v = st.pop(); size++;
+      for (const n of neigh[v]) if (!seen[n] && o[n] === me && c[n] === crit[n] - 1) { seen[n] = 1; st.push(n); }
+    }
+    if (size > 1) sc += 2 * size;
+  }
+  return sc + mine;
+}
+function legal(o, p) { const m = []; for (let k = 0; k < N; k++) if (o[k] === -1 || o[k] === p) m.push(k); return m; }
+function botMove(p, depth, noisy) {
+  const oppP = players.find(x => x.id !== p && x.alive) || players[1 - p];
+  const opp = oppP.id, oppMoved = oppP.moved;
+  const scored = legal(owner, p).map(i => {
+    const s = sim(owner, count, i, p, opp, oppMoved);
+    const v = s.win ? 1e6 : evalPos(s.o, s.c, p);
+    return { i, s, v: v + Math.random() * (noisy ? 4 : 0.4) };
+  });
+  scored.sort((a, b) => b.v - a.v);
+  if (depth < 2 || scored[0].v >= 1e6) return scored[0].i;
+  let best = scored[0].i, bestV = -Infinity;
+  for (const m of scored.slice(0, 10)) {
+    let worst = Infinity;
+    for (const j of legal(m.s.o, opp)) {
+      const s2 = sim(m.s.o, m.s.c, j, opp, p, true);
+      const v = s2.win ? -1e6 : evalPos(s2.o, s2.c, p);
+      if (v < worst) { worst = v; if (worst <= bestV) break; }
+    }
+    worst += Math.random() * 0.5;
+    if (worst > bestV) { bestV = worst; best = m.i; }
+  }
+  return best;
+}
+function scheduleBot() {
+  clearTimeout(botTimer);
+  if (busy || finished || net.on) return;
+  const myGen = gen;
+  if (demo) {
+    botTimer = setTimeout(() => { if (myGen !== gen || !demo || busy) return; play(botMove(turn, 1, true)); }, 700);
+    return;
+  }
+  if (!inGame || paused || !players[turn].bot) return;
+  botTimer = setTimeout(() => {
+    if (myGen !== gen || paused || busy || finished || !players[turn].bot) return;
+    play(botMove(turn, 2, false));
+  }, 560);
+}
+
+/* ---------- local game flow ---------- */
+function startDemo() {
+  gen++; demo = true; inGame = false; busy = false; finished = false; paused = false;
+  clearTimeout(botTimer);
+  const [c, r] = SIZES[settings.size];
+  setupBoard(c, r);
+  players = makePlayers('2'); turn = 0; undoStack = [];
+  for (let k = 0; k < 16; k++) {
+    const p = turn, opp = 1 - p;
+    const m = botMove(p, 1, true);
+    const s = sim(owner, count, m, p, opp, players[opp].moved);
+    if (s.win) break;
+    owner = s.o; count = s.c; players[p].moved = true; turn = opp;
+  }
+  buildChips(); updateHUD(); scheduleBot();
+}
+function newGame() {
+  gen++; demo = false; inGame = true; busy = false; finished = false; paused = false;
+  clearTimeout(botTimer);
+  const [c, r] = SIZES[settings.size];
+  setupBoard(c, r);
+  players = makePlayers(settings.mode);
+  turn = firstTurn % players.length;
+  undoStack = []; stats = { bestChain: 0, bestBy: -1, moves: 0 };
+  comboEl.classList.remove('show');
+  sheet.hidden = true; $('#win').hidden = true;
+  buildChips(); updateHUD();
+  keepAwake();
+  scheduleBot();
+}
+function finish(w, myGen) {
+  finished = true; busy = false;
+  if (demo) {
+    updateHUD();
+    setTimeout(() => { if (demo && myGen === gen) startDemo(); }, 1700);
+    return;
+  }
+  if (net.on) {
+    const r = net.room;
+    if (r && r.results[r.game] == null) { r.results[r.game] = w.id; saveRoom(); }
+  } else {
+    inGame = false;
+    wins[w.name] = (wins[w.name] || 0) + 1; store.set('wins', wins);
+  }
+  sfxWin(w.id); confetti(w.color); buzz(60);
+  updateHUD();
+  setTimeout(() => { if (myGen === gen) showWin(w); }, 800);
+}
+function showWin(w) {
+  const card = $('#winCard');
+  card.style.setProperty('--wc', w.color);
+  $('#winName').textContent = w.name;
+  const tally = $('#tally'); tally.innerHTML = '';
+  if (net.on) {
+    const r = net.room;
+    $('#winSub').textContent = w.id === mySeat() ? 'Победа за тобой!' : 'забирает реактор';
+    for (const p of players) {
+      const d = document.createElement('div'); d.className = 'tally-item'; d.style.setProperty('--c', p.color);
+      d.innerHTML = `<b>${r ? r.results.filter(x => x === p.id).length : 0}</b><span></span>`;
+      d.querySelector('span').textContent = p.name;
+      tally.appendChild(d);
+    }
+    $('#btnToMenu').textContent = 'Выйти';
+  } else {
+    $('#winSub').textContent = w.bot ? 'в этот раз сильнее' : 'забирает реактор';
+    for (const p of players) {
+      const d = document.createElement('div'); d.className = 'tally-item'; d.style.setProperty('--c', p.color);
+      d.innerHTML = `<b>${wins[p.name] || 0}</b><span></span>`; d.querySelector('span').textContent = p.name;
+      tally.appendChild(d);
+    }
+    $('#btnToMenu').textContent = 'Меню';
+  }
+  let s = `Ходов: <b>${stats.moves}</b>`;
+  if (stats.bestChain >= 2 && players[stats.bestBy]) s += ` · Самая длинная цепь: <b>${stats.bestChain} ${plural(stats.bestChain, 'взрыв', 'взрыва', 'взрывов')}</b> (${esc(players[stats.bestBy].name)})`;
+  $('#winStat').innerHTML = s;
+  $('#win').hidden = false;
+}
+let wake = null;
+async function keepAwake() {
+  try { if ('wakeLock' in navigator && !wake) { wake = await navigator.wakeLock.request('screen'); wake.addEventListener('release', () => { wake = null; }); } } catch (e) {}
+}
+
+/* =====================================================================
+   ONLINE: rooms over Supabase Realtime (broadcast + presence, no tables)
+   Every client replays the same move list, so only moves travel.
+   ===================================================================== */
+const net = {
+  on: false, code: null, room: null, ch: null, status: 'off',
+  online: new Set(), metas: {}, applied: 0, running: false,
+  wasStarted: false, everOk: false, errorMsg: '', lastHello: 0, timers: {}
+};
+let sb = null, myId = null;
+
+function rid(n) {
+  const a = 'abcdefghijkmnpqrstuvwxyz23456789';
+  const b = new Uint8Array(n);
+  try { crypto.getRandomValues(b); } catch (e) { for (let i = 0; i < n; i++) b[i] = Math.random() * 256; }
+  let s = ''; for (const x of b) s += a[x % a.length]; return s;
+}
+const CODE_ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function newCode() {
+  const b = new Uint8Array(4);
+  try { crypto.getRandomValues(b); } catch (e) { for (let i = 0; i < 4; i++) b[i] = Math.random() * 256; }
+  let s = ''; for (const x of b) s += CODE_ABC[x % CODE_ABC.length]; return s;
+}
+const CYR = { 'А': 'A', 'В': 'B', 'Е': 'E', 'К': 'K', 'М': 'M', 'Н': 'H', 'О': 'O', 'Р': 'P', 'С': 'C', 'Т': 'T', 'У': 'Y', 'Х': 'X' };
+const normCode = s => String(s || '').toUpperCase().replace(/[А-ЯЁ]/g, ch => CYR[ch] || '').replace(/[^A-Z0-9]/g, '').slice(0, 4);
+function codeFromHash() { const c = normCode(decodeURIComponent(location.hash.slice(1))); return c.length === 4 ? c : null; }
+const myName = () => String(store.get('name', '') || '').trim().slice(0, 12);
+
+// One id per tab; a reopened tab reuses the browser's id unless another live tab holds it.
+let tabBus = null;
+try { tabBus = new BroadcastChannel('reactor-tabs'); tabBus.onmessage = e => { const d = e.data || {}; if (d.q === 'who' && myId && d.id === myId) tabBus.postMessage({ a: 'mine', id: myId }); }; } catch (e) {}
+function getIdentity() {
+  return new Promise(res => {
+    if (myId) return res(myId);
+    const s = sess.get('cid');
+    if (s) { myId = s; return res(s); }
+    let cand = store.get('cid', null) || rid(10);
+    if (!tabBus) { myId = cand; sess.set('cid', cand); store.set('cid', cand); return res(cand); }
+    let taken = false;
+    const h = e => { const d = e.data || {}; if (d.a === 'mine' && d.id === cand) taken = true; };
+    tabBus.addEventListener('message', h);
+    tabBus.postMessage({ q: 'who', id: cand });
+    setTimeout(() => {
+      tabBus.removeEventListener('message', h);
+      if (taken) cand = rid(10); else store.set('cid', cand);
+      myId = cand; sess.set('cid', cand); res(cand);
+    }, 180);
+  });
+}
+
+const filled = r => r.seats.filter(Boolean).length;
+const started = r => !!r && (r.locked === 1 || r.seats.every(Boolean));
+const mySeat = () => (net.on && net.room && myId) ? net.room.seats.indexOf(myId) : -1;
+const isOnline = id => id === myId ? net.status === 'ok' : net.online.has(id);
+function cmpKey(a, b) { for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return a[i] - b[i]; return 0; }
+const roomKey = r => [r.game, r.moves.length, r.locked ? 1 : 0, filled(r)];
+const inviteUrl = () => location.origin + location.pathname + location.search + '#' + (net.code || '');
+
+function sanitize(s) {
+  const n = Math.max(2, Math.min(4, s.n | 0));
+  const size = SIZES[s.size] ? s.size : 'm';
+  const cells = SIZES[size][0] * SIZES[size][1];
+  const fit = (a, f) => Array.from({ length: n }, (_, i) => (Array.isArray(a) && a[i] != null) ? f(a[i]) : null);
+  return {
+    code: s.code, host: s.host || null, n, size,
+    seats: fit(s.seats, x => String(x).slice(0, 24)),
+    names: fit(s.names, x => String(x).slice(0, 12)),
+    game: Math.max(0, s.game | 0), start: Math.max(0, s.start | 0),
+    moves: (Array.isArray(s.moves) ? s.moves : []).map(x => x | 0).filter(x => x >= 0 && x < cells).slice(0, 5000),
+    results: (Array.isArray(s.results) ? s.results : []).map(x => (x == null ? null : x | 0)).slice(0, 1000),
+    locked: s.locked ? 1 : 0
+  };
+}
+function saveRoom() {
+  if (!net.room) return;
+  store.set('room:' + net.code, net.room);
+  trackPresence();
+}
+
+function getClient() {
+  if (sb) return sb;
+  if (!window.supabase || !window.supabase.createClient) throw new Error('nolib');
+  sb = window.supabase.createClient(SB_URL, SB_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    realtime: { params: { eventsPerSecond: 20 } }
+  });
+  return sb;
+}
+function send(t, data) {
+  if (!net.ch) return;
+  try {
+    const p = net.ch.send({ type: 'broadcast', event: 'm', payload: Object.assign({ t, from: myId }, data || {}) });
+    if (p && p.catch) p.catch(() => {});
+  } catch (e) {}
+}
+function hello() {
+  clearTimeout(net.timers.hello);
+  const wait = Math.max(120, 1500 - (Date.now() - net.lastHello));
+  net.timers.hello = setTimeout(() => { net.lastHello = Date.now(); send('hello', { name: myName() || null }); }, wait);
+}
+function trackPresence() {
+  clearTimeout(net.timers.track);
+  net.timers.track = setTimeout(() => {
+    if (!net.ch || net.status !== 'ok') return;
+    const r = net.room;
+    try {
+      const p = net.ch.track(r ? { g: r.game, m: r.moves.length, l: r.locked ? 1 : 0, f: filled(r) } : { g: -1, m: 0, l: 0, f: 0 });
+      if (p && p.catch) p.catch(() => {});
+    } catch (e) {}
+  }, 200);
+}
+function amActingHost() {
+  const r = net.room; if (!r) return false;
+  for (const id of r.seats) if (id && (id === myId || net.online.has(id))) return id === myId;
+  const cands = [...net.online, myId].filter(k => k === myId || (net.metas[k] && net.metas[k].g >= 0)).sort();
+  return cands[0] === myId;
+}
+
+async function joinRoom(code, room) {
+  code = normCode(code);
+  if (code.length !== 4) { toast('Код комнаты: 4 символа'); return; }
+  if (net.on && net.code === code) { showRoomPanel(); return; }
+  if (net.on) leaveRoom();
+  await getIdentity();
+  gen++; clearTimeout(botTimer);
+  demo = false; inGame = false; finished = false; busy = false; paused = false;
+  $('#win').hidden = true;
+  Object.assign(net, { on: true, code, room: null, ch: null, status: 'connecting', online: new Set(), metas: {}, applied: 0,
+    running: false, wasStarted: false, everOk: false, errorMsg: '', lastHello: 0, presenceSeen: false });
+  if (room) {
+    room.code = code; room.host = myId; room.seats[0] = myId; room.names[0] = myName() || null;
+    net.room = room;
+  } else {
+    const snap = store.get('room:' + code, null);
+    if (snap && snap.code === code && Array.isArray(snap.seats)) net.room = sanitize(snap);
+  }
+  if (codeFromHash() !== code) { try { history.replaceState(null, '', '#' + code); } catch (e) { try { location.hash = code; } catch (e2) {} } }
+  if (net.room) { saveRoom(); rebuildOnline(); }
+  else { const [c, r] = SIZES[settings.size]; setupBoard(c, r); players = makePlayers('2'); turn = 0; buildChips(); updateHUD(); }
+  showRoomPanel();
+  connect();
+}
+function createRoom() {
+  const n = settings.mode === 'bot' ? 2 : +settings.mode;
+  joinRoom(newCode(), {
+    code: '', host: null, n, size: settings.size,
+    seats: Array(n).fill(null), names: Array(n).fill(null),
+    game: 0, start: 0, moves: [], results: [], locked: 0
+  });
+}
+function connect() {
+  let client;
+  try { client = getClient(); }
+  catch (e) { net.status = 'error'; net.errorMsg = 'Не загрузился модуль связи. Проверь интернет и обнови страницу.'; refreshOnline(); return; }
+  const ch = client.channel('reactor-' + net.code, { config: { broadcast: { self: false, ack: false }, presence: { key: myId } } });
+  net.ch = ch;
+  ch.on('broadcast', { event: 'm' }, msg => { if (net.ch === ch) onMsg((msg && msg.payload) || {}); });
+  ch.on('presence', { event: 'sync' }, () => { if (net.ch === ch) onPresence(); });
+  ch.subscribe(status => {
+    if (net.ch !== ch) return;
+    if (status === 'SUBSCRIBED') {
+      net.status = 'ok'; net.everOk = true; net.errorMsg = '';
+      trackPresence(); hello();
+      clearTimeout(net.timers.find);
+      net.timers.find = setTimeout(() => {
+        if (net.on && !net.room) { net.errorMsg = 'Комната не найдена. Возможно, её создатель вышел. Попроси новый код.'; refreshOnline(); }
+      }, 7000);
+    } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+      net.status = 'lost';
+      if (!net.everOk) net.errorMsg = 'Не получается подключиться к серверу. Проверь интернет. В превью внутри Claude онлайн не работает, только на опубликованном сайте.';
+    }
+    refreshOnline();
+  });
+  clearTimeout(net.timers.conn);
+  net.timers.conn = setTimeout(() => {
+    if (net.ch === ch && !net.everOk) {
+      net.errorMsg = 'Не получается подключиться к серверу. Проверь интернет. В превью внутри Claude онлайн не работает, только на опубликованном сайте.';
+      refreshOnline();
+    }
+  }, 9000);
+}
+function leaveRoom() {
+  const ch = net.ch; net.ch = null;
+  if (ch) { try { ch.untrack(); } catch (e) {} try { sb && sb.removeChannel(ch); } catch (e) {} }
+  Object.values(net.timers).forEach(t => clearTimeout(t));
+  Object.assign(net, { on: false, code: null, room: null, status: 'off', online: new Set(), metas: {}, applied: 0,
+    running: false, wasStarted: false, everOk: false, errorMsg: '' });
+  gen++;
+  try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+  document.title = 'Реактор';
+}
+
+function onMsg(m) {
+  if (!m || !m.t || !m.from || m.from === myId) return;
+  switch (m.t) {
+    case 'hello': onHello(m); break;
+    case 'state': adoptState(m.room); break;
+    case 'move': onMove(m); break;
+    case 'rematch': applyRematch(m.g | 0, m.from); break;
+    case 'name': onName(m); break;
+    case 'full': if (m.to === myId && mySeat() < 0) { net.errorMsg = 'Комната уже заполнена.'; refreshOnline(); } break;
+  }
+}
+function onHello(m) {
+  const r = net.room; if (!r) return;
+  const id = String(m.from);
+  let seat = r.seats.indexOf(id);
+  let changed = false;
+  const host = amActingHost();
+  if (seat < 0 && host) {
+    let k = r.seats.indexOf(null);
+    if (k < 0) k = r.seats.findIndex(s => s && s !== myId && s !== id && !net.online.has(s));
+    if (k < 0) { send('full', { to: id }); return; }
+    r.seats[k] = id; seat = k; changed = true;
+    r.names[k] = m.name ? String(m.name).slice(0, 12) : (r.names[k] || null);
+  } else if (seat >= 0 && host && m.name && r.names[seat] !== m.name) {
+    r.names[seat] = String(m.name).slice(0, 12); changed = true;
+  }
+  if (changed) { saveRoom(); roomChanged(); }
+  if (host || (seat >= 0 && r.seats.includes(myId))) send('state', { room: r });
+}
+function adoptState(s0) {
+  if (!s0 || s0.code !== net.code || !Array.isArray(s0.seats) || !Array.isArray(s0.moves)) return;
+  const s = sanitize(s0);
+  const r = net.room;
+  if (!r) { net.room = s; saveRoom(); rebuildOnline(); refreshOnline(); return; }
+  const c = cmpKey(roomKey(s), roomKey(r));
+  if (c > 0) {
+    const sameGame = s.game === r.game && s.n === r.n && s.size === r.size && r.moves.every((x, i) => s.moves[i] === x);
+    s.names = s.names.map((x, i) => x || r.names[i] || null);
+    if (r.results.length > s.results.length) s.results = r.results.slice();
+    net.room = s; saveRoom();
+    if (sameGame && !finished) { roomChanged(); runQueue(); }
+    else rebuildOnline();
+  } else if (c === 0) {
+    let ch = false;
+    s.names.forEach((x, i) => { if (x && !r.names[i]) { r.names[i] = x; ch = true; } });
+    s.results.forEach((x, i) => { if (x != null && r.results[i] == null) { r.results[i] = x; ch = true; } });
+    if (ch) { saveRoom(); roomChanged(); }
+  }
+  refreshOnline();
+}
+function onMove(m) {
+  const r = net.room;
+  if (!r) { hello(); return; }
+  const g = m.g | 0, seq = m.seq | 0, cellIdx = m.cell | 0;
+  if (g < r.game) return;
+  if (g > r.game) { hello(); return; }
+  if (seq < r.moves.length) return;
+  if (seq > r.moves.length) { hello(); return; }
+  r.moves.push(cellIdx); saveRoom();
+  runQueue();
+}
+function onName(m) {
+  const r = net.room; if (!r) return;
+  const k = r.seats.indexOf(m.from); if (k < 0) return;
+  r.names[k] = m.name ? String(m.name).slice(0, 12) : null;
+  saveRoom(); roomChanged();
+}
+function onPresence() {
+  const st = net.ch.presenceState() || {};
+  const online = new Set(Object.keys(st));
+  const metas = {};
+  for (const k of online) { const arr = st[k]; metas[k] = (arr && arr[arr.length - 1]) || {}; }
+  const r = net.room;
+  if (r && net.wasStarted && net.presenceSeen) {
+    r.seats.forEach((id, k) => {
+      if (!id || id === myId) return;
+      const was = net.online.has(id), now = online.has(id);
+      const nm = r.names[k] || PD[k].name;
+      if (was && !now) toast(`${nm}: нет связи`);
+      if (!was && now) toast(`${nm} снова в игре`);
+    });
+  }
+  net.online = online; net.metas = metas; net.presenceSeen = true;
+  let ahead = false;
+  for (const k of online) {
+    if (k === myId) continue;
+    const m = metas[k];
+    if (!m || m.g == null || m.g < 0) continue;
+    if (!r || cmpKey([m.g | 0, m.m | 0, m.l | 0, m.f | 0], roomKey(r)) > 0) { ahead = true; break; }
+  }
+  if (ahead || !r || !r.seats.includes(myId)) hello();
+  refreshOnline();
+}
+
+function onlinePlayers(r) {
+  return Array.from({ length: r.n }, (_, k) => ({ id: k, color: PD[k].color, name: r.names[k] || PD[k].name, bot: false, alive: true, moved: false }));
+}
+function rebuildOnline() {
+  const r = net.room; if (!r) return;
+  gen++; busy = false; finished = false; demo = false; clearTimeout(botTimer);
+  const [c, rw] = SIZES[r.size] || SIZES.m;
+  setupBoard(c, rw);
+  players = onlinePlayers(r);
+  turn = r.start % r.n;
+  stats = { bestChain: 0, bestBy: -1, moves: 0 }; undoStack = [];
+  net.applied = 0;
+  let w = null;
+  for (const cellIdx of r.moves) {
+    const res = instantMove(cellIdx);
+    net.applied++;
+    if (res.bad) { console.warn('reactor: move list does not replay'); break; }
+    if (res.w) { w = res.w; break; }
+  }
+  if (w) net.applied = r.moves.length;
+  inGame = started(r);
+  comboEl.classList.remove('show');
+  buildChips(); updateHUD();
+  $('#win').hidden = true;
+  if (w) {
+    finished = true;
+    if (r.results[r.game] == null) { r.results[r.game] = w.id; saveRoom(); }
+    updateHUD(); showWin(w);
+  }
+}
+function roomChanged() {
+  const r = net.room; if (!r) return;
+  if (players.length !== r.n) rebuildOnline();
+  else players.forEach((p, k) => { p.name = r.names[k] || PD[k].name; });
+  refreshOnline();
+}
+async function runQueue() {
+  if (net.running || !net.room) return;
+  net.running = true;
+  const myGen = gen;
+  let desync = false;
+  try {
+    while (net.on && net.room && myGen === gen && net.applied < net.room.moves.length && !finished) {
+      if (busy) break;
+      const cellIdx = net.room.moves[net.applied];
+      if (!(owner[cellIdx] === -1 || owner[cellIdx] === turn)) { desync = true; break; }
+      const by = turn;
+      net.applied++;
+      await play(cellIdx);
+      if (myGen !== gen) break;
+      if (!finished && by !== mySeat() && turn === mySeat() && net.applied >= net.room.moves.length) { sfxTurn(); buzz(30); }
+    }
+  } finally { net.running = false; }
+  if (desync) { rebuildOnline(); hello(); refreshOnline(); return; }
+  updateHUD();
+  if (net.on && net.room && !finished && net.applied < net.room.moves.length) setTimeout(runQueue, busy ? 120 : 0);
+}
+function onlineTap(i) {
+  const r = net.room;
+  if (!r || !started(r)) { toast('Ждём, пока все зайдут'); return; }
+  if (finished || busy || net.running || net.applied < r.moves.length) return;
+  const me = mySeat();
+  if (me < 0) { toast('Ты пока зритель в этой комнате'); return; }
+  if (turn !== me) { shake[i] = performance.now(); toast(`Сейчас ход: ${players[turn].name}`); return; }
+  if (!(owner[i] === -1 || owner[i] === turn)) { shake[i] = performance.now(); sfxInvalid(); return; }
+  if (net.status !== 'ok') { toast('Нет связи. Подожди пару секунд'); return; }
+  const seq = r.moves.length;
+  r.moves.push(i); saveRoom();
+  send('move', { g: r.game, seq, cell: i, by: me });
+  runQueue();
+}
+function onlineRematch() {
+  const r = net.room; if (!r) return;
+  const g = r.game + 1;
+  applyRematch(g, null);
+  send('rematch', { g });
+  send('state', { room: net.room });
+}
+function applyRematch(g, from) {
+  const r = net.room; if (!r) return;
+  if (g <= r.game) return;
+  if (g > r.game + 1) { hello(); return; }
+  if (r.results[r.game] == null) {
+    rebuildOnline();
+    if (net.room.results[net.room.game] == null) return;
+  }
+  const rr2 = net.room;
+  rr2.game = g; rr2.start = g % rr2.n; rr2.moves = [];
+  saveRoom(); rebuildOnline();
+  if (from) {
+    const k = rr2.seats.indexOf(from);
+    toast(`${k >= 0 ? (rr2.names[k] || PD[k].name) : 'Соперник'} начинает реванш`);
+  }
+  refreshOnline();
+}
+function startNow() {
+  const r = net.room; if (!r || started(r) || filled(r) < 2 || !amActingHost()) return;
+  const keep = r.seats.map((id, k) => (id ? k : -1)).filter(k => k >= 0);
+  r.seats = keep.map(k => r.seats[k]); r.names = keep.map(k => r.names[k]);
+  r.n = r.seats.length; r.locked = 1;
+  saveRoom(); send('state', { room: r });
+  rebuildOnline(); refreshOnline();
+}
+
+/* ---------- online panels ---------- */
+function refreshOnline() {
+  if (!net.on) return;
+  const r = net.room;
+  const st = started(r);
+  if (st && !net.wasStarted) {
+    net.wasStarted = true; inGame = true;
+    if (!sheet.hidden) closeSheet();
+    if (r.game === 0 && r.moves.length === 0 && net.everOk) { toast('Все в сборе. Поехали!'); sfxTurn(); }
+    keepAwake();
+  }
+  if (!st && sheet.hidden && $('#win').hidden) showRoomPanel();
+  renderRoomPanel(); updateHUD();
+}
+function showRoomPanel() {
+  $('#vMain').hidden = true; $('#vRoom').hidden = false;
+  sheet.hidden = false;
+  renderRoomPanel();
+}
+function renderRoomPanel() {
+  if (!net.on) return;
+  const r = net.room;
+  $('#roomCode').textContent = net.code || '····';
+  $('#roomLink').textContent = inviteUrl();
+  $('#btnShare').textContent = navigator.share ? 'Поделиться' : 'Скопировать';
+  const box = $('#seats'); box.innerHTML = '';
+  if (r) {
+    r.seats.forEach((id, k) => {
+      const d = document.createElement('div');
+      d.className = 'seat' + (id ? '' : ' empty'); d.style.setProperty('--c', PD[k].color);
+      d.innerHTML = '<span class="chip-orb"></span><span class="seat-name"></span><span class="seat-state"></span>';
+      d.querySelector('.seat-name').textContent = id ? (r.names[k] || PD[k].name) : PD[k].name;
+      const s = d.querySelector('.seat-state');
+      if (!id) s.textContent = 'ждём…';
+      else if (id === myId) { s.textContent = 'ты'; s.classList.toggle('on', net.status === 'ok'); }
+      else if (net.online.has(id)) { s.textContent = 'в сети'; s.classList.add('on'); }
+      else s.textContent = 'не в сети';
+      box.appendChild(d);
+    });
+  }
+  const note = $('#netNote');
+  let txt, err = false;
+  if (net.errorMsg) { txt = net.errorMsg; err = true; }
+  else if (net.status === 'connecting') txt = 'Подключаюсь…';
+  else if (net.status === 'lost') txt = 'Связь пропала, переподключаюсь…';
+  else if (!r) txt = 'Ищу комнату…';
+  else if (mySeat() < 0) txt = 'Жду, пока меня посадят за стол…';
+  else if (!started(r)) txt = `Отправь брату ссылку или код. Игра начнётся, когда зайдут все: ${filled(r)} из ${r.n}.`;
+  else if (finished) txt = 'Партия окончена. Можно начать реванш.';
+  else txt = 'Игра идёт. Комната живёт, пока в ней кто-то есть.';
+  note.textContent = txt; note.classList.toggle('err', err);
+  $('#btnStartNow').hidden = !(r && !started(r) && filled(r) >= 2 && amActingHost());
+  $('#btnRoomClose').hidden = !(r && started(r));
+  const n2 = $('#inName2'); if (document.activeElement !== n2) n2.value = myName();
+}
+async function shareInvite() {
+  const url = inviteUrl();
+  if (navigator.share) {
+    try { await navigator.share({ title: 'Реактор', text: `Заходи в Реактор! Комната ${net.code}`, url }); return; }
+    catch (e) { if (e && e.name === 'AbortError') return; }
+  }
+  try { await navigator.clipboard.writeText(url); toast('Ссылка скопирована'); }
+  catch (e) {
+    try { const s = getSelection(), rg = document.createRange(); rg.selectNodeContents($('#roomLink')); s.removeAllRanges(); s.addRange(rg); } catch (e2) {}
+    toast('Ссылка выделена. Скопируй её вручную');
+  }
+}
+
+/* ---------- sheet ---------- */
+const sheet = $('#sheet');
+function syncSeg() {
+  const online = settings.where === 'online';
+  if (online && settings.mode === 'bot') settings.mode = '2';
+  document.querySelectorAll('#segWhere button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === settings.where)));
+  document.querySelectorAll('#segPlayers button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === settings.mode)));
+  document.querySelectorAll('#segSize button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === settings.size)));
+  $('#mbot').hidden = online;
+  $('#segPlayers').style.setProperty('--cols', online ? 3 : 4);
+  $('#fName').hidden = !online;
+  $('#localActions').hidden = online;
+  $('#onlineActions').hidden = !online;
+  const n1 = $('#inName'); if (document.activeElement !== n1) n1.value = myName();
+  const names = ['Янтарь', 'Лёд', 'Роза', 'Лайм', 'Бот'].filter(n => wins[n]);
+  $('#scoreLine').textContent = names.length ? 'Счёт: ' + names.map(n => `${n} ${wins[n]}`).join(' · ') : 'Счёт пока пустой';
+}
+function openSheet() {
+  if (net.on) { showRoomPanel(); return; }
+  const mid = inGame && !finished && !demo;
+  paused = mid;
+  clearTimeout(botTimer);
+  $('#btnContinue').hidden = !mid;
+  $('#btnStart').textContent = mid ? 'Новая игра' : 'Играть';
+  $('#vMain').hidden = false; $('#vRoom').hidden = true;
+  syncSeg();
+  sheet.hidden = false;
+}
+function closeSheet() { sheet.hidden = true; paused = false; scheduleBot(); }
+
+function segClick(id, key, after) {
+  $(id).addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    settings[key] = b.dataset.v; store.set('settings', settings); syncSeg();
+    if (after) after();
+  });
+}
+segClick('#segWhere', 'where');
+segClick('#segPlayers', 'mode');
+segClick('#segSize', 'size', () => { if (demo) startDemo(); });
+$('#btnStart').addEventListener('click', () => { ensureAudio(); firstTurn = 0; newGame(); });
+$('#btnContinue').addEventListener('click', closeSheet);
+$('#btnCreate').addEventListener('click', () => { ensureAudio(); createRoom(); });
+const inCode = $('#inCode');
+inCode.addEventListener('input', () => {
+  const v = normCode(inCode.value);
+  if (inCode.value !== v) inCode.value = v;
+  $('#btnJoin').classList.toggle('ready', v.length === 4);
+});
+const doJoin = () => { const v = normCode(inCode.value); if (v.length !== 4) { toast('Введи код из 4 символов'); inCode.focus(); return; } ensureAudio(); joinRoom(v); };
+$('#btnJoin').addEventListener('click', doJoin);
+inCode.addEventListener('keydown', e => { if (e.key === 'Enter') doJoin(); });
+let nameT = 0;
+function onNameInput(e) {
+  const v = e.target.value.slice(0, 12);
+  store.set('name', v.trim());
+  const other = e.target.id === 'inName' ? $('#inName2') : $('#inName');
+  other.value = v;
+  if (net.on && net.room && mySeat() >= 0) {
+    clearTimeout(nameT);
+    nameT = setTimeout(() => {
+      const k = mySeat(); if (k < 0) return;
+      net.room.names[k] = myName() || null; saveRoom(); roomChanged();
+      send('name', { name: myName() || null });
+    }, 500);
+  }
+}
+$('#inName').addEventListener('input', onNameInput);
+$('#inName2').addEventListener('input', onNameInput);
+$('#btnShare').addEventListener('click', shareInvite);
+$('#btnLeave').addEventListener('click', () => { leaveRoom(); startDemo(); openSheet(); });
+$('#btnStartNow').addEventListener('click', startNow);
+$('#btnRoomClose').addEventListener('click', () => { sheet.hidden = true; });
+$('#btnRoom').addEventListener('click', showRoomPanel);
+$('#btnMenu').addEventListener('click', () => {
+  if (!sheet.hidden) {
+    if (net.on) { if (net.room && started(net.room)) sheet.hidden = true; return; }
+    if (inGame && !finished) closeSheet();
+    return;
+  }
+  if (!$('#win').hidden) return;
+  openSheet();
+});
+$('#btnSound').addEventListener('click', () => {
+  soundOn = !soundOn; store.set('sound', soundOn); renderSoundBtn();
+  if (soundOn) { ensureAudio(); const was = demo; demo = false; tone(523, 0.1, { v: 0.15, slide: 0.7 }); demo = was; }
+});
+$('#btnUndo').addEventListener('click', undo);
+$('#btnAgain').addEventListener('click', () => {
+  ensureAudio();
+  if (net.on) { onlineRematch(); return; }
+  firstTurn = (firstTurn + 1) % players.length; newGame();
+});
+$('#btnToMenu').addEventListener('click', () => {
+  $('#win').hidden = true;
+  if (net.on) leaveRoom();
+  startDemo(); openSheet();
+});
+let resetArmed = 0;
+$('#btnReset').addEventListener('click', e => {
+  const b = e.currentTarget;
+  if (!resetArmed) {
+    b.textContent = 'Точно? Нажми ещё раз';
+    resetArmed = setTimeout(() => { resetArmed = 0; b.textContent = 'Сбросить счёт'; }, 3000);
+    return;
+  }
+  clearTimeout(resetArmed); resetArmed = 0;
+  wins = {}; store.set('wins', wins); syncSeg(); updateHUD();
+  b.textContent = 'Счёт сброшен';
+  setTimeout(() => { b.textContent = 'Сбросить счёт'; }, 1800);
+});
+
+canvas.addEventListener('pointerdown', e => {
+  const r = canvas.getBoundingClientRect();
+  const c = Math.floor((e.clientX - r.left) / cell), y = Math.floor((e.clientY - r.top) / cell);
+  if (c < 0 || y < 0 || c >= cols || y >= rows) return;
+  ensureAudio();
+  if (net.on) { onlineTap(y * cols + c); return; }
+  if (demo || !inGame || busy || paused || finished) return;
+  if (players[turn].bot) return;
+  play(y * cols + c);
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) return;
+  if (inGame && !finished) keepAwake();
+  if (net.on && net.ch) hello();
+});
+window.addEventListener('hashchange', () => {
+  const c = codeFromHash();
+  if (c && (!net.on || net.code !== c)) joinRoom(c);
+});
+
+/* ---------- boot ---------- */
+renderSoundBtn();
+syncSeg();
+try { if (/\.test$/.test(location.hostname)) window.__reactor = { net, get turn() { return turn; }, get owner() { return owner; }, get count() { return count; }, get finished() { return finished; }, get players() { return players; }, get busy() { return busy; } }; } catch (e) {}
+const hot = window.claude && window.claude.hot;
+try {
+  hot && hot.snapshot && hot.snapshot(() => ({
+    online: net.on ? net.code : null,
+    game: (!net.on && inGame && !busy && !finished) ? {
+      cols, rows, owner: Array.from(owner), count: Array.from(count),
+      players: players.map(p => ({ ...p })), turn, stats: { ...stats }, firstTurn
+    } : null
+  }));
+} catch (e) {}
+function boot(data) {
+  const code = codeFromHash() || (data && data.online);
+  if (code) { joinRoom(code); return; }
+  const g = data && data.game;
+  if (g) {
+    try {
+      gen++; demo = false; inGame = true; finished = false; busy = false; paused = false;
+      setupBoard(g.cols, g.rows);
+      owner = Int8Array.from(g.owner); count = Int8Array.from(g.count);
+      players = g.players; turn = g.turn; stats = g.stats; firstTurn = g.firstTurn || 0; undoStack = [];
+      sheet.hidden = true;
+      buildChips(); updateHUD(); scheduleBot();
+      return;
+    } catch (e) {}
+  }
+  startDemo(); openSheet();
+}
+try {
+  if (hot && hot.ready) hot.ready(boot); else boot((hot && hot.data) || {});
+} catch (e) { boot({}); }
+})();
+</script>
+
+</body>
+</html>
