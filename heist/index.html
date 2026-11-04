@@ -276,7 +276,7 @@ button:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
       <button class="key wait" data-e="w" aria-label="Ждать">⏸️<small>ждать</small></button>
     </div>
     <div class="pingrow" id="pingRow" hidden><button class="pingbtn" id="btnPing">📡 Пеленг: показать вора <b id="pingLeft">2</b></button></div>
-    <div class="legend" id="legend" hidden><span id="lgGuard">💂 видит 2 клетки вперёд</span><span id="lgCam">📹 видит 3 клетки</span><span><b style="color:#FF3B3B">━</b> лазер горит всегда</span><span><b style="color:#FF5EDB">━</b> мигает, пунктир = выключен</span><span>☕ под пятном план не виден</span><span>Всё двигается только с ходом вора</span></div>
+    <div class="legend" id="legend" hidden><span id="lgGuard">💂 видит 2 клетки вперёд</span><span id="lgCam">📹 видит 3 клетки</span><span><b style="color:#FF3B3B">━</b> лазер горит всегда</span><span><b style="color:#FF5EDB">━</b> мигает, пунктир = выключен</span><span>☕ под пятном план не виден</span><span>На плане — как будет после следующего хода вора</span></div>
   </section>
 </div>
 
@@ -372,7 +372,7 @@ button:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
 const SB_URL = 'https://ulfqprrjdyycznobirxw.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVsZnFwcnJqZHl5Y3pub2Jpcnh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM3OTg4NTMsImV4cCI6MjEwOTM3NDg1M30.zIjRlMNnqg59jZRprHcCoIkoBiIis45vw5vP4bhF_tc';
 const APP = 'heist';
-const BUILD = '2026-11-05.5';
+const BUILD = '2026-11-05.6';
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const store = {
@@ -532,6 +532,7 @@ function tryGen(seed, L, tr, easy) {
     if (lmPos.length >= Math.min(LM.length, Math.max(6, Math.round(wallC.length / 9)))) break;
     const x = t % W, y = (t / W) | 0;
     if (lmPos.some(p => Math.max(Math.abs(p % W - x), Math.abs(((p / W) | 0) - y)) < 2)) continue;
+    if (L >= 3 && Math.max(Math.abs(lv.S % W - x), Math.abs(((lv.S / W) | 0) - y)) <= 1) continue;
     let li = lmOrder[lmPos.length % lmOrder.length];
     if (d.dupes && lmPos.length > 3 && r() < 0.3) li = lv.deco[lmPos[Math.floor(r() * lmPos.length)]];
     lv.deco[t] = li; lmPos.push(t);
@@ -581,7 +582,9 @@ function tryGen(seed, L, tr, easy) {
     lv.cams.push({ i: t, dirs: dirs.length === 1 ? [dirs[0], -1] : shuffle(dirs).slice(0, 3) });
   }
   if (lv.guards.length && !easy) {
-    const pathT = new Set(), walk = (a, b) => { const dd = bfs(lv, b, null, true); let c = a; pathT.add(c); for (let n = 0; n < 400 && c !== b; n++) { const x = c % W, y = (c / W) | 0; let nx = -1; for (let k = 0; k < 4; k++) { const q = id(x + DX[k], y + DY[k]); if (x + DX[k] >= 0 && y + DY[k] >= 0 && x + DX[k] < W && y + DY[k] < H && g[q] && dd[q] === dd[c] - 1) { nx = q; break; } } if (nx < 0) break; c = nx; pathT.add(c); } };
+    const hard = new Set(lv.lasers.filter(l => l.m === 0).map(l => l.i)), reach = bfs(lv, lv.S, hard, true);
+    if (lv.guards.some(gd => gd.path.every(c => reach[c] < 0))) return null;
+    const pathT = new Set(), walk = (a, b) => { const dd = bfs(lv, b, hard, true); let c = a; pathT.add(c); for (let n = 0; n < 400 && c !== b; n++) { const x = c % W, y = (c / W) | 0; let nx = -1; for (let k = 0; k < 4; k++) { const q = id(x + DX[k], y + DY[k]); if (x + DX[k] >= 0 && y + DY[k] >= 0 && x + DX[k] < W && y + DY[k] < H && g[q] && dd[q] === dd[c] - 1) { nx = q; break; } } if (nx < 0) break; c = nx; pathT.add(c); } };
     if (lv.note >= 0) { walk(lv.S, lv.note); walk(lv.note, lv.gem); } else walk(lv.S, lv.gem);
     walk(lv.gem, lv.E);
     const threat = lv.guards.some(gd => { const P = 2 * (gd.path.length - 1); for (let t = 0; t < P; t++) { const q = guardAt(gd, t); if (pathT.has(q.i) || ray(lv, q.i, q.face, lv.vr).some(c => pathT.has(c))) return true; } return false; });
@@ -605,7 +608,25 @@ function tryGen(seed, L, tr, easy) {
   const sol = solve(lv); if (!sol) return null;
   if (!easy && sol.length > (L < 10 ? Math.min(160, 48 + L * 12) : L < 14 ? 190 : 230)) return null;
   lv.best = sol.length; lv.sol = sol;
-  if (d.timer) lv.limit = Math.round((30 + sol.length * Math.max(2, 2.6 - L * 0.04) + (lv.door >= 0 ? 20 : 0) + (lv.safe ? 30 : 0)) / 5) * 5;
+  const limitOf = n => d.timer ? Math.round((30 + n * (L >= 3 ? 2 : Math.max(2, 2.6 - L * 0.04)) + (lv.door >= 0 ? 20 : 0) + (lv.safe ? 20 : 0)) / 5) * 5 : 0;
+  lv.limit = limitOf(sol.length);
+  lv.starts = [{ s: lv.S, f: lv.face0 || 0, best: sol.length, limit: lv.limit }];
+  if (L > 0) {
+    // other safe starting spots: every retry begins somewhere new, so the navigator has to find the thief again
+    const danger = new Set([...special, ...lv.lasers.map(l => l.i)]);
+    for (const gd of lv.guards) { const P = 2 * (gd.path.length - 1); for (let t = 0; t < P; t++) { const q = guardAt(gd, t); danger.add(q.i); ray(lv, q.i, q.face, lv.vr).forEach(c => danger.add(c)); } }
+    for (const c of lv.cams) for (const k of c.dirs) if (k >= 0) ray(lv, c.i, k, lv.camr).forEach(x => danger.add(x));
+    const dG = bfs(lv, lv.gem, null, true), cand = [];
+    for (let cy = 0; cy < ch; cy++) for (let cx = 0; cx < cw; cx++) { const t = id(2 * cx + 1, 2 * cy + 1); if (!danger.has(t) && dG[t] >= 4) cand.push(t); }
+    shuffle(cand);
+    const cap = L < 10 ? Math.min(160, 48 + L * 12) : L < 14 ? 190 : 230;
+    for (let i = 0; i < cand.length && lv.starts.length < 4 && i < 30; i++) {
+      const c = cand[i], f = Math.floor(r() * 4), x = c % W, y = (c / W) | 0;
+      if (L >= 3 && Object.keys(lv.deco).some(k => Math.max(Math.abs(k % W - x), Math.abs(((k / W) | 0) - y)) <= 1)) continue;
+      const s2 = solve(lv, { pos: c, face: f, t: 0, gem: false, note: lv.note < 0, open: lv.door < 0 });
+      if (s2 && s2.length <= cap) lv.starts.push({ s: c, f, best: s2.length, limit: limitOf(s2.length) });
+    }
+  }
   return lv;
 }
 function guardAt(gd, t) {
@@ -666,7 +687,8 @@ function codeFor(seed, L, att) { return doorFor(seed, L, att).code; }
 
 /* ---------- simulation of one attempt: a list of events ---------- */
 const EV_RE = /^([URDLwlrfbzg]|k[0-5]|[ox][a-z0-9]{3,8})$/;
-function newSim(lv) { return { pos: lv.S, face: lv.face0 || 0, t: 0, gem: false, note: lv.note < 0, open: lv.door < 0, caught: '', won: false, trail: [lv.S], wrong: 0, steps: 0, bumps: 0, sp: 0, strikes: 0 }; }
+function startOf(lv, att) { const st = lv.starts || [{ s: lv.S, f: lv.face0 || 0, best: lv.best, limit: lv.limit }]; return st[(att | 0) % st.length]; }
+function newSim(lv, att) { const st = startOf(lv, att); return { pos: st.s, face: st.f, t: 0, gem: false, note: lv.note < 0, open: lv.door < 0, caught: '', won: false, trail: [st.s], wrong: 0, steps: 0, bumps: 0, sp: 0, strikes: 0 }; }
 function cloneSim(s) { return Object.assign({}, s, { trail: s.trail.slice() }); }
 function applyEv(lv, s, e) {
   if (s.caught || s.won || !EV_RE.test(e)) return false;
@@ -702,7 +724,7 @@ function applyEv(lv, s, e) {
   if (np === lv.E && s.gem) s.won = true;
   return true;
 }
-function simulate(lv, log) { const s = newSim(lv); for (const e of log) applyEv(lv, s, e); return s; }
+function simulate(lv, log, att) { const s = newSim(lv, att); for (const e of log) applyEv(lv, s, e); return s; }
 
 /* =====================================================================
    GAME STATE
@@ -730,7 +752,7 @@ function sync(full) {
   curSafe = lv.safe ? safeFor(s.code, s.lvl, s.att) : null;
   curDoor = lv.door >= 0 ? doorFor(s.code, s.lvl, s.att) : null;
   if (full || s.att !== simAtt || s.log.length < simLen) {
-    sim = simulate(lv, s.log); simAtt = s.att; simLen = s.log.length; codeBuf = '';
+    sim = simulate(lv, s.log, s.att); simAtt = s.att; simLen = s.log.length; codeBuf = '';
     if (full) { viewX = sim.pos % lv.W; viewY = (sim.pos / lv.W) | 0; viewA = -sim.face * Math.PI / 2; }
   } else {
     while (simLen < s.log.length) { const e = s.log[simLen++]; const was = cloneSim(sim); applyEv(lv, sim, e); evFx(e, was); }
@@ -753,7 +775,7 @@ function evFx(e, was) {
   if (e === 'b' && !sim.caught) { sfxBump(); buzz(30); toast(r === 'nav' ? `💥 БУМ! ${mode === 'online' ? partnerName() : 'Вор'} врезался в стену (−5 с)` : '💥 Стена! Ход потрачен, −5 секунд'); return; }
   if (sim.caught) { sfxAlarm(); buzz(200); $('#flash').classList.remove('on'); void $('#flash').offsetWidth; $('#flash').classList.add('on'); return; }
   if (sim.gem && !was.gem) { sfxGem(); toast('💎 Добыча у вора! Теперь к выходу 🚪'); }
-  if (sim.note && !was.note && lv.note >= 0) { sfxNote(); if (r !== 'nav') toast('📝 Записка! Продиктуй код штурману'); else toast(`📝 ${partnerName()} нашёл записку, спроси код`); }
+  if (sim.note && !was.note && lv.note >= 0) { sfxNote(); if (r !== 'nav') toast('📝 Записка! Скажи штурману номера цифр'); else toast(`📝 ${partnerName()} нашёл записку: спроси номера цифр`); }
   if (sim.won) { sfxWin(); buzz(80); return; }
   sfxStep();
 }
@@ -774,7 +796,8 @@ function pushEv(e) {
   sync();
 }
 function pressSafe(i) { if (!amWriter() || !sim || sim.caught || sim.won || !lv || !lv.safe || sim.pos !== lv.gem || sim.gem) return; ensureAudio(); pushEv('k' + i); }
-function limitMs() { return lv && lv.limit ? lv.limit * 1000 * (mode === 'solo' && solo && solo.blind ? 2 : 1) : 0; }
+function curStart() { const s = src(); return startOf(lv, s ? s.att : 0); }
+function limitMs() { return lv && lv.limit ? curStart().limit * 1000 * (mode === 'solo' && solo && solo.blind ? 2 : 1) : 0; }
 function penaltyMs() { return sim ? (sim.bumps * 5 + sim.strikes * 15 + sim.wrong * 10) * 1000 : 0; }
 function timerLeft() { const s = src(); if (!s || !lv || !lv.limit || mode === 'idle') return null; if (!s.t0) return limitMs(); const now = (mode === 'solo' && menuAt) ? menuAt : Date.now(); return limitMs() - (now - s.t0) - penaltyMs(); }
 function handleCode(rid, val) {
@@ -872,8 +895,8 @@ function ui() {
   const ak = s.code + '|' + s.lvl + '|' + s.att;
   if (sim.caught && lastCaughtKey !== ak) {
     lastCaughtKey = ak;
-    const why = { guard: 'Охранник заметил вора.', cam: 'Вор попал в камеру.', laser: 'Вор задел лазер.', time: 'Время вышло, сработала тревога.', safe: 'Три ошибки на сейфе, сработала тревога.' }[sim.caught];
-    setTimeout(() => { if (sim && sim.caught && src() && src().att === s.att) { $('#caughtWhy').textContent = why + ' Это же дело можно пройти снова, коды будут новые.'; $('#caught').hidden = false; } }, 1300);
+    const why = { guard: 'Охранник заметил вора.', cam: 'Вор попал в камеру.', laser: 'Вор задел лазер.', time: 'Время вышло, сработала тревога.', safe: 'Слишком много ошибок на сейфе, сработала тревога.' }[sim.caught];
+    setTimeout(() => { if (sim && sim.caught && src() && src().att === s.att) { $('#caughtWhy').textContent = why + (lv.L > 0 ? ' Здание то же, но вор начнёт с другого места, а коды будут новые.' : ' Попробуйте ещё раз.'); $('#caught').hidden = false; } }, 1300);
   }
   if (!sim.caught) $('#caught').hidden = true;
   if (sim.won && lastWonKey !== ak) {
@@ -881,7 +904,7 @@ function ui() {
     setTimeout(() => {
       if (!sim || !sim.won) return;
       const tl = timerLeft(), used = tl != null && src().t0 ? Math.round((limitMs() - tl) / 1000) : null;
-      $('#wonText').innerHTML = `Ходов: <b>${sim.steps}</b> · самый короткий путь: <b>${lv.best}</b> · врезались в стены: <b>${sim.bumps}</b>${lv.safe ? ` · ошибок на сейфе: <b>${sim.strikes}</b>` : ''}${used != null ? ` · время: <b>${Math.floor(used / 60)}:${String(used % 60).padStart(2, '0')}</b>` : ''}.${mode === 'online' ? ' В следующем деле роли меняются.' : ''}`;
+      $('#wonText').innerHTML = `Ходов: <b>${sim.steps}</b> · самый короткий путь: <b>${curStart().best}</b> · врезались в стены: <b>${sim.bumps}</b>${lv.safe ? ` · ошибок на сейфе: <b>${sim.strikes}</b>` : ''}${used != null ? ` · время: <b>${Math.floor(used / 60)}:${String(used % 60).padStart(2, '0')}</b>` : ''}.${mode === 'online' ? ' В следующем деле роли меняются.' : ''}`;
       $('#won').hidden = false;
     }, 900);
   }
@@ -971,10 +994,10 @@ function drawNav(now) {
   ctx.fillStyle = '#0D2B4E'; ctx.fillRect(0, 0, CWp, CHp);
   ctx.strokeStyle = 'rgba(127,212,255,.07)'; ctx.lineWidth = 1;
   ctx.beginPath(); for (let x = 0; x <= W; x++) { ctx.moveTo(ox + x * T + .5, oy); ctx.lineTo(ox + x * T + .5, oy + H * T); } for (let y = 0; y <= H; y++) { ctx.moveTo(ox, oy + y * T + .5); ctx.lineTo(ox + W * T, oy + y * T + .5); } ctx.stroke();
-  const t = sim.t; curW = W;
+  const t = sim.t + 1; curW = W;   // everything on the blueprint is shown for the moment after the thief's next action
   // hazard zones
   const zone = (cells, col) => { ctx.fillStyle = col; for (const c of cells) ctx.fillRect(ox + (c % W) * T + 1, oy + ((c / W) | 0) * T + 1, T - 2, T - 2); };
-  for (const c of lv.cams) { const k = camDir(c, t); if (k >= 0) zone(ray(lv, c.i, k, lv.camr), 'rgba(255,170,40,.32)'); const k2 = camDir(c, t + 1); if (k2 >= 0 && k2 !== k) { ctx.save(); ctx.setLineDash([3, 3]); ctx.strokeStyle = 'rgba(255,170,40,.55)'; for (const cc of ray(lv, c.i, k2, lv.camr)) ctx.strokeRect(ox + (cc % W) * T + 3, oy + ((cc / W) | 0) * T + 3, T - 6, T - 6); ctx.restore(); } }
+  for (const c of lv.cams) { const k = camDir(c, t); if (k >= 0) zone(ray(lv, c.i, k, lv.camr), 'rgba(255,170,40,.32)'); const k2 = -1; if (k2 >= 0 && k2 !== k) { ctx.save(); ctx.setLineDash([3, 3]); ctx.strokeStyle = 'rgba(255,170,40,.55)'; for (const cc of ray(lv, c.i, k2, lv.camr)) ctx.strokeRect(ox + (cc % W) * T + 3, oy + ((cc / W) | 0) * T + 3, T - 6, T - 6); ctx.restore(); } }
   for (const gd of lv.guards) { const { i, face } = guardAt(gd, t); zone([i, ...ray(lv, i, face, lv.vr)], 'rgba(255,60,60,.30)'); }
   // walls
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
@@ -1007,11 +1030,12 @@ function drawNav(now) {
   for (const c of lv.cams) { const [X, Y] = at(c.i); emoji('📹', X + T / 2, Y + T / 2, T * 0.62); }
   for (const gd of lv.guards) {
     const { i, face } = guardAt(gd, t), nx = guardAt(gd, t + 1).i; const [X, Y] = at(i);
+    { const pi = guardAt(gd, t - 1).i; if (pi !== i) { const [PX, PY] = at(pi); ctx.globalAlpha = 0.28; emoji('💂', PX + T / 2, PY + T / 2, T * 0.6); ctx.globalAlpha = 1; } }
     if (nx !== i) { const [NX, NY] = at(nx); ctx.strokeStyle = '#FF8A8A'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X + T / 2, Y + T / 2); const mx = (X + NX) / 2 + T / 2, my = (Y + NY) / 2 + T / 2; ctx.lineTo(mx, my); ctx.stroke(); ctx.fillStyle = '#FF8A8A'; ctx.beginPath(); ctx.arc(mx, my, Math.max(2, T * 0.08), 0, 6.283); ctx.fill(); }
     emoji('💂', X + T / 2, Y + T / 2, T * 0.72); void face;
   }
   // start marker: only on the first case (and in training); afterwards the navigator has to find the thief
-  if (lv.L === 0 || role() === 'both') { const [X, Y] = at(lv.S); ctx.save(); ctx.setLineDash([3, 3]); ctx.strokeStyle = 'rgba(255,210,63,.8)'; ctx.lineWidth = 1.5; ctx.strokeRect(X + 3, Y + 3, T - 6, T - 6); ctx.restore();
+  if (lv.L === 0 || role() === 'both') { const [X, Y] = at(curStart().s); ctx.save(); ctx.setLineDash([3, 3]); ctx.strokeStyle = 'rgba(255,210,63,.8)'; ctx.lineWidth = 1.5; ctx.strokeRect(X + 3, Y + 3, T - 6, T - 6); ctx.restore();
     ctx.fillStyle = 'rgba(255,210,63,.9)'; ctx.font = `bold ${Math.max(8, Math.round(T * 0.24))}px "PT Mono", monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('СТАРТ', X + T / 2, Y + T / 2); }
   // coffee stains hide part of the plan
   const both = role() === 'both';
@@ -1064,7 +1088,7 @@ function drawRunner(now) {
     const dist = Math.hypot(x - viewX, y - viewY); if (dist > SEE + 0.35) continue;
     const a = Math.max(0, Math.min(1, (SEE + 0.35 - dist) / 0.5));
     ctx.globalAlpha = a;
-    if (x < 0 || y < 0 || x >= W || y >= H) { ctx.fillStyle = '#0A2414'; ctx.fillRect(X, Y, T, T); continue; }
+    if (x < 0 || y < 0 || x >= W || y >= H) continue;
     const c = y * W + x;
     if (!los(x, y)) { ctx.fillStyle = '#010302'; ctx.fillRect(X, Y, T, T); continue; }
     const near = Math.abs(x - sx0) <= 1 && Math.abs(y - sy0) <= 1;
