@@ -120,7 +120,7 @@ button:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
 @media (max-height: 760px) { .wlist { gap: 3px; } .wire button { min-height: 34px; } }
 .wire { display: grid; grid-template-columns: 22px 1fr auto; align-items: center; gap: 8px; }
 .wire small { color: #E9D8A6; font: 700 13px var(--font-mono); text-align: center; }
-.wire i { height: 14px; border-radius: 7px; box-shadow: inset 0 -3px 0 rgba(0,0,0,.35), 0 0 0 1px rgba(255,255,255,.15); }
+.wire i { height: 14px; border-radius: 7px; box-shadow: inset 0 -3px 0 rgba(0,0,0,.35), 0 0 0 2px rgba(255,255,255,.4); }
 .wire button { min-height: 40px; padding: 0 12px; border-radius: 8px; border: 1px solid #FF8A8A; background: #3A1010; color: #FFD0D0; font: 700 13px var(--font-mono); cursor: pointer; }
 .lamps { display: flex; gap: 6px; font-size: 26px; justify-content: center; }
 .lock-top span.lamps { display: flex; font-size: 30px; line-height: 1.2; justify-content: flex-start; gap: 10px; margin: 4px 0; letter-spacing: 0; }
@@ -359,18 +359,17 @@ button:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
       <details class="rules">
         <summary>Как играть</summary>
         <ul>
-          <li><b>Вор</b> видит только клетки рядом с собой. Охрану, камеры и лазеры он не видит. Задача: найти добычу 💎 и уйти через выход 🚪.</li>
-          <li><b>Штурман</b> видит план: охрану, камеры, лазеры, картины на стенах. Но <b>где вор, он не видит</b>. Вор описывает, что рядом («слева гитара, впереди тупик»), а штурман по ориентирам находит его клетку и ведёт голосом: «два вверх, стой, жди ход, теперь направо».</li>
-          <li>Вор не видит сквозь стены: только то, что в прямой видимости, а добычу, дверь, записку и выход — только вплотную. 📡 <b>Пеленг</b> у штурмана показывает вора на 3 секунды: 2 раза на первых делах, потом 1, с 11-го — ни одного.</li>
-          <li>С 8-го дела на чертеже <b>кофейное пятно ☕</b>: что под ним, штурман не видит, и эту часть описывает вор. Охраны и лазеров под пятном нет. С 11-го здание больше, дальше больше охраны и камер.</li>
-          <li>Охранники, камеры и мигающие лазеры двигаются, только когда вор делает шаг или ждёт. Можно спокойно думать.</li>
-          <li>Дверь к добыче открывается кодом. Серийный номер двери есть только на чертеже у штурмана, а на записке 📝 у вора написано, какие цифры из него нужны («№2, №5, №1»). Собирайте код вместе, вводит вор у двери. Ошибка — минус 10 секунд.</li>
-          <li>Картины, статуи, фикусы на стенах видят оба. По ним удобно ориентироваться: «ты у статуи? теперь налево».</li>
-          <li>У вора нет «вверх-вниз»: только <b>поворот налево</b>, <b>поворот направо</b> и <b>шаг вперёд</b>, а картинка крутится вместе с ним. Штурман говорит «налево» и «направо» от лица вора, а не по карте. Отсюда весь хаос 😄</li>
-          <li>Каждое действие вора, даже поворот, — это ход: охрана, камеры и мигающие лазеры сдвигаются. Врезался в стену — ход потрачен и минус 5 секунд. Со 2-го дела таймер тревоги стартует, как только вор закрыл брифинг.</li>
-          <li>С 4-го дела у добычи <b>сейф</b>: у вора 6 странных символов, два из них обманки, а инструкция только у штурмана. Описывайте как хотите: «вилка с хвостиком», «паук в шляпе». С 6-го дела у сейфа лампа: красная — нажимать в обратном порядке. Ошибка — минус 15 секунд, лишняя ошибка — тревога.</li>
-          <li>С 7-го дела ориентиры на стенах повторяются, а фонарик у вора иногда гаснет. С 9-го он светит слабее.</li>
-          <li>Попались: пробуйте это же дело снова, но коды будут новые. Прошли: роли меняются, дальше новое дело.</li>
+          <li><b>Вор</b> видит только клетки рядом с собой, в прямой видимости. Охрану, камеры и лазеры он не видит. Задача: найти добычу 💎 и уйти через выход 🚪.</li>
+          <li><b>Штурман</b> видит план, но <b>где вор — не видит</b>. Вор описывает, что рядом («слева гитара, впереди тупик»), штурман находит его клетку по ориентирам и ведёт голосом от лица вора: «вперёд два, стой, жди ход, теперь направо».</li>
+          <li>У вора нет «вверх-вниз»: только <b>поворот налево</b>, <b>поворот направо</b>, <b>шаг вперёд</b> и <b>ждать</b>, картинка крутится вместе с ним. Каждое действие — ход: охрана, камеры и мигающие лазеры сдвигаются. Удар в стену — минус 5 секунд.</li>
+          <li>📁 <b>Папка штурмана</b> (на ноутбуке справа от плана): памятка, охрана, дверь, сейф, щиток. Нужная вкладка открывается сама, когда вор подходит к заданию.</li>
+          <li>📡 <b>Пеленг</b> показывает вора на 3 секунды: 2 раза на первых делах, потом 1, на 11–12-м ни одного, с 13-го снова один.</li>
+          <li><b>Дверь</b> с 3-го дела. Цифровой замок (серийник у штурмана, номера цифр на записке у вора), с 6-го — цветной (лампы видит вор, таблица у штурмана), с 7-го — стрелочный (схема по плану у штурмана, а вор жмёт стрелки от своего лица). Дальше замок любой. Ошибка — минус 10 секунд.</li>
+          <li><b>Сейф</b> с 4-го: у вора 6 странных символов, два — обманки, инструкция у штурмана. Описывайте как хотите: «вилка с хвостиком». С 6-го лампа: красная — обратный порядок. Ошибка — минус 15 секунд.</li>
+          <li><b>Лазерный барьер</b> с 9-го: перекрывает путь к добыче. Вор находит щиток 🎛️, называет номер и цвета проводов, штурман по правилам из папки говорит, какой резать. С 13-го щиток в 2 этапа, с 21-го — в 3. Ошибка — минус 20 секунд, с 15-го сразу тревога.</li>
+          <li><b>Охрана в тени</b> с 13-го: штурман видит только маршруты и таблицу «где охранник будет после хода», а вор слышит шаги («👣 справа, близко — приближаются»).</li>
+          <li>С 7-го ориентиры повторяются и фонарик гаснет, с 8-го на плане кофейные пятна ☕, с 9-го фонарик светит только на соседние клетки, с 11-го здание больше.</li>
+          <li>Попались: это же дело снова, но вор стартует с другого места, а коды новые. Прошли: роли меняются, дальше новое дело.</li>
           <li><b>Вором вслепую</b>: играешь один за вора, а штурманом будет Claude в чате. Пришли ему код дела из верхней строки.</li>
           <li><b>Тренировка</b>: видно всё сразу, чтобы просто посмотреть уровни.</li>
         </ul>
@@ -432,7 +431,7 @@ button:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
 const SB_URL = 'https://ulfqprrjdyycznobirxw.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVsZnFwcnJqZHl5Y3pub2Jpcnh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM3OTg4NTMsImV4cCI6MjEwOTM3NDg1M30.zIjRlMNnqg59jZRprHcCoIkoBiIis45vw5vP4bhF_tc';
 const APP = 'heist';
-const BUILD = '2026-11-05.7';
+const BUILD = '2026-11-05.8';
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const store = {
@@ -478,7 +477,7 @@ function safeFor(seed, L, att) {
 const DCOL = [['🔴', 'красная', '#FF4B4B'], ['🔵', 'синяя', '#4B8BFF'], ['🟢', 'зелёная', '#39D98A'], ['🟡', 'жёлтая', '#FFD23F']];
 const SHAPES = [['★', 'звезда'], ['●', 'круг'], ['▲', 'треугольник']];
 const ARW = ['↑', '→', '↓', '←'], ARWN = ['север', 'восток', 'юг', 'запад'], REL = ['вперёд', 'вправо', 'назад', 'влево'], RELA = ['⬆', '➡', '⬇', '⬅'];
-const WCOL = [['красный', '#FF4B4B'], ['синий', '#3D7BFF'], ['жёлтый', '#FFD23F'], ['белый', '#F4F4F4'], ['чёрный', '#1A1A1A']];
+const WCOL = [['красный', '#FF4B4B'], ['синий', '#3D7BFF'], ['жёлтый', '#FFD23F'], ['белый', '#F4F4F4'], ['чёрный', '#262626']];
 function doorTypeOf(seed, L) { if (L < 5) return 'digits'; if (L === 5) return 'colors'; if (L === 6) return 'arrows'; return ['digits', 'colors', 'arrows'][(hashStr(seed + '#dt' + L) >>> 0) % 3]; }
 // door code: one half of the information is with the thief, the other half in the navigator's documents
 function doorFor(seed, L, att) {
@@ -507,7 +506,7 @@ function wireRule(w, digit) {
 }
 function panelFor(seed, L, att) {
   const r = RNG(seed + '&' + L + '&' + att);
-  const rounds = L >= 12 ? 2 : 1, n = (rounds > 1 ? 4 : 3) + Math.floor(r() * 3), wires = Array.from({ length: n }, () => Math.floor(r() * 5));
+  const rounds = L >= 20 ? 3 : L >= 12 ? 2 : 1, n = (rounds === 3 ? 5 : rounds === 2 ? 4 : 3) + Math.floor(r() * (rounds === 3 ? 2 : 3)), wires = Array.from({ length: n }, () => Math.floor(r() * 5));
   const digit = Math.floor(r() * 10), num = 'ЩТ-' + (10 + Math.floor(r() * 90)) + digit;
   const cuts = [], left = [wires.slice()];
   for (let k = 0; k < rounds; k++) { const w = left[k], c = wireRule(w, digit); cuts.push(c); left.push(w.filter((_, i) => i !== c)); }
@@ -525,7 +524,7 @@ function diff(L) {
     guards: L < 3 ? 0 : L < 5 ? 1 : L < 9 ? 2 : L < 14 ? 3 : 4,
     cams: L < 4 ? 0 : L < 8 ? 1 : L < 14 ? 2 : 3,
     stains: L < 7 ? 0 : L < 12 ? 1 : 2,
-    pings: L < 3 ? 2 : L < 10 ? 1 : 0,
+    pings: L < 3 ? 2 : L < 10 ? 1 : L < 12 ? 0 : 1,
     rotate: isRotate(L)
   };
 }
@@ -540,9 +539,11 @@ const NEWS = {
   8: 'Лазерный барьер ⚡: сквозь него не пройти. Вор находит щиток 🎛️, называет номер щитка и описывает провода, штурман по правилам из папки говорит, какой резать. Ошибка −20 с, вторая — тревога. Фонарик у вора садится: только соседние клетки.',
   7: 'Кофейное пятно ☕ на чертеже: штурман не видит, что под ним. Вор, эту часть описывай сам. Охраны и лазеров под пятном нет.',
   10: 'Здание стало больше, лазеров тоже. Пеленга больше нет.',
-  12: 'Охрана в тени! Штурман видит только маршруты охраны и расписание в папке, а не где охранники сейчас. Вор слышит шаги рядом («👣 слева, рядом»). Щиток барьера теперь в 2 этапа. Два кофейных пятна.',
+  12: 'Охрана в тени! Штурман видит только маршруты охраны и расписание в папке, а не где охранники сейчас. Вор слышит шаги до 5 клеток («👣 слева, близко — приближаются»). Щиток барьера теперь в 2 этапа. Зато у штурмана снова один пеленг.',
   16: 'Таймер ещё жёстче. Удачи.',
-  14: 'Самое большое здание: четыре охранника и три камеры. Щиток больше не прощает: первый же неверный провод — тревога.'
+  14: 'Самое большое здание: четыре охранника и три камеры. Щиток больше не прощает: первый же неверный провод — тревога.',
+  17: 'Ещё меньше времени на каждый шаг.',
+  20: 'Щиток барьера — в 3 этапа. Это уже высшая лига.'
 };
 const levelCache = new Map();
 function getLevel(seed, L) {
@@ -739,8 +740,8 @@ function tryGen(seed, L, tr, easy) {
   const sol = solve(lv); if (!sol) return null;
   if (!easy && sol.length > (L < 10 ? Math.min(160, 48 + L * 12) : L < 14 ? 190 : 230)) return null;
   lv.best = sol.length; lv.sol = sol;
-  const per = L < 3 ? Math.max(2, 2.6 - L * 0.04) : L < 12 ? 2 : L < 16 ? 1.8 : 1.65;
-  const limitOf = n => d.timer ? Math.round((30 + n * per + (lv.door >= 0 ? (lv.doorType === 'digits' ? 20 : 30) : 0) + (lv.safe ? 20 : 0) + (lv.gate >= 0 ? (L >= 12 ? 55 : 35) : 0)) / 5) * 5 : 0;
+  const per = L < 3 ? Math.max(2, 2.6 - L * 0.04) : L < 12 ? 2 : L < 16 ? 1.8 : L < 18 ? 1.65 : 1.55;
+  const limitOf = n => d.timer ? Math.round((30 + n * per + (lv.door >= 0 ? (lv.doorType === 'digits' ? 20 : 30) : 0) + (lv.safe ? (L < 8 ? 20 : 35) : 0) + (lv.gate >= 0 ? (L >= 20 ? 75 : L >= 12 ? 55 : 35) : 0)) / 5) * 5 : 0;
   lv.limit = limitOf(sol.length);
   lv.starts = [{ s: lv.S, f: lv.face0 || 0, best: sol.length, limit: lv.limit }];
   if (L > 0) {
@@ -778,6 +779,12 @@ function seenBy(lv, t, x) {
   for (const c of lv.cams) { const k = camDir(c, t); if (k >= 0 && ray(lv, c.i, k, lv.camr || CAM_R).includes(x)) return 'cam'; }
   for (const l of lv.lasers) if (l.i === x && laserOn(l, t)) return 'laser';
   return '';
+}
+function whoCaught(lv, s) {
+  curW = lv.W;
+  for (let k = 0; k < lv.guards.length; k++) { const { i, face } = guardAt(lv.guards[k], s.t); if (i === s.pos || ray(lv, i, face, lv.vr || VR).includes(s.pos)) return k; }
+  for (let k = 0; k < lv.guards.length; k++) { if (s.trail.length > 1 && guardAt(lv.guards[k], s.t - 1).i === s.pos) return k; }
+  return -1;
 }
 function caughtCheck(lv, prev, cur, t) {
   const r = seenBy(lv, t, cur); if (r) return r;
@@ -889,7 +896,7 @@ function partnerName() { const r = net.room; if (!r) return 'брат'; const s 
 function sync(full) {
   const s = src(); if (!s) return;
   const k = s.code + '|' + s.lvl;
-  if (!lv || lvKey !== k) { lv = getLevel(s.code, s.lvl); lvKey = k; full = true; viewX = lv.S % lv.W; viewY = (lv.S / lv.W) | 0; viewA = 0; codeBuf = ''; dispBuf = []; }
+  if (!lv || lvKey !== k) { lv = getLevel(s.code, s.lvl); lvKey = k; full = true; docTab = 'memo'; lastDocHtml = ''; viewX = lv.S % lv.W; viewY = (lv.S / lv.W) | 0; viewA = 0; codeBuf = ''; dispBuf = []; }
   curSafe = lv.safe ? safeFor(s.code, s.lvl, s.att) : null;
   curDoor = lv.door >= 0 ? doorFor(s.code, s.lvl, s.att) : null;
   curPanel = lv.gate >= 0 ? panelFor(s.code, s.lvl, s.att) : null;
@@ -1061,8 +1068,9 @@ function ui() {
   const ak = s.code + '|' + s.lvl + '|' + s.att;
   if (sim.caught && lastCaughtKey !== ak) {
     lastCaughtKey = ak;
-    const why = { guard: 'Охранник заметил вора.', cam: 'Вор попал в камеру.', laser: 'Вор задел лазер.', time: 'Время вышло, сработала тревога.', safe: 'Слишком много ошибок на сейфе, сработала тревога.', gate: 'Вор шагнул в лазерный барьер.', panel: 'Не тот провод на щитке — сработала тревога.' }[sim.caught];
-    setTimeout(() => { if (sim && sim.caught && src() && src().att === s.att) { $('#caughtWhy').textContent = why + (lv.L > 0 ? ' Здание то же, но вор начнёт с другого места, а коды будут новые.' : ' Попробуйте ещё раз.'); $('#caught').hidden = false; } }, 1300);
+    const gk = sim.caught === 'guard' ? whoCaught(lv, sim) : -1;
+    const why = { guard: gk >= 0 ? `Охранник №${gk + 1} заметил вора${lv.hide ? ' — на плане теперь видно, где была охрана' : ''}.` : 'Охранник заметил вора.', cam: 'Вор попал в камеру.', laser: 'Вор задел лазер.', time: 'Время вышло, сработала тревога.', safe: 'Слишком много ошибок на сейфе, сработала тревога.', gate: 'Вор шагнул в лазерный барьер.', panel: 'Не тот провод на щитке — сработала тревога.' }[sim.caught];
+    setTimeout(() => { if (sim && sim.caught && src() && src().att === s.att) { $('#caughtWhy').textContent = why + (lv.L > 0 ? ' Здание то же, но вор начнёт с другого места, а коды будут новые.' : ' Попробуйте ещё раз.'); $('#caught').hidden = false; } }, lv.hide ? 3200 : 1300);
   }
   if (!sim.caught) $('#caught').hidden = true;
   if (sim.won && lastWonKey !== ak) {
@@ -1136,9 +1144,10 @@ function footsteps() {
   const W = lv.W, x0 = sim.pos % W, y0 = (sim.pos / W) | 0, out = [];
   for (const gd of lv.guards) {
     const gi = guardAt(gd, sim.t).i, dx = gi % W - x0, dy = ((gi / W) | 0) - y0, dd = Math.abs(dx) + Math.abs(dy);
-    if (dd > 3) continue;
+    if (dd > 5) continue;
+    const g1 = guardAt(gd, sim.t + 1).i, dd1 = Math.abs(g1 % W - x0) + Math.abs(((g1 / W) | 0) - y0);
     const ab = Math.abs(dx) >= Math.abs(dy) ? (dx > 0 ? 1 : 3) : (dy > 0 ? 2 : 0), rel = (ab - sim.face + 4) % 4;
-    out.push(`${['спереди', 'справа', 'сзади', 'слева'][rel]}, ${dd <= 1 ? 'вплотную' : dd === 2 ? 'рядом' : 'недалеко'}`);
+    out.push(`${['спереди', 'справа', 'сзади', 'слева'][rel]}, ${dd <= 1 ? 'вплотную' : dd === 2 ? 'рядом' : dd === 3 ? 'близко' : 'вдалеке'}${dd1 < dd ? ' — приближаются' : dd1 > dd ? ' — удаляются' : ''}`);
   }
   return out.length ? '👣 Шаги: ' + out.join('; ') : '';
 }
@@ -1159,7 +1168,7 @@ function renderLock() {
 function docHtml(id, want) {
   const L = lv.L;
   if (id === 'memo') return `<h3>📋 Памятка штурмана</h3><ul>
-    <li>План показывает всё так, как будет <b>после следующего хода вора</b>. Бледный 💂 — где охранник сейчас.</li>
+    <li>План показывает всё так, как будет <b>после следующего хода вора</b>. ${lv.hide ? 'Охрана на плане <b>не видна</b>: только маршруты (оранжевые точки) и таблица во вкладке «Охрана».' : 'Бледный 💂 — где охранник сейчас.'}</li>
     <li>Вор не видит охрану, камеры и лазеры. Сквозь стены не видит, а 💎 🚪 📝 🎛️ замечает только вплотную.</li>
     <li>У вора только «поворот налево», «поворот направо», «вперёд», «ждать». Каждое — ход. <b>Говори от его лица!</b></li>
     <li><b style="color:#C4302B">━</b> лазер горит всегда · <b style="color:#B0158C">━</b> мигает (пунктир — будет выключен).</li>
@@ -1171,9 +1180,9 @@ function docHtml(id, want) {
   if (id === 'guards') {
     if (!lv.hide) return `<h3>💂 Охрана</h3><p>Охранники и камеры видны на плане. Охранник видит на <b>${lv.vr}</b> клетки вперёд (туда, куда идёт), камера — на <b>${lv.camr}</b>. Стрелка — куда охранник шагнёт дальше. Охрана и камеры двигаются только когда вор делает ход.</p>`;
     return `<h3>💂 Расписание охраны</h3><p class="warn">Где охрана сейчас, на плане НЕ видно — только маршруты!</p>
-      <p>На ходу 0 каждый охранник стоит в начале маршрута (кружок с номером) и с каждым ходом вора делает шаг по пунктиру. В конце разворачивается и идёт обратно. Смотрит туда, куда идёт, и видит на <b>${lv.vr}</b> клетки.</p>
-      <table><tr><th>№</th><th>Клеток в маршруте</th><th>Полный круг, ходов</th></tr>${lv.guards.map((gd, i) => { const n = gd.path.length, P = 2 * (n - 1); return `<tr><td>${i + 1}</td><td>${n}</td><td>${P}</td></tr>`; }).join('')}</table>
-      <p>Сейчас идёт <b>ход ${sim.t}</b>. Посчитай: остаток от деления хода на «круг» — столько шагов охранник прошёл от кружка (если остаток больше, чем «клеток − 1», — он уже идёт обратно). Вор слышит шаги рядом — спрашивай его.</p>`;
+      <p>Маршрут — оранжевые точки: кружок с номером — клетка 1, квадратик — последняя. Охранник ходит туда-обратно, по шагу за каждый ход вора, смотрит туда, куда идёт, и видит на <b>${lv.vr}</b> клетки.</p>
+      <table><tr><th>№</th><th>Где будет после хода вора</th><th>Идёт</th></tr>${lv.guards.map((gd, i) => { const n = gd.path.length, P = 2 * (n - 1), x = (sim.t + 1) % P, k = x < n ? x : P - x, fwd = x < n - 1; return `<tr><td>${i + 1}</td><td>клетка <b>${k + 1}</b> из ${n}</td><td>${fwd ? 'к ■ концу' : 'к кружку ' + (i + 1)}</td></tr>`; }).join('')}</table>
+      <p>Таблица — как и план — показывает мир <b>после следующего хода вора</b> и обновляется каждый ход. Отсчитай клетки по точкам. Вор слышит шаги до 5 клеток и понимает, приближаются ли они, — спрашивай его.</p>`;
   }
   if (id === 'door') {
     const d = curDoor, st = want.door ? `<div class="state">${adjT(sim.pos, lv.door) ? 'Вор у двери!' : 'Вор прочитал записку.'}</div>` : '';
@@ -1194,7 +1203,7 @@ function docHtml(id, want) {
     const pn = curPanel;
     return `<h3>⚡ Щиток лазерного барьера</h3><p>Номер щитка написан <b>на самом щитке</b> — спроси у вора. Важна его <b>последняя цифра</b>.</p>
       <p>Вор опишет провода <b>сверху вниз</b>. Возьми правила для их количества и иди по пунктам сверху: первый подходящий — ответ. Провода нумеруются сверху: 1, 2, 3…</p>
-      ${pn.rounds > 1 ? '<p class="warn">Этот щиток в 2 этапа: после верного провода он исчезает, а оставшиеся провода надо описать заново и снова пройти по правилам — уже для нового количества.</p>' : ''}
+      ${pn.rounds > 1 ? `<p class="warn">Этот щиток в ${pn.rounds} этапа: после верного провода он исчезает, а оставшиеся провода надо описать заново и снова пройти по правилам — уже для нового количества.</p>` : ''}
       <div class="rule"><b>3 провода</b><ol><li>Если два соседних провода одного цвета — режь третий.</li><li>Иначе, если первый провод синий — режь второй.</li><li>Иначе режь первый.</li></ol></div>
       <div class="rule"><b>4 провода</b><ol><li>Если жёлтых нет — режь последний.</li><li>Иначе, если белый ровно один и последняя цифра номера щитка чётная — режь первый.</li><li>Иначе, если красных больше, чем синих — режь последний красный.</li><li>Иначе режь третий.</li></ol></div>
       <div class="rule"><b>5 проводов</b><ol><li>Если первый и последний провод одного цвета — режь третий.</li><li>Иначе, если чёрных больше одного — режь первый чёрный.</li><li>Иначе, если последняя цифра номера щитка нечётная — режь последний.</li><li>Иначе режь второй.</li></ol></div>
@@ -1213,7 +1222,7 @@ function renderDocs(want) {
   if (!list.some(x => x.id === docTab)) docTab = 'memo';
   const tabs = list.map(x => `<button data-t="${x.id}" aria-pressed="${x.id === docTab}" class="${want[x.id] && x.id !== docTab ? 'alert' : ''}">${x.icon} ${DOCN[x.id]}</button>`).join('');
   if ($('#docTabs').innerHTML !== tabs) $('#docTabs').innerHTML = tabs;
-  const html = docHtml(docTab, want);
+  let html = docHtml(docTab, want); const stm = html.match(/<div class="state">[\s\S]*?<\/div>/); if (stm) html = html.replace(stm[0], '').replace('</h3>', '</h3>' + stm[0]);
   if (html !== lastDocHtml) { lastDocHtml = html; $('#docBody').innerHTML = html; }
   $('#btnDocs').classList.toggle('alert', !isWide() && Object.values(want).some(Boolean));
 }
@@ -1268,11 +1277,11 @@ function drawNav(now) {
   ctx.fillStyle = '#0D2B4E'; ctx.fillRect(0, 0, CWp, CHp);
   ctx.strokeStyle = 'rgba(127,212,255,.07)'; ctx.lineWidth = 1;
   ctx.beginPath(); for (let x = 0; x <= W; x++) { ctx.moveTo(ox + x * T + .5, oy); ctx.lineTo(ox + x * T + .5, oy + H * T); } for (let y = 0; y <= H; y++) { ctx.moveTo(ox, oy + y * T + .5); ctx.lineTo(ox + W * T, oy + y * T + .5); } ctx.stroke();
-  const t = sim.t + 1; curW = W;   // everything on the blueprint is shown for the moment after the thief's next action
+  const over = sim.caught || sim.won, t = over ? sim.t : sim.t + 1; curW = W;   // everything on the blueprint is shown for the moment after the thief's next action
   // hazard zones
   const zone = (cells, col) => { ctx.fillStyle = col; for (const c of cells) ctx.fillRect(ox + (c % W) * T + 1, oy + ((c / W) | 0) * T + 1, T - 2, T - 2); };
   for (const c of lv.cams) { const k = camDir(c, t); if (k >= 0) zone(ray(lv, c.i, k, lv.camr), 'rgba(255,170,40,.32)'); const k2 = -1; if (k2 >= 0 && k2 !== k) { ctx.save(); ctx.setLineDash([3, 3]); ctx.strokeStyle = 'rgba(255,170,40,.55)'; for (const cc of ray(lv, c.i, k2, lv.camr)) ctx.strokeRect(ox + (cc % W) * T + 3, oy + ((cc / W) | 0) * T + 3, T - 6, T - 6); ctx.restore(); } }
-  const showG = !lv.hide || role() === 'both';
+  const showG = !lv.hide || role() === 'both' || !!sim.caught, gCatch = sim.caught === 'guard' ? whoCaught(lv, sim) : -1;
   if (showG) for (const gd of lv.guards) { const { i, face } = guardAt(gd, t); zone([i, ...ray(lv, i, face, lv.vr)], 'rgba(255,60,60,.30)'); }
   // walls
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
@@ -1288,8 +1297,15 @@ function drawNav(now) {
     if (lv.deco[c] != null) emoji(LM[lv.deco[c]][0], X + T / 2, Y + T / 2, T * 0.72);
   }
   // patrol paths
-  ctx.save(); ctx.setLineDash([2, 4]); ctx.strokeStyle = 'rgba(255,120,120,.5)'; ctx.lineWidth = 1.5;
-  for (const gd of lv.guards) { ctx.beginPath(); gd.path.forEach((c, i) => { const X = ox + (c % W) * T + T / 2, Y = oy + ((c / W) | 0) * T + T / 2; i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }); ctx.stroke(); }
+  ctx.save();
+  if (lv.hide) { ctx.strokeStyle = 'rgba(255,184,77,.7)'; ctx.lineWidth = 2; } else { ctx.setLineDash([2, 4]); ctx.strokeStyle = 'rgba(255,120,120,.5)'; ctx.lineWidth = 1.5; }
+  for (const gd of lv.guards) {
+    ctx.beginPath(); gd.path.forEach((c, i) => { const X = ox + (c % W) * T + T / 2, Y = oy + ((c / W) | 0) * T + T / 2; i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }); ctx.stroke();
+    if (lv.hide) {
+      ctx.fillStyle = '#FFB84D'; gd.path.forEach(c => { ctx.beginPath(); ctx.arc(ox + (c % W) * T + T / 2, oy + ((c / W) | 0) * T + T / 2, Math.max(2.5, T * 0.09), 0, 6.283); ctx.fill(); });
+      const e = gd.path[gd.path.length - 1], s2 = Math.max(6, T * 0.26); ctx.fillRect(ox + (e % W) * T + T / 2 - s2 / 2, oy + ((e / W) | 0) * T + T / 2 - s2 / 2, s2, s2);
+    }
+  }
   ctx.restore();
   const at = c => [ox + (c % W) * T, oy + ((c / W) | 0) * T];
   // exit, items
@@ -1304,7 +1320,7 @@ function drawNav(now) {
   for (const l of lv.lasers) { const [X, Y] = at(l.i); laserBeam(l, X, Y, T, laserOn(l, t)); }
   for (const c of lv.cams) { const [X, Y] = at(c.i); emoji('📹', X + T / 2, Y + T / 2, T * 0.62); }
   if (!showG) lv.guards.forEach((gd, gi) => {
-    const [X, Y] = at(gd.path[0]); ctx.fillStyle = '#FF8A8A'; ctx.beginPath(); ctx.arc(X + T / 2, Y + T / 2, T * 0.3, 0, 6.283); ctx.fill();
+    const [X, Y] = at(gd.path[0]); ctx.fillStyle = '#FFB84D'; ctx.beginPath(); ctx.arc(X + T / 2, Y + T / 2, T * 0.3, 0, 6.283); ctx.fill();
     ctx.fillStyle = '#2A0000'; ctx.font = `bold ${Math.round(T * 0.38)}px "PT Mono", monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(gi + 1), X + T / 2, Y + T / 2 + 1);
   });
   if (lv.gate >= 0) {
@@ -1319,6 +1335,7 @@ function drawNav(now) {
     const { i, face } = guardAt(gd, t), nx = guardAt(gd, t + 1).i; const [X, Y] = at(i);
     { const pi = guardAt(gd, t - 1).i; if (pi !== i) { const [PX, PY] = at(pi); ctx.globalAlpha = 0.28; emoji('💂', PX + T / 2, PY + T / 2, T * 0.6); ctx.globalAlpha = 1; } }
     if (nx !== i) { const [NX, NY] = at(nx); ctx.strokeStyle = '#FF8A8A'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X + T / 2, Y + T / 2); const mx = (X + NX) / 2 + T / 2, my = (Y + NY) / 2 + T / 2; ctx.lineTo(mx, my); ctx.stroke(); ctx.fillStyle = '#FF8A8A'; ctx.beginPath(); ctx.arc(mx, my, Math.max(2, T * 0.08), 0, 6.283); ctx.fill(); }
+    if (gCatch >= 0 && lv.guards[gCatch] === gd) { ctx.save(); ctx.strokeStyle = '#FF3B3B'; ctx.lineWidth = 3; ctx.shadowColor = '#FF3B3B'; ctx.shadowBlur = 12; ctx.beginPath(); ctx.arc(X + T / 2, Y + T / 2, T * 0.48, 0, 6.283); ctx.stroke(); ctx.restore(); }
     emoji('💂', X + T / 2, Y + T / 2, T * 0.72); void face;
   }
   // start marker: only on the first case (and in training); afterwards the navigator has to find the thief
