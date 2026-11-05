@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#07111F">
+<meta name="description" content="Ограбление 3D: кооператив вдвоём. Вор крадётся по ночному особняку, штурман ведёт его из фургона по схеме.">
+<title>Ограбление 3D</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%2314101F'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle'%3E%F0%9F%94%A6%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=PT+Mono&family=Russo+One&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@500&display=block&text=%D1%AE%D1%A6%C6%9B%D1%AC%D1%AA%D2%A8%D1%BE%D2%8A%D1%A2%D3%AC%D2%BE%D1%A8%D2%94%D3%83%D2%80%D2%B4%D3%A0%D1%BA%CE%BE%D4%84%D4%88%D4%8E%D2%B8%D3%BE0123456789">
+<link rel="stylesheet" href="style.css?v=4">
+<script type="importmap">
+{ "imports": { "three": "./vendor/three/three.module.js", "three/addons/": "./vendor/three/addons/" } }
+</script>
+</head>
+<body>
+
+<canvas id="view3d" aria-label="Игра"></canvas>
+<div class="post" id="post"></div>
+<div class="redflash" id="redflash"></div>
+<div class="peek" id="peek" hidden></div>
+<div class="fade" id="fade"></div>
+<div class="cutskip">Пробел — пропустить</div>
+<div class="vanhint" id="vanHint" hidden><b>1</b> или колесо — схема крупно · <b>2</b> — папка · красная кнопка у рации — пеленг</div>
+
+<div class="hud" id="hud">
+  <header class="bar">
+    <div class="case"><b><span class="cnum" id="caseNum">Дело №1</span> <span class="cname" id="caseName"></span></b><span id="caseSub"></span></div>
+    <div class="clock idle" id="clock" hidden>0:00</div>
+    <div class="role runner" id="roleTag">ВОР</div>
+    <button class="icon-btn" id="btnSound" aria-label="Звук"></button>
+    <button class="icon-btn" id="btnMenu" aria-label="Меню">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+    </button>
+  </header>
+  <div class="cross" id="cross"></div>
+  <div class="hint3d" id="hint" hidden></div>
+  <div class="inv" id="inv" hidden></div>
+  <div class="notebox hudnote" id="noteBox" hidden><span id="noteA">📝 ЗАПИСКА</span><b id="noteCode">0 0 0</b><span id="noteB"></span></div>
+  <div class="lockhint" id="lockHint" hidden>Кликни, чтобы управлять<br><small>W A S D — идти, мышь — смотреть, Shift — бег, Esc — курсор</small></div>
+  <div class="minimap" id="minimap" hidden><canvas id="mini"></canvas></div>
+  <div class="status3d" id="status"></div>
+  <div class="fps" id="fps"></div>
+</div>
+
+<div class="screen" id="menu">
+  <div class="folder">
+    <div class="stamp">СОВ. СЕКРЕТНО</div>
+    <div class="lbl">Досье</div>
+    <h1>ОГРАБЛЕНИЕ 3D</h1>
+    <p class="lead">Вор крадётся по ночному особняку и рассказывает, что видит. Штурман сидит в фургоне: у него схема здания с охраной и лазерами, но вора на ней нет. Созвонитесь, и вперёд. Каждое дело роли меняются.</p>
+    <div class="f-col" id="vMain">
+      <label class="lbl" for="inName">Твоя кличка</label>
+      <input class="inp" id="inName" maxlength="12" autocomplete="nickname" placeholder="Как тебя звать">
+      <button class="btn y" id="btnResume" hidden>Вернуться к делу</button>
+      <button class="btn" id="btnCreate">Создать комнату</button>
+      <div class="join"><input class="inp code" id="inCode" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="КОД" aria-label="Код комнаты"><button class="btn alt" id="btnJoin">Войти</button></div>
+      <button class="btn y" id="btnBlind">Вором вслепую: штурман — Claude в чате</button>
+      <button class="btn alt" id="btnSolo">Тренировка: видно всё</button>
+      <div class="trainrow"><span>Тренировка с дела №</span><button id="tMinus" aria-label="Меньше">−</button><b id="tLvl">1</b><button id="tPlus" aria-label="Больше">+</button><span id="tHint"></span></div>
+      <div class="quality"><span>Графика:</span><button class="btn alt" id="qSmooth">Плавно</button><button class="btn alt" id="qMax">Максимум</button></div>
+      <div class="sep"></div>
+      <div class="foot"><span id="bestLine">Лучшее дело: —</span><span>версия <b id="buildTag"></b></span></div>
+    </div>
+    <div class="f-col" id="vRoom" hidden>
+      <div class="lbl">Комната</div>
+      <div><span class="tag-code" id="roomCode">····</span></div>
+      <div class="link-row"><span id="roomLink"></span><button class="btn y" id="btnShare">Поделиться</button></div>
+      <div id="seats" class="f-col" style="gap:6px"></div>
+      <p class="note" id="netNote">Подключаюсь…</p>
+      <label class="lbl" for="inName2">Твоя кличка</label>
+      <input class="inp" id="inName2" maxlength="12" autocomplete="nickname" placeholder="Как тебя звать">
+      <div class="join"><button class="btn alt" id="btnLeave">Выйти</button><button class="btn" id="btnRoomClose" hidden>К делу</button></div>
+    </div>
+  </div>
+</div>
+
+<div class="over" id="brief" hidden>
+  <div class="card"><div class="folder">
+    <div class="stamp" id="briefStamp">ДЕЛО №1</div>
+    <div class="lbl">Брифинг</div>
+    <div class="big" id="briefName" style="margin:6px 0 12px">Особняк</div>
+    <div class="f-col">
+      <div class="role-line" id="briefRole"></div>
+      <div class="newbox" id="briefNew" hidden></div>
+      <p class="note" id="briefCall">Созвонитесь в Дискорде или по телефону: без голоса не пройти.</p>
+      <button class="btn y" id="btnBrief">Понял, начинаем</button>
+    </div>
+  </div></div>
+</div>
+
+<div class="over" id="caught" hidden>
+  <div class="card"><div class="folder">
+    <div class="stamp">ТРЕВОГА</div>
+    <div class="big red" style="margin:6px 0 8px">ПОПАЛИСЬ</div>
+    <p class="note" id="caughtWhy" style="margin-bottom:14px">Охранник заметил вора.</p>
+    <button class="btn red" id="btnRetry">Ещё раз (коды сменятся)</button>
+  </div></div>
+</div>
+
+<div class="over" id="won" hidden>
+  <div class="card"><div class="folder">
+    <div class="stamp" style="color:#1E7A3E;border-color:#1E7A3E">ЧИСТО</div>
+    <div class="big green" style="margin:6px 0 8px">УШЛИ С ДОБЫЧЕЙ</div>
+    <p class="note" id="wonText" style="margin-bottom:14px"></p>
+    <button class="btn" id="btnNext">Следующее дело</button>
+  </div></div>
+</div>
+
+<aside class="docs docs3d" id="docs" hidden>
+  <div class="docs-head"><b>📁 Папка штурмана</b><button class="icon-btn docs-close" id="btnDocsClose" aria-label="Закрыть">✕</button></div>
+  <div class="tabs" id="docTabs"></div>
+  <div class="doc" id="docBody"></div>
+</aside>
+<div class="loading" id="loading"><div>Загружаю особняк…<div class="bar2"><i id="loadBar"></i></div></div></div>
+<div class="toast" id="toast" role="status"></div>
+<div class="update" id="update" hidden><span id="updateText">Вышла новая версия игры</span><button id="btnUpdate">Обновить</button></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script type="module" src="src/main.js?v=1"></script>
+</body>
+</html>
