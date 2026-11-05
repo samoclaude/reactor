@@ -80,6 +80,53 @@ button:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
 @keyframes alarm { to { box-shadow: inset 0 0 60px 10px rgba(255,75,75,.75); } }
 
 .panel { display: flex; flex-direction: column; gap: 8px; }
+.body { flex: 1; min-height: 0; display: flex; gap: 14px; }
+.col { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+.app.wide { max-width: 1320px; }
+.app.wideR { max-width: 780px; }
+.docs { width: 446px; flex: none; min-height: 0; display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 14px; background: var(--manila); color: var(--ink); box-shadow: 0 20px 40px -20px rgba(0,0,0,.8), inset 0 0 50px rgba(120,90,30,.2); }
+.app:not(.wide) .docs { position: fixed; inset: 0; z-index: 22; width: auto; border-radius: 0; padding: calc(12px + env(safe-area-inset-top, 0px)) 14px calc(12px + env(safe-area-inset-bottom, 0px)); }
+.app.wide .docs-close { display: none; }
+.docs-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-family: var(--font-head); font-size: 15px; }
+.docs-head b { font-weight: 400; }
+.docs-close { background: var(--ink); color: var(--manila); border-color: var(--ink); }
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.tabs button { position: relative; min-height: 40px; padding: 6px 8px; border-radius: 8px 8px 0 0; border: 2px solid var(--ink); border-bottom: 0; background: #DCC68C; color: var(--ink); font: 700 12px var(--font-mono); cursor: pointer; }
+.tabs button[aria-pressed="true"] { background: #F6EBC8; }
+.tabs button.alert::after { content: "!"; position: absolute; top: -8px; right: -6px; width: 18px; height: 18px; border-radius: 50%; background: #C4302B; color: #fff; font: 700 12px/18px var(--font-mono); text-align: center; animation: blinkc .6s steps(2) infinite; }
+.doc { flex: 1; min-height: 0; overflow-y: auto; padding: 12px; border: 2px solid var(--ink); border-radius: 0 10px 10px 10px; background: #F6EBC8; font-size: 13.5px; line-height: 1.5; -webkit-user-select: text; user-select: text; }
+.doc h3 { margin: 0 0 8px; font-family: var(--font-head); font-weight: 400; font-size: 18px; }
+.doc p { margin: 6px 0; }
+.doc ul, .doc ol { margin: 6px 0; padding-left: 20px; display: flex; flex-direction: column; gap: 5px; }
+.doc .warn { color: #A3221D; font-weight: 700; }
+.doc table { border-collapse: collapse; width: 100%; margin: 6px 0; }
+.doc th, .doc td { border: 1px solid rgba(43,36,24,.4); padding: 5px 4px; text-align: center; }
+.doc th { background: rgba(43,36,24,.08); }
+.doc .state { margin-top: 10px; padding: 8px 10px; border-radius: 8px; background: rgba(196,48,43,.12); font-weight: 700; }
+.doc .rule { padding: 8px 10px; margin: 6px 0; border-radius: 8px; background: rgba(43,36,24,.06); }
+.doc .rule b { font-family: var(--font-head); font-weight: 400; }
+.doc .big { font-family: var(--font-head); font-size: 22px; letter-spacing: .12em; }
+.serialdoc { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; margin: 6px 0; }
+.serialdoc div { display: flex; flex-direction: column; align-items: center; padding: 4px 0; border-radius: 8px; background: var(--ink); color: var(--yellow); }
+.serialdoc b { font-family: var(--font-head); font-weight: 400; font-size: 22px; }
+.serialdoc small { font-size: 10px; color: var(--manila); }
+.docbtn { border-color: var(--manila); color: var(--manila); background: #2B2418; }
+.docbtn.alert { animation: blinkc .6s steps(2) infinite; background: var(--red); color: #fff; }
+.wires { display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 12px; background: #120808; border: 1px solid #6B2020; }
+.pnum { display: flex; justify-content: space-between; gap: 8px; margin: 2px 0 8px; font: 600 13px var(--font-mono); color: #E9D8A6; }
+.pnum #pnum { color: #fff; font-size: 15px; letter-spacing: .06em; }
+.pnum #pstage { color: #FFD23F; }
+.wlist { display: flex; flex-direction: column; gap: 6px; }
+@media (max-height: 760px) { .wlist { gap: 3px; } .wire button { min-height: 34px; } }
+.wire { display: grid; grid-template-columns: 22px 1fr auto; align-items: center; gap: 8px; }
+.wire small { color: #E9D8A6; font: 700 13px var(--font-mono); text-align: center; }
+.wire i { height: 14px; border-radius: 7px; box-shadow: inset 0 -3px 0 rgba(0,0,0,.35), 0 0 0 1px rgba(255,255,255,.15); }
+.wire button { min-height: 40px; padding: 0 12px; border-radius: 8px; border: 1px solid #FF8A8A; background: #3A1010; color: #FFD0D0; font: 700 13px var(--font-mono); cursor: pointer; }
+.lamps { display: flex; gap: 6px; font-size: 26px; justify-content: center; }
+.lock-top span.lamps { display: flex; font-size: 30px; line-height: 1.2; justify-content: flex-start; gap: 10px; margin: 4px 0; letter-spacing: 0; }
+.digits.colors, .digits.arrows { grid-template-columns: repeat(5, 1fr) !important; }
+.digits.colors button, .digits.arrows button { height: 52px; font-size: 22px; }
+.digits.arrows button small { display: block; font: 700 10px var(--font-mono); }
 .status { min-height: 20px; font-size: 13px; text-align: center; color: var(--muted); line-height: 1.35; }
 .status b { color: var(--fg); }
 .status .y { color: var(--yellow); }
@@ -120,7 +167,7 @@ button:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
 .digits { display: grid; grid-template-columns: repeat(11, 1fr); gap: 4px; }
 .digits button { height: 44px; border-radius: 8px; border: 1px solid var(--grid); background: #102A48; font-family: var(--font-head); font-size: 15px; cursor: pointer; padding: 0; }
 .digits button:active { background: #1B3F66; }
-.pingrow { display: flex; justify-content: center; }
+.pingrow { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
 .pingbtn { display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 14px; border-radius: 10px; cursor: pointer; border: 1px solid var(--cyan); background: #0B2A47; color: var(--cyan); font: 700 13px var(--font-mono); }
 .pingbtn b { font-family: var(--font-head); font-weight: 400; color: var(--fg); }
 .pingbtn:disabled { opacity: .4; cursor: default; }
@@ -247,10 +294,11 @@ button:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
       <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
     </button>
   </header>
+  <div class="body"><div class="col">
   <main class="stage" id="stage"><canvas id="view" aria-label="Игровое поле"></canvas><div class="flash" id="flash"></div></main>
   <section class="panel">
     <div class="status" id="status"></div>
-    <div class="notebox" id="noteBox" hidden><span>📝 ЗАПИСКА: код двери — это цифры серийного номера под номерами</span><b id="noteCode">0 0 0</b><span>Номер знает только штурман</span></div>
+    <div class="notebox" id="noteBox" hidden><span id="noteA">📝 ЗАПИСКА</span><b id="noteCode">0 0 0</b><span id="noteB"></span></div>
     <div class="safe" id="safeBox" hidden>
       <div class="safe-top"><span id="lamp" class="lamp"></span><span>🔐 <b>СЕЙФ.</b> Опиши штурману символы (2 из 6 — обманки) и цвет лампы. Жми в том порядке, что он скажет.</span><span class="strikes" id="strikes">○○○</span></div>
       <div class="sbtns glyph" id="sbtns"></div>
@@ -258,6 +306,11 @@ button:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
     <div class="manual" id="manualBox" hidden>
       <p><b>📕 Вор у сейфа!</b> У него 6 символов, 2 из них обманки. Найди столбик, где есть 4 из них, и скажи порядок сверху вниз. <b id="lampRule"></b> <span id="safeProg"></span></p>
       <div class="mcols glyph" id="mcols"></div>
+    </div>
+    <div class="wires" id="panelBox" hidden>
+      <div class="safe-top"><span>⚡ <b>ЩИТОК БАРЬЕРА.</b> Опиши штурману провода сверху вниз. Режь только тот, что он скажет.</span><span class="strikes" id="pstrikes"></span></div>
+      <div class="pnum"><span>Номер щитка: <b id="pnum"></b></span><b id="pstage"></b></div>
+      <div class="wlist" id="wlist"></div>
     </div>
     <div class="lock" id="lockBox" hidden>
       <div class="lock-top"><span id="lockText">🔒 Дверь к добыче.</span><div class="slots" id="slots"><i></i><i></i><i></i></div></div>
@@ -275,9 +328,16 @@ button:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
       <button class="key" data-e="r" aria-label="Повернуть направо">⟳<small>поворот направо</small></button>
       <button class="key wait" data-e="w" aria-label="Ждать">⏸️<small>ждать</small></button>
     </div>
-    <div class="pingrow" id="pingRow" hidden><button class="pingbtn" id="btnPing">📡 Пеленг: показать вора <b id="pingLeft">2</b></button></div>
-    <div class="legend" id="legend" hidden><span id="lgGuard">💂 видит 2 клетки вперёд</span><span id="lgCam">📹 видит 3 клетки</span><span><b style="color:#FF3B3B">━</b> лазер горит всегда</span><span><b style="color:#FF5EDB">━</b> мигает, пунктир = выключен</span><span>☕ под пятном план не виден</span><span>На плане — как будет после следующего хода вора</span></div>
+    <div class="pingrow" id="pingRow" hidden><button class="pingbtn docbtn" id="btnDocs">📁 Документы</button> <button class="pingbtn" id="btnPing">📡 Пеленг <b id="pingLeft">2</b></button></div>
+    <div class="legend" id="legend" hidden style="display:none"><span id="lgGuard">💂 видит 2 клетки вперёд</span><span id="lgCam">📹 видит 3 клетки</span><span><b style="color:#FF3B3B">━</b> лазер горит всегда</span><span><b style="color:#FF5EDB">━</b> мигает, пунктир = выключен</span><span>☕ под пятном план не виден</span><span>На плане — как будет после следующего хода вора</span></div>
   </section>
+  </div>
+  <aside class="docs" id="docs" hidden>
+    <div class="docs-head"><b>📁 Папка штурмана</b><button class="icon-btn docs-close" id="btnDocsClose" aria-label="Закрыть">✕</button></div>
+    <div class="tabs" id="docTabs"></div>
+    <div class="doc" id="docBody"></div>
+  </aside>
+  </div>
 </div>
 
 <div class="screen" id="menu">
@@ -372,7 +432,7 @@ button:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
 const SB_URL = 'https://ulfqprrjdyycznobirxw.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVsZnFwcnJqZHl5Y3pub2Jpcnh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM3OTg4NTMsImV4cCI6MjEwOTM3NDg1M30.zIjRlMNnqg59jZRprHcCoIkoBiIis45vw5vP4bhF_tc';
 const APP = 'heist';
-const BUILD = '2026-11-05.6';
+const BUILD = '2026-11-05.7';
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const store = {
@@ -415,13 +475,45 @@ function safeFor(seed, L, att) {
   }
   return null;
 }
-// door: the serial number is on the blueprint, the note says which digits make the code
+const DCOL = [['🔴', 'красная', '#FF4B4B'], ['🔵', 'синяя', '#4B8BFF'], ['🟢', 'зелёная', '#39D98A'], ['🟡', 'жёлтая', '#FFD23F']];
+const SHAPES = [['★', 'звезда'], ['●', 'круг'], ['▲', 'треугольник']];
+const ARW = ['↑', '→', '↓', '←'], ARWN = ['север', 'восток', 'юг', 'запад'], REL = ['вперёд', 'вправо', 'назад', 'влево'], RELA = ['⬆', '➡', '⬇', '⬅'];
+const WCOL = [['красный', '#FF4B4B'], ['синий', '#3D7BFF'], ['жёлтый', '#FFD23F'], ['белый', '#F4F4F4'], ['чёрный', '#1A1A1A']];
+function doorTypeOf(seed, L) { if (L < 5) return 'digits'; if (L === 5) return 'colors'; if (L === 6) return 'arrows'; return ['digits', 'colors', 'arrows'][(hashStr(seed + '#dt' + L) >>> 0) % 3]; }
+// door code: one half of the information is with the thief, the other half in the navigator's documents
 function doorFor(seed, L, att) {
-  const r = RNG(seed + '%' + L + '%' + att);
+  const r = RNG(seed + '%' + L + '%' + att), type = doorTypeOf(seed, L);
+  if (type === 'colors') {
+    const lamps = [0, 1, 2, 3].map(() => Math.floor(r() * 4)), shape = Math.floor(r() * 3);
+    const table = [0, 1, 2].map(() => { const p = [0, 1, 2, 3]; for (let i = 3; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [p[i], p[j]] = [p[j], p[i]]; } return p; });
+    return { type, lamps, shape, table, code: lamps.map(c => table[shape][c]).join(''), len: 4 };
+  }
+  if (type === 'arrows') {
+    const schemes = [0, 1].map(() => [0, 1, 2, 3].map(() => Math.floor(r() * 4))), which = Math.floor(r() * 2);
+    return { type, schemes, which, code: schemes[which].join(''), len: 4 };
+  }
   let serial = ''; for (let i = 0; i < 6; i++) serial += Math.floor(r() * 10);
   const pos = []; while (pos.length < 3) { const k = Math.floor(r() * 6); if (!pos.includes(k)) pos.push(k); }
-  return { serial, pos, code: pos.map(k => serial[k]).join('') };
+  return { type: 'digits', serial, pos, code: pos.map(k => serial[k]).join(''), len: 3 };
 }
+// laser barrier panel: the thief sees the wires, the navigator has the rules and the panel number
+function wireRule(w, digit) {
+  const n = w.length, cnt = c => w.filter(x => x === c).length, last = n - 1, even = digit % 2 === 0;
+  const R = 0, B = 1, Y = 2, Wh = 3, K = 4;
+  if (n === 3) { if (w[0] === w[1] || w[1] === w[2]) return 2; if (w[0] === B) return 1; return 0; }
+  if (n === 4) { if (!cnt(Y)) return last; if (cnt(Wh) === 1 && even) return 0; if (cnt(R) > cnt(B)) return w.lastIndexOf(R); return 2; }
+  if (n === 5) { if (w[0] === w[last]) return 2; if (cnt(K) > 1) return w.indexOf(K); if (!even) return last; return 1; }
+  if (!cnt(Wh)) return 4; if (cnt(B) === 2) return w.lastIndexOf(B); if (even) return 0; return 3;
+}
+function panelFor(seed, L, att) {
+  const r = RNG(seed + '&' + L + '&' + att);
+  const rounds = L >= 12 ? 2 : 1, n = (rounds > 1 ? 4 : 3) + Math.floor(r() * 3), wires = Array.from({ length: n }, () => Math.floor(r() * 5));
+  const digit = Math.floor(r() * 10), num = 'ЩТ-' + (10 + Math.floor(r() * 90)) + digit;
+  const cuts = [], left = [wires.slice()];
+  for (let k = 0; k < rounds; k++) { const w = left[k], c = wireRule(w, digit); cuts.push(c); left.push(w.filter((_, i) => i !== c)); }
+  return { wires, digit, num, cuts, left, cut: cuts[0], rounds, maxStrikes: L >= 14 ? 1 : 2 };
+}
+let curPanel = null;
 let curDoor = null;
 let curSafe = null;
 function diff(L) {
@@ -429,7 +521,7 @@ function diff(L) {
     cw: L < 1 ? 3 : L < 4 ? 4 : L < 10 ? 5 : L < 14 ? 6 : 7, ch: L < 1 ? 5 : L < 4 ? 6 : L < 10 ? 7 : L < 14 ? 8 : 9,
     lasers: L === 0 ? 2 : L < 3 ? 3 : L < 10 ? 4 : 6,
     blink: L === 0 ? 0 : L < 3 ? 2 : L < 10 ? Math.min(4, 2 + Math.floor(L / 4)) : 5,
-    lock: L >= 2, safe: L >= 3, dupes: L >= 2, flicker: L >= 6, vr: L >= 6 ? 3 : 2, camr: L >= 6 ? 4 : 3, vis: L >= 8 ? 1.6 : 2.45, timer: L >= 1,
+    lock: L >= 2, safe: L >= 3, gate: L >= 8, hide: L >= 12, dupes: L >= 2, flicker: L >= 6, vr: L >= 6 ? 3 : 2, camr: L >= 6 ? 4 : 3, vis: L >= 8 ? 1.6 : 2.45, timer: L >= 1,
     guards: L < 3 ? 0 : L < 5 ? 1 : L < 9 ? 2 : L < 14 ? 3 : 4,
     cams: L < 4 ? 0 : L < 8 ? 1 : L < 14 ? 2 : 3,
     stains: L < 7 ? 0 : L < 12 ? 1 : 2,
@@ -438,18 +530,19 @@ function diff(L) {
   };
 }
 const NEWS = {
-  0: 'Штурман не видит вора, а у вора нет «вверх-вниз»: только поворот налево, поворот направо и шаг вперёд, и картинка крутится вместе с ним. Штурман, говори «налево/направо» от его лица! Каждое действие, даже поворот, — это ход. Врезался в стену — ход потрачен и −5 секунд.',
+  0: 'У штурмана папка с документами 📁 (на ноутбуке — справа от плана). Штурман не видит вора, а у вора нет «вверх-вниз»: только поворот налево, поворот направо и шаг вперёд, и картинка крутится вместе с ним. Штурман, говори «налево/направо» от его лица! Каждое действие, даже поворот, — это ход. Врезался в стену — ход потрачен и −5 секунд.',
   1: 'Старт случайный, и штурман его не видит: вор, опиши, что вокруг, а штурман найдёт тебя на плане. Таймер тревоги ⏱ пошёл, как только вор закрыл брифинг! И мигающие лазеры (розовые у штурмана): горят через ход, пунктир — выключен.',
   2: 'Дверь с кодом 🔒. Серийный номер двери — только на чертеже у штурмана, а на записке 📝 у вора — какие цифры из него нужны. Собирайте код вместе, вводит вор у двери (ошибка −10 с). И ориентиры на стенах начинают повторяться.',
   3: 'Сейф 🔐: у вора 6 странных символов, 2 из них обманки. Штурман ищет столбик, где есть 4 из них, и говорит порядок сверху вниз. Ошибка −15 с, 3 ошибки = тревога. И первый охранник 💂: ходит туда-сюда, видит на 2 клетки вперёд, стрелка — его следующий шаг.',
   4: 'Камера 📹. Поворачивается каждые 2 хода.',
-  5: 'У сейфа лампа: если она КРАСНАЯ, нажимать снизу вверх. Лампу видит только вор, правило знает только штурман. Тревога уже со 2-й ошибки. Охранников двое.',
-  6: 'Охрана видит на 3 клетки, камеры на 4. И у вора иногда гаснет фонарик.',
-  8: 'Фонарик у вора садится: он видит только соседние клетки.',
+  5: 'Цветной замок 🔴🔵: вор видит лампы на двери и фигуру на записке, таблица — в папке у штурмана. И у сейфа лампа: если она КРАСНАЯ, нажимать снизу вверх. Тревога уже со 2-й ошибки. Охранников двое.',
+  6: 'Стрелочный замок ⬆➡: схема у штурмана по плану, а вор жмёт стрелки от своего лица. Охрана видит на 3 клетки, камеры на 4. У вора иногда гаснет фонарик.',
+  8: 'Лазерный барьер ⚡: сквозь него не пройти. Вор находит щиток 🎛️, называет номер щитка и описывает провода, штурман по правилам из папки говорит, какой резать. Ошибка −20 с, вторая — тревога. Фонарик у вора садится: только соседние клетки.',
   7: 'Кофейное пятно ☕ на чертеже: штурман не видит, что под ним. Вор, эту часть описывай сам. Охраны и лазеров под пятном нет.',
   10: 'Здание стало больше, лазеров тоже. Пеленга больше нет.',
-  12: 'На чертеже уже два кофейных пятна.',
-  14: 'Самое большое здание: четыре охранника и три камеры.'
+  12: 'Охрана в тени! Штурман видит только маршруты охраны и расписание в папке, а не где охранники сейчас. Вор слышит шаги рядом («👣 слева, рядом»). Щиток барьера теперь в 2 этапа. Два кофейных пятна.',
+  16: 'Таймер ещё жёстче. Удачи.',
+  14: 'Самое большое здание: четыре охранника и три камеры. Щиток больше не прощает: первый же неверный провод — тревога.'
 };
 const levelCache = new Map();
 function getLevel(seed, L) {
@@ -490,7 +583,7 @@ function tryGen(seed, L, tr, easy) {
     const opts = []; for (let k = 0; k < 4; k++) { const nx = cx + DX[k], ny = cy + DY[k]; if (nx >= 0 && ny >= 0 && nx < cw && ny < ch && !g[id(2 * cx + 1 + DX[k], 2 * cy + 1 + DY[k])]) opts.push(k); }
     if (opts.length) { const k = opts[Math.floor(r() * opts.length)]; g[id(2 * cx + 1 + DX[k], 2 * cy + 1 + DY[k])] = 1; }
   }
-  const lv = { L, seed, W, H, g, deco: {}, S: id(2 * sc[0] + 1, 2 * sc[1] + 1), E: id(W - 2, 1), face0: L === 0 ? 0 : Math.floor(r() * 4), gem: -1, door: -1, note: -1, lasers: [], guards: [], cams: [], rotate: d.rotate, pings: d.pings, stains: [], safe: d.safe, flicker: d.flicker, vis: d.vis, vr: d.vr, camr: d.camr, limit: 0, name: PLACES[(L + (hashStr(seed) >>> 0)) % PLACES.length], best: 0 };
+  const lv = { L, seed, W, H, g, deco: {}, S: id(2 * sc[0] + 1, 2 * sc[1] + 1), E: id(W - 2, 1), face0: L === 0 ? 0 : Math.floor(r() * 4), gem: -1, door: -1, note: -1, lasers: [], guards: [], cams: [], rotate: d.rotate, pings: d.pings, stains: [], gate: -1, panel: -1, hide: d.hide, doorType: doorTypeOf(seed, L), safe: d.safe, flicker: d.flicker, vis: d.vis, vr: d.vr, camr: d.camr, limit: 0, name: PLACES[(L + (hashStr(seed) >>> 0)) % PLACES.length], best: 0 };
   const dS = bfs(lv, lv.S, null, true);
   if (L > 0) {
     // exit: a random cell among the far half from the start
@@ -517,7 +610,33 @@ function tryGen(seed, L, tr, easy) {
       for (let cy = 0; cy < ch; cy++) for (let cx = 0; cx < cw; cx++) { const t = id(2 * cx + 1, 2 * cy + 1); if (t === lv.S || t === lv.E || t === lv.gem) continue; const v = Math.min(dS[t], dD[t]) + r(); if (v > nb) { nb = v; lv.note = t; } }
     }
   }
-  const special = new Set([lv.S, lv.E, lv.gem, lv.door, lv.note].filter(x => x >= 0));
+  if (d.gate && lv.door >= 0) {
+    // the barrier sits on a tile every route to the vault has to cross; the panel is in a dead end on this side of it
+    const dsx = bfs(lv, lv.S, null, true), pre = lv.door + (lv.door - lv.gem);
+    if (!g[pre] || dsx[pre] < 0) return null;
+    const cand = []; let c = pre;
+    for (let n = 0; n < 400 && c !== lv.S; n++) {
+      if (dsx[c] >= 3 && c !== lv.E) { const t = bfs(lv, lv.S, new Set([c]), true); if (t[pre] < 0 || c === pre) cand.push(c); }
+      const x = c % W, y = (c / W) | 0; let nx = -1;
+      for (let k = 0; k < 4; k++) { const q = id(x + DX[k], y + DY[k]); if (x + DX[k] >= 0 && y + DY[k] >= 0 && x + DX[k] < W && y + DY[k] < H && g[q] && dsx[q] === dsx[c] - 1) { nx = q; break; } }
+      if (nx < 0) break; c = nx;
+    }
+    if (!cand.length) return null;
+    lv.gate = cand[Math.floor(r() * cand.length)];
+    const dg = bfs(lv, lv.S, new Set([lv.gate]), true);
+    const cellsF = []; for (let cy = 0; cy < ch; cy++) for (let cx = 0; cx < cw; cx++) { const t = id(2 * cx + 1, 2 * cy + 1); if (t !== lv.S && t !== lv.E && t !== lv.gem && t !== lv.gate && dg[t] >= 3) cellsF.push(t); }
+    const pickFar = (arr, skip) => { const c2 = arr.filter(t => t !== skip).sort((a2, b2) => dg[b2] - dg[a2]); return c2.length ? c2[Math.floor(r() * Math.max(1, Math.ceil(c2.length / 2)))] : -1; };
+    if (lv.note >= 0 && (dg[lv.note] < 0 || lv.note === lv.gate)) {
+      // the code note has to be on this side of the barrier
+      const nd = dead.filter(t => cellsF.includes(t));
+      lv.note = nd.length ? nd[Math.floor(r() * nd.length)] : pickFar(cellsF, -1);
+      if (lv.note < 0) return null;
+    }
+    const pd = dead.filter(t => t !== lv.note && cellsF.includes(t));
+    lv.panel = pd.length ? pd[Math.floor(r() * pd.length)] : pickFar(cellsF, lv.note);
+    if (lv.panel < 0) return null;
+  }
+  const special = new Set([lv.S, lv.E, lv.gem, lv.door, lv.note, lv.gate, lv.panel].filter(x => x >= 0));
   // landmarks on walls
   const wallC = [];
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
@@ -543,7 +662,11 @@ function tryGen(seed, L, tr, easy) {
   for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) { const t = id(x, y); if (g[t] && (x % 2 === 0 || y % 2 === 0) && !special.has(t) && dS[t] > 2) edges.push(t); }
   shuffle(edges);
   const blocked = new Set();
-  const okPath = () => { const ds = bfs(lv, lv.S, blocked, true); return ds[lv.gem] >= 0 && ds[lv.E] >= 0 && (lv.note < 0 || ds[lv.note] >= 0); };
+  const okPath = () => {
+    const ds = bfs(lv, lv.S, blocked, true); if (!(ds[lv.gem] >= 0 && ds[lv.E] >= 0 && (lv.note < 0 || ds[lv.note] >= 0))) return false;
+    if (lv.gate < 0) return true;
+    const dg = bfs(lv, lv.S, new Set([...blocked, lv.gate]), true); return dg[lv.panel] >= 0 && (lv.note < 0 || dg[lv.note] >= 0);
+  };
   let ei = 0;
   for (; ei < edges.length && lv.lasers.length < d.lasers; ei++) {
     const t = edges[ei]; blocked.add(t);
@@ -554,7 +677,7 @@ function tryGen(seed, L, tr, easy) {
   const used = new Set([...special, ...lv.lasers.map(l => l.i)]);
   // guards
   for (let gi = 0; gi < d.guards; gi++) {
-    for (let at = 0; at < 40; at++) {
+    for (let at = 0; at < 70; at++) {
       const cx = Math.floor(r() * cw), cy = Math.floor(r() * ch), st = id(2 * cx + 1, 2 * cy + 1);
       if (used.has(st) || dS[st] < 6) continue;
       const len = [4, 5, 7][Math.floor(r() * 3)], path = [st], inPath = new Set([st]);
@@ -565,9 +688,16 @@ function tryGen(seed, L, tr, easy) {
         const n = nb[Math.floor(r() * nb.length)]; path.push(n); inPath.add(n);
       }
       if (path.length !== len) continue;
+      // a patrol never fills the only corridor to something the thief must reach: there is always a way around it
+      const gb = new Set([...lv.lasers.filter(l => l.m === 0).map(l => l.i), ...lv.guards.flatMap(gd => gd.path), ...path]);
+      if (gb.has(lv.S)) continue;
+      const ra = bfs(lv, lv.S, gb, true); if (ra[lv.gem] < 0 || ra[lv.E] < 0) continue;
+      if (lv.gate >= 0) { gb.add(lv.gate); const rb = bfs(lv, lv.S, gb, true); if (rb[lv.panel] < 0 || (lv.note >= 0 && rb[lv.note] < 0)) continue; }
+      else if (lv.note >= 0 && ra[lv.note] < 0) continue;
       path.forEach(t => used.add(t)); lv.guards.push({ path, W }); break;
     }
   }
+  if (!easy && lv.guards.length < d.guards) return null;
   // cameras on walls, looking along corridors
   const camC = shuffle(wallC.filter(t => lv.deco[t] == null));
   for (const t of camC) {
@@ -585,6 +715,7 @@ function tryGen(seed, L, tr, easy) {
     const hard = new Set(lv.lasers.filter(l => l.m === 0).map(l => l.i)), reach = bfs(lv, lv.S, hard, true);
     if (lv.guards.some(gd => gd.path.every(c => reach[c] < 0))) return null;
     const pathT = new Set(), walk = (a, b) => { const dd = bfs(lv, b, hard, true); let c = a; pathT.add(c); for (let n = 0; n < 400 && c !== b; n++) { const x = c % W, y = (c / W) | 0; let nx = -1; for (let k = 0; k < 4; k++) { const q = id(x + DX[k], y + DY[k]); if (x + DX[k] >= 0 && y + DY[k] >= 0 && x + DX[k] < W && y + DY[k] < H && g[q] && dd[q] === dd[c] - 1) { nx = q; break; } } if (nx < 0) break; c = nx; pathT.add(c); } };
+    if (lv.panel >= 0) walk(lv.S, lv.panel);
     if (lv.note >= 0) { walk(lv.S, lv.note); walk(lv.note, lv.gem); } else walk(lv.S, lv.gem);
     walk(lv.gem, lv.E);
     const threat = lv.guards.some(gd => { const P = 2 * (gd.path.length - 1); for (let t = 0; t < P; t++) { const q = guardAt(gd, t); if (pathT.has(q.i) || ray(lv, q.i, q.face, lv.vr).some(c => pathT.has(c))) return true; } return false; });
@@ -608,7 +739,8 @@ function tryGen(seed, L, tr, easy) {
   const sol = solve(lv); if (!sol) return null;
   if (!easy && sol.length > (L < 10 ? Math.min(160, 48 + L * 12) : L < 14 ? 190 : 230)) return null;
   lv.best = sol.length; lv.sol = sol;
-  const limitOf = n => d.timer ? Math.round((30 + n * (L >= 3 ? 2 : Math.max(2, 2.6 - L * 0.04)) + (lv.door >= 0 ? 20 : 0) + (lv.safe ? 20 : 0)) / 5) * 5 : 0;
+  const per = L < 3 ? Math.max(2, 2.6 - L * 0.04) : L < 12 ? 2 : L < 16 ? 1.8 : 1.65;
+  const limitOf = n => d.timer ? Math.round((30 + n * per + (lv.door >= 0 ? (lv.doorType === 'digits' ? 20 : 30) : 0) + (lv.safe ? 20 : 0) + (lv.gate >= 0 ? (L >= 12 ? 55 : 35) : 0)) / 5) * 5 : 0;
   lv.limit = limitOf(sol.length);
   lv.starts = [{ s: lv.S, f: lv.face0 || 0, best: sol.length, limit: lv.limit }];
   if (L > 0) {
@@ -623,7 +755,7 @@ function tryGen(seed, L, tr, easy) {
     for (let i = 0; i < cand.length && lv.starts.length < 4 && i < 30; i++) {
       const c = cand[i], f = Math.floor(r() * 4), x = c % W, y = (c / W) | 0;
       if (L >= 3 && Object.keys(lv.deco).some(k => Math.max(Math.abs(k % W - x), Math.abs(((k / W) | 0) - y)) <= 1)) continue;
-      const s2 = solve(lv, { pos: c, face: f, t: 0, gem: false, note: lv.note < 0, open: lv.door < 0 });
+      const s2 = solve(lv, { pos: c, face: f, t: 0, gem: false, note: lv.note < 0, open: lv.door < 0, gateOff: lv.gate < 0 });
       if (s2 && s2.length <= cap) lv.starts.push({ s: c, f, best: s2.length, limit: limitOf(s2.length) });
     }
   }
@@ -658,8 +790,9 @@ function solve(lv, from) {
   let P = 2;
   for (const gd of lv.guards) P = lcm(P, 2 * (gd.path.length - 1));
   for (const c of lv.cams) P = lcm(P, 2 * c.dirs.length);
-  const key = (p, d, t, f) => ((((p * 4 + d) * P) + t) << 2) | f;
-  const p0 = from ? from.pos : lv.S, d0 = from ? from.face : (lv.face0 || 0), t0 = from ? from.t % P : 0, f0 = from ? ((from.gem ? 1 : 0) | (from.note || from.open ? 2 : 0)) : 0;
+  const key = (p, d, t, f) => ((((p * 4 + d) * P) + t) << 3) | f;
+  const p0 = from ? from.pos : lv.S, d0 = from ? from.face : (lv.face0 || 0), t0 = from ? from.t % P : 0;
+  const f0 = (from ? ((from.gem ? 1 : 0) | (from.note || from.open ? 2 : 0) | (from.gateOff ? 4 : 0)) : 0) | (lv.gate < 0 ? 4 : 0);
   const prev = new Map(), q = [[p0, d0, t0, f0]]; prev.set(key(p0, d0, t0, f0), null);
   const ACTS = ['f', 'l', 'r', 'w'];
   for (let h = 0; h < q.length; h++) {
@@ -671,11 +804,11 @@ function solve(lv, from) {
     }
     for (const a of ACTS) {
       let np = p, nd = d;
-      if (a === 'f') { np = stepT(lv, p, d); if (np < 0 || !lv.g[np] || (np === lv.door && !(f & 2))) continue; }
+      if (a === 'f') { np = stepT(lv, p, d); if (np < 0 || !lv.g[np] || (np === lv.door && !(f & 2)) || (np === lv.gate && !(f & 4))) continue; }
       else if (a === 'l') nd = (d + 3) % 4; else if (a === 'r') nd = (d + 1) % 4;
       const nt = t + 1;
       if (caughtCheck(lv, p, np, nt)) continue;
-      let nf = f; if (np === lv.gem) nf |= 1; if (np === lv.note || lv.note < 0) nf |= 2;
+      let nf = f; if (np === lv.gem) nf |= 1; if (np === lv.note || lv.note < 0) nf |= 2; if (np === lv.panel) nf |= 4;
       const kk = key(np, nd, nt % P, nf); if (prev.has(kk)) continue;
       prev.set(kk, [key(p, d, t, f), a]); q.push([np, nd, nt % P, nf]);
     }
@@ -686,9 +819,9 @@ function solve(lv, from) {
 function codeFor(seed, L, att) { return doorFor(seed, L, att).code; }
 
 /* ---------- simulation of one attempt: a list of events ---------- */
-const EV_RE = /^([URDLwlrfbzg]|k[0-5]|[ox][a-z0-9]{3,8})$/;
+const EV_RE = /^([URDLwlrfbzg]|k[0-5]|c[0-5]|[ox][a-z0-9]{3,8})$/;
 function startOf(lv, att) { const st = lv.starts || [{ s: lv.S, f: lv.face0 || 0, best: lv.best, limit: lv.limit }]; return st[(att | 0) % st.length]; }
-function newSim(lv, att) { const st = startOf(lv, att); return { pos: st.s, face: st.f, t: 0, gem: false, note: lv.note < 0, open: lv.door < 0, caught: '', won: false, trail: [st.s], wrong: 0, steps: 0, bumps: 0, sp: 0, strikes: 0 }; }
+function newSim(lv, att) { const st = startOf(lv, att); return { pos: st.s, face: st.f, t: 0, gem: false, note: lv.note < 0, open: lv.door < 0, gateOff: !(lv.gate >= 0), pstrikes: 0, pcut: 0, caught: '', won: false, trail: [st.s], wrong: 0, steps: 0, bumps: 0, sp: 0, strikes: 0 }; }
 function cloneSim(s) { return Object.assign({}, s, { trail: s.trail.slice() }); }
 function applyEv(lv, s, e) {
   if (s.caught || s.won || !EV_RE.test(e)) return false;
@@ -707,6 +840,12 @@ function applyEv(lv, s, e) {
     else { s.strikes++; if (s.strikes >= curSafe.maxStrikes) s.caught = 'safe'; }
     return true;
   }
+  if (e[0] === 'c') {
+    if (!(lv.panel >= 0) || !curPanel || s.pos !== lv.panel || s.gateOff) return false;
+    if (+e[1] === curPanel.cuts[s.pcut | 0]) { s.pcut = (s.pcut | 0) + 1; if (s.pcut >= curPanel.rounds) s.gateOff = true; }
+    else { s.pstrikes++; if (s.pstrikes >= curPanel.maxStrikes) s.caught = 'panel'; }
+    return true;
+  }
   let np = s.pos;
   if (e === 'b') s.bumps++;
   else if (e !== 'w') {
@@ -719,6 +858,7 @@ function applyEv(lv, s, e) {
   if (np !== pv) s.trail.push(np);
   if (np === lv.note) s.note = true;
   if (np === lv.gem && !lv.safe) s.gem = true;
+  if (np === lv.gate && !s.gateOff) { s.caught = 'gate'; return true; }
   const why = caughtCheck(lv, pv, np, s.t);
   if (why) { s.caught = why; return true; }
   if (np === lv.E && s.gem) s.won = true;
@@ -733,6 +873,7 @@ let mode = 'idle';            // idle | solo | online
 let solo = store.get('solo', null);
 let lv = null, lvKey = '', sim = null, simAtt = -1, simLen = 0;
 let viewX = 0, viewY = 0, viewA = 0, lastCaughtKey = '', lastWonKey = '', briefedKey = '';
+let dispBuf = [], docTab = 'memo', docSeen = {}, docsOpen = false, lastDocHtml = '';
 let codeBuf = '', forceRole = '', pingLeft = 0, pingKey = '', pingUntil = 0;
 const src = () => mode === 'online' ? net.room : mode === 'solo' ? solo : null;
 function role() {
@@ -748,11 +889,12 @@ function partnerName() { const r = net.room; if (!r) return 'брат'; const s 
 function sync(full) {
   const s = src(); if (!s) return;
   const k = s.code + '|' + s.lvl;
-  if (!lv || lvKey !== k) { lv = getLevel(s.code, s.lvl); lvKey = k; full = true; viewX = lv.S % lv.W; viewY = (lv.S / lv.W) | 0; viewA = 0; codeBuf = ''; }
+  if (!lv || lvKey !== k) { lv = getLevel(s.code, s.lvl); lvKey = k; full = true; viewX = lv.S % lv.W; viewY = (lv.S / lv.W) | 0; viewA = 0; codeBuf = ''; dispBuf = []; }
   curSafe = lv.safe ? safeFor(s.code, s.lvl, s.att) : null;
   curDoor = lv.door >= 0 ? doorFor(s.code, s.lvl, s.att) : null;
+  curPanel = lv.gate >= 0 ? panelFor(s.code, s.lvl, s.att) : null;
   if (full || s.att !== simAtt || s.log.length < simLen) {
-    sim = simulate(lv, s.log, s.att); simAtt = s.att; simLen = s.log.length; codeBuf = '';
+    sim = simulate(lv, s.log, s.att); simAtt = s.att; simLen = s.log.length; codeBuf = ''; dispBuf = [];
     if (full) { viewX = sim.pos % lv.W; viewY = (sim.pos / lv.W) | 0; viewA = -sim.face * Math.PI / 2; }
   } else {
     while (simLen < s.log.length) { const e = s.log[simLen++]; const was = cloneSim(sim); applyEv(lv, sim, e); evFx(e, was); }
@@ -761,8 +903,8 @@ function sync(full) {
 }
 function evFx(e, was) {
   const r = role();
-  if (e[0] === 'o') { sfxUnlock(); toast('🔓 Дверь открыта!'); codeBuf = ''; flashSlots('ok'); return; }
-  if (e[0] === 'x') { sfxBad(); toast(r === 'nav' ? '✖ Вор ввёл неверный код (−10 с)' : '✖ Неверный код! −10 секунд'); codeBuf = ''; flashSlots('bad'); return; }
+  if (e[0] === 'o') { sfxUnlock(); toast('🔓 Дверь открыта!'); codeBuf = ''; dispBuf = []; flashSlots('ok'); return; }
+  if (e[0] === 'x') { sfxBad(); toast(r === 'nav' ? '✖ Вор ввёл неверный код (−10 с)' : '✖ Неверный код! −10 секунд'); codeBuf = ''; dispBuf = []; flashSlots('bad'); return; }
   if ((e === 'l' || e === 'r') && !sim.caught) { sfxTurn(); return; }
   if (e[0] === 'k') {
     if (sim.caught) { sfxAlarm(); buzz(200); $('#flash').classList.remove('on'); void $('#flash').offsetWidth; $('#flash').classList.add('on'); return; }
@@ -772,10 +914,17 @@ function evFx(e, was) {
     return;
   }
   if (e === 'g') return;
+  if (e[0] === 'c') {
+    if (sim.caught) { sfxAlarm(); buzz(200); $('#flash').classList.remove('on'); void $('#flash').offsetWidth; $('#flash').classList.add('on'); return; }
+    if (sim.gateOff && !was.gateOff) { sfxUnlock(); toast('⚡ Барьер отключён! Путь к хранилищу открыт'); }
+    else if ((sim.pcut | 0) > (was.pcut | 0)) { sfxKey(); toast(`✔ Верно! Щиток перестроился — этап ${sim.pcut + 1} из ${curPanel.rounds}. Опиши провода заново`); }
+    else { sfxBad(); buzz(60); toast(`✖ Не тот провод! −20 с. Ошибок: ${sim.pstrikes} из ${curPanel.maxStrikes}`); }
+    return;
+  }
   if (e === 'b' && !sim.caught) { sfxBump(); buzz(30); toast(r === 'nav' ? `💥 БУМ! ${mode === 'online' ? partnerName() : 'Вор'} врезался в стену (−5 с)` : '💥 Стена! Ход потрачен, −5 секунд'); return; }
   if (sim.caught) { sfxAlarm(); buzz(200); $('#flash').classList.remove('on'); void $('#flash').offsetWidth; $('#flash').classList.add('on'); return; }
   if (sim.gem && !was.gem) { sfxGem(); toast('💎 Добыча у вора! Теперь к выходу 🚪'); }
-  if (sim.note && !was.note && lv.note >= 0) { sfxNote(); if (r !== 'nav') toast('📝 Записка! Скажи штурману номера цифр'); else toast(`📝 ${partnerName()} нашёл записку: спроси номера цифр`); }
+  if (sim.note && !was.note && lv.note >= 0) { sfxNote(); if (r !== 'nav') toast('📝 Записка! Прочитай её штурману'); else toast(`📝 ${partnerName()} нашёл записку: спроси, что на ней`); }
   if (sim.won) { sfxWin(); buzz(80); return; }
   sfxStep();
 }
@@ -798,10 +947,12 @@ function pushEv(e) {
 function pressSafe(i) { if (!amWriter() || !sim || sim.caught || sim.won || !lv || !lv.safe || sim.pos !== lv.gem || sim.gem) return; ensureAudio(); pushEv('k' + i); }
 function curStart() { const s = src(); return startOf(lv, s ? s.att : 0); }
 function limitMs() { return lv && lv.limit ? curStart().limit * 1000 * (mode === 'solo' && solo && solo.blind ? 2 : 1) : 0; }
-function penaltyMs() { return sim ? (sim.bumps * 5 + sim.strikes * 15 + sim.wrong * 10) * 1000 : 0; }
+function penaltyMs() { return sim ? (sim.bumps * 5 + sim.strikes * 15 + sim.wrong * 10 + (sim.pstrikes || 0) * 20) * 1000 : 0; }
+function cutWire(i) { if (!amWriter() || !sim || sim.caught || sim.won || !lv || lv.panel < 0 || sim.pos !== lv.panel || sim.gateOff) return; ensureAudio(); pushEv('c' + i); }
 function timerLeft() { const s = src(); if (!s || !lv || !lv.limit || mode === 'idle') return null; if (!s.t0) return limitMs(); const now = (mode === 'solo' && menuAt) ? menuAt : Date.now(); return limitMs() - (now - s.t0) - penaltyMs(); }
 function handleCode(rid, val) {
   const s = src(); if (!s || !sim || sim.open || sim.caught || sim.won) return;
+  if (!curDoor || val.length !== curDoor.len) return;
   if (s.log.some(x => x.slice(1) === rid && (x[0] === 'o' || x[0] === 'x'))) return;
   pushEv((val === codeFor(s.code, s.lvl, s.att) ? 'o' : 'x') + rid);
 }
@@ -852,7 +1003,13 @@ function ui() {
   const canMove = (r === 'runner' || r === 'both') && ready && !sim.caught && !sim.won;
   $('#padAbs').hidden = !(canMove && !lv.rotate); $('#padRot').hidden = !(canMove && lv.rotate);
   const showNote = (r === 'runner' || r === 'both') && sim.note && lv.note >= 0 && !sim.open;
-  $('#noteBox').hidden = !showNote; if (showNote) $('#noteCode').textContent = curDoor.pos.map(k => '№' + (k + 1)).join(' ');
+  $('#noteBox').hidden = !showNote;
+  if (showNote) {
+    const t = curDoor.type;
+    $('#noteA').textContent = t === 'digits' ? '📝 ЗАПИСКА: код двери — цифры серийного номера под номерами' : t === 'colors' ? '📝 ЗАПИСКА: на ней нарисована фигура' : '📝 ЗАПИСКА: для стрелочного замка — схема';
+    $('#noteCode').textContent = t === 'digits' ? curDoor.pos.map(k => '№' + (k + 1)).join(' ') : t === 'colors' ? SHAPES[curDoor.shape][0] : 'АБ'[curDoor.which];
+    $('#noteB').textContent = t === 'digits' ? 'Сам номер знает только штурман' : t === 'colors' ? `(${SHAPES[curDoor.shape][1]}) — скажи штурману` : 'Схемы у штурмана';
+  }
   const atSafe = lv.safe && curSafe && sim.pos === lv.gem && !sim.gem && !sim.caught && !sim.won && ready;
   $('#safeBox').hidden = !(atSafe && (r === 'runner' || r === 'both'));
   if (!$('#safeBox').hidden) {
@@ -860,34 +1017,43 @@ function ui() {
     $('#strikes').textContent = '✖'.repeat(sim.strikes) + '○'.repeat(Math.max(0, curSafe.maxStrikes - sim.strikes));
     $('#lamp').className = 'lamp ' + curSafe.lamp;
   }
-  $('#manualBox').hidden = !(atSafe && (r === 'nav' || r === 'both'));
-  if (!$('#manualBox').hidden) {
+  $('#manualBox').hidden = true;
+  if (false) {
     $('#mcols').innerHTML = curSafe.cols.map((col, c) => `<div class="mcol"><em>${c + 1}</em>${col.map(g => `<i>${g}</i>`).join('')}</div>`).join('');
     $('#safeProg').textContent = `Нажато ${sim.sp} из 4, ошибок ${sim.strikes} из ${curSafe.maxStrikes}.`;
     $('#lampRule').textContent = s.lvl >= 5 ? 'Если у вора лампа КРАСНАЯ — порядок снизу вверх!' : '';
   }
   const live = ready && !sim.caught && !sim.won && lv.door >= 0 && !sim.open && !atSafe;
-  const nearDoor = live && Math.abs(sim.pos % lv.W - lv.door % lv.W) + Math.abs(((sim.pos / lv.W) | 0) - ((lv.door / lv.W) | 0)) === 1;
-  const thiefLock = (r === 'runner' || r === 'both') && nearDoor, navLock = (r === 'nav' || r === 'both') && live;
-  $('#lockBox').hidden = !(thiefLock || navLock);
-  if (thiefLock || navLock) {
-    $('#lockText').textContent = thiefLock ? '🔒 Ты у двери. Введи 3 цифры кода.' : sim.note ? '🔒 Вор прочитал записку: спроси номера цифр и назови ему цифры серийника. Вводит он сам.' : '🔒 Серийный номер двери (виден только тебе). Какие цифры нужны — написано на записке 📝 у вора.';
-    $('#serial').hidden = !navLock;
-    if (navLock) $('#serial').innerHTML = curDoor.serial.split('').map((d, i) => `<div><b>${d}</b><small>№${i + 1}</small></div>`).join('');
-    $('#digits').style.display = thiefLock ? '' : 'none'; $('#slots').style.display = thiefLock ? '' : 'none';
-    renderSlots();
+  const nearDoor = live && adjT(sim.pos, lv.door);
+  const thiefLock = (r === 'runner' || r === 'both') && nearDoor;
+  $('#lockBox').hidden = !thiefLock; $('#serial').hidden = true;
+  if (thiefLock) renderLock();
+  const atPanel = ready && lv.panel >= 0 && sim.pos === lv.panel && !sim.gateOff && !sim.caught && !sim.won;
+  $('#panelBox').hidden = !(atPanel && (r === 'runner' || r === 'both'));
+  if (!$('#panelBox').hidden) {
+    $('#noteBox').hidden = true;
+    const wl = curPanel.left[sim.pcut | 0];
+    $('#pnum').textContent = curPanel.num; $('#pstage').textContent = curPanel.rounds > 1 ? `Этап ${(sim.pcut | 0) + 1} из ${curPanel.rounds}` : '';
+    $('#wlist').innerHTML = wl.map((w, i) => `<div class="wire"><small>${i + 1}</small><i style="background:${WCOL[w][1]}"></i><button data-i="${i}">✂ резать</button></div>`).join('');
+    $('#pstrikes').textContent = '✖'.repeat(sim.pstrikes) + '○'.repeat(Math.max(0, curPanel.maxStrikes - sim.pstrikes));
   }
+  // documents: which ones need the navigator's attention right now
+  const want = { door: lv.door >= 0 && !sim.open && (nearDoor || sim.note), safe: atSafe, panel: atPanel };
+  for (const k in want) { const dk = k + (k === 'door' && nearDoor ? '@' : '') + ak1(); if (want[k] && !docSeen[dk]) { docSeen[dk] = 1; if (r === 'nav' || r === 'both') { if (isWide()) docTab = k; else toast(`📁 Открой «${DOCN[k]}» в папке`); } } }
+  renderDocs(want);
   $('#lgGuard').textContent = `💂 видит ${lv.vr} клетки вперёд`; $('#lgCam').textContent = `📹 видит ${lv.camr} клетки`;
   $('#legend').hidden = !(r === 'nav' || r === 'both') || !lv || atSafe || (lv.guards.length + lv.cams.length + lv.lasers.length === 0);
+  applyLayout();
   const ak0 = s.code + '|' + s.lvl + '|' + s.att;
   if (pingKey !== ak0) { pingKey = ak0; const sv = store.get('ping', null); pingLeft = sv && sv.k === ak0 ? sv.n : lv.pings; pingUntil = 0; }
-  $('#pingRow').hidden = !(r === 'nav' && ready && !sim.caught && !sim.won);
+  $('#pingRow').hidden = !((r === 'nav' || r === 'both') && ready && !sim.caught && !sim.won);
+  $('#btnPing').hidden = r !== 'nav'; $('#btnDocs').hidden = isWide();
   $('#pingLeft').textContent = '×' + pingLeft; $('#btnPing').disabled = pingLeft <= 0;
   let st = '';
   if (online && !ready) st = 'Ждём второго игрока…';
   else if (sim.caught) st = '<b style="color:var(--red)">Тревога!</b>';
   else if (sim.won) st = '<b style="color:var(--nv)">Ушли!</b>';
-  else if (r === 'runner') st = (sim.gem ? '<b class="y">💎 у тебя.</b> Теперь к выходу 🚪. ' : '') + '<b>Штурман не видит тебя:</b> рассказывай, что вокруг, и слушай его.';
+  else if (r === 'runner') { const fs = footsteps(); st = (fs ? `<b style="color:var(--red)">${fs}</b><br>` : '') + (sim.gem ? '<b class="y">💎 у тебя.</b> Теперь к выходу 🚪. ' : '') + '<b>Штурман не видит тебя:</b> рассказывай, что вокруг, и слушай его.'; }
   else if (r === 'nav') st = (sim.gem ? `<b class="y">💎 у ${esc(partnerName())}.</b> Веди к выходу 🚪. ` : '') + (lv.L > 0 && sim.t < 3 && !sim.gem ? `<b>Где вор начал, ты не знаешь.</b> Пусть опишет, что вокруг, и найди его на плане.` : `<b>Ты не видишь вора:</b> спроси, что он видит, и найди это на плане.`);
   else st = sim.gem ? '<b class="y">💎 у тебя.</b> Теперь к выходу 🚪' : 'Тренировка: ты видишь всё. Найди 💎 и уйди через 🚪';
   $('#status').innerHTML = st;
@@ -895,7 +1061,7 @@ function ui() {
   const ak = s.code + '|' + s.lvl + '|' + s.att;
   if (sim.caught && lastCaughtKey !== ak) {
     lastCaughtKey = ak;
-    const why = { guard: 'Охранник заметил вора.', cam: 'Вор попал в камеру.', laser: 'Вор задел лазер.', time: 'Время вышло, сработала тревога.', safe: 'Слишком много ошибок на сейфе, сработала тревога.' }[sim.caught];
+    const why = { guard: 'Охранник заметил вора.', cam: 'Вор попал в камеру.', laser: 'Вор задел лазер.', time: 'Время вышло, сработала тревога.', safe: 'Слишком много ошибок на сейфе, сработала тревога.', gate: 'Вор шагнул в лазерный барьер.', panel: 'Не тот провод на щитке — сработала тревога.' }[sim.caught];
     setTimeout(() => { if (sim && sim.caught && src() && src().att === s.att) { $('#caughtWhy').textContent = why + (lv.L > 0 ? ' Здание то же, но вор начнёт с другого места, а коды будут новые.' : ' Попробуйте ещё раз.'); $('#caught').hidden = false; } }, 1300);
   }
   if (!sim.caught) $('#caught').hidden = true;
@@ -921,7 +1087,7 @@ function showBrief() {
   $('#briefRole').innerHTML = r === 'runner'
     ? `<span class="e">🥷</span><div><b>Ты — ВОР</b><p>Видишь только то, что рядом. Охрану, камеры и лазеры не видишь. ${pn} — штурман: видит план, но не видит тебя. Рассказывай, что вокруг (картины, статуи, тупики), и делай, что он говорит. Найди 💎 и уходи через 🚪. Кнопки: поворот налево, поворот направо, шаг вперёд — каждая тратит ход.${lv.safe ? ' У добычи сейф: опиши символы штурману.' : ''}${blind ? ` <b>Напиши Claude: «дело №${s.lvl + 1}, код ${esc(s.code)}»</b> и что видишь на старте.` : ''}</p></div>`
     : r === 'nav'
-    ? `<span class="e">🗺️</span><div><b>Ты — ШТУРМАН</b><p>Видишь план с охраной, камерами и лазерами, но <b>не видишь, где ${pn || 'вор'}</b>. Спрашивай, что он видит рядом, ищи эти ориентиры на плане и веди его голосом к 💎 и к выходу 🚪. ${lv.pings ? `📡 Пеленг покажет его ${lv.pings} ${lv.pings === 1 ? 'раз' : 'раза'} за попытку.` : 'Пеленга нет.'}${lv.door >= 0 ? ' Серийный номер двери есть только у тебя.' : ''}${lv.safe ? ' Инструкция к сейфу тоже у тебя.' : ''} Помни: «налево» для вора — это от его лица, а он может смотреть куда угодно.</p></div>`
+    ? `<span class="e">🗺️</span><div><b>Ты — ШТУРМАН</b><p>Видишь план с охраной, камерами и лазерами, но <b>не видишь, где ${pn || 'вор'}</b>. Спрашивай, что он видит рядом, ищи эти ориентиры на плане и веди его голосом к 💎 и к выходу 🚪. ${lv.pings ? `📡 Пеленг покажет его ${lv.pings} ${lv.pings === 1 ? 'раз' : 'раза'} за попытку.` : 'Пеленга нет.'} <b>Инструкции к двери, сейфу и щитку — в твоей папке 📁</b> (на ноутбуке справа от плана). Помни: «налево» для вора — это от его лица, а он может смотреть куда угодно.</p></div>`
     : `<span class="e">🔎</span><div><b>Тренировка</b><p>Ты видишь всё сам: так удобно посмотреть уровни. Настоящая игра — вдвоём по звонку.</p></div>`;
   const n = NEWS[s.lvl];
   $('#briefNew').hidden = !n; if (n) $('#briefNew').innerHTML = `<b>Новое:</b> ${n}`;
@@ -929,20 +1095,128 @@ function showBrief() {
   $('#brief').hidden = false;
 }
 function renderSlots() {
-  const sl = $('#slots'), s = src(); const shown = sim.open ? codeFor(s.code, s.lvl, s.att) : codeBuf;
-  [...sl.children].forEach((el, i) => { el.textContent = shown[i] || ''; });
-  sl.classList.toggle('ok', !!sim.open);
+  const sl = $('#slots'), len = curDoor ? curDoor.len : 3;
+  if (sl.children.length !== len) sl.innerHTML = '<i></i>'.repeat(len);
+  [...sl.children].forEach((el, i) => { el.textContent = sim && sim.open ? '✓' : (dispBuf[i] || ''); });
+  sl.classList.toggle('ok', !!(sim && sim.open));
 }
 function flashSlots(c) { const sl = $('#slots'); if (c === 'bad') { sl.classList.remove('bad'); void sl.offsetWidth; sl.classList.add('bad'); } renderSlots(); }
 $('#digits').innerHTML = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map(d => `<button data-d="${d}">${d}</button>`).join('') + '<button data-d="x" aria-label="Стереть">⌫</button>';
 $('#digits').addEventListener('click', e => {
-  const b = e.target.closest('button'); if (!b || !sim || sim.open) return;
-  ensureAudio();
-  if (b.dataset.d === 'x') codeBuf = codeBuf.slice(0, -1);
-  else if (codeBuf.length < 3) { codeBuf += b.dataset.d; sfxKey(); }
+  const b = e.target.closest('button'); if (!b || !sim || sim.open || !curDoor) return;
+  ensureAudio(); const d = b.dataset.d, len = curDoor.len;
+  if (d === 'x') { codeBuf = codeBuf.slice(0, -1); dispBuf.pop(); }
+  else if (codeBuf.length < len) {
+    if (d[0] === 'a') { const rel = +d[1]; codeBuf += String((sim.face + rel) % 4); dispBuf.push(RELA[rel]); }
+    else if (d[0] === 'c') { codeBuf += d[1]; dispBuf.push(DCOL[+d[1]][0]); }
+    else { codeBuf += d; dispBuf.push(d); }
+    sfxKey();
+  }
   renderSlots();
-  if (codeBuf.length === 3) { const v = codeBuf; setTimeout(() => submitCode(v), 200); }
+  if (codeBuf.length === len) { const v = codeBuf; setTimeout(() => submitCode(v), 200); }
 });
+$('#wlist').addEventListener('click', e => { const b = e.target.closest('button'); if (b) cutWire(+b.dataset.i); });
+$('#btnDocs').addEventListener('click', () => { docsOpen = true; applyLayout(); });
+$('#btnDocsClose').addEventListener('click', () => { docsOpen = false; applyLayout(); });
+$('#docTabs').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; docTab = b.dataset.t; lastDocHtml = ''; ui(); });
+window.addEventListener('resize', () => { if (lv && sim) ui(); });
+const DCOL_NAME = c => DCOL[c][0] + ' ' + DCOL[c][1];
+const DOCN = { memo: 'Памятка', guards: 'Охрана', door: 'Дверь', safe: 'Сейф', panel: 'Щиток' };
+function adjT(a, b) { return Math.abs(a % lv.W - b % lv.W) + Math.abs(((a / lv.W) | 0) - ((b / lv.W) | 0)) === 1; }
+function ak1() { const s = src(); return s ? '|' + s.code + '|' + s.lvl + '|' + s.att : ''; }
+function isWide() { const r = role(); return window.innerWidth >= 900 && (r === 'nav' || r === 'both') && mode !== 'idle'; }
+function applyLayout() {
+  const r = role(), wide = isWide();
+  $('#app').classList.toggle('wide', wide);
+  $('#app').classList.toggle('wideR', !wide && window.innerWidth >= 900 && r === 'runner');
+  $('#docs').hidden = !((r === 'nav' || r === 'both') && lv && (wide || docsOpen));
+}
+function footsteps() {
+  if (!lv || !lv.hide || !sim) return '';
+  const W = lv.W, x0 = sim.pos % W, y0 = (sim.pos / W) | 0, out = [];
+  for (const gd of lv.guards) {
+    const gi = guardAt(gd, sim.t).i, dx = gi % W - x0, dy = ((gi / W) | 0) - y0, dd = Math.abs(dx) + Math.abs(dy);
+    if (dd > 3) continue;
+    const ab = Math.abs(dx) >= Math.abs(dy) ? (dx > 0 ? 1 : 3) : (dy > 0 ? 2 : 0), rel = (ab - sim.face + 4) % 4;
+    out.push(`${['спереди', 'справа', 'сзади', 'слева'][rel]}, ${dd <= 1 ? 'вплотную' : dd === 2 ? 'рядом' : 'недалеко'}`);
+  }
+  return out.length ? '👣 Шаги: ' + out.join('; ') : '';
+}
+let lockKind = '';
+function renderLock() {
+  const t = curDoor.type;
+  $('#lockText').innerHTML = t === 'digits' ? '🔒 Ты у двери. Введи 3 цифры: номера на записке, сами цифры знает штурман.'
+    : t === 'colors' ? `🔒 Цветной замок. Лампы на двери: <span class="lamps">${curDoor.lamps.map(c => DCOL[c][0]).join('')}</span> Скажи штурману цвета по порядку и фигуру с записки, жми кнопки, что он скажет.`
+    : '🔒 Стрелочный замок. Жми стрелки <b>от своего лица</b> — схему знает штурман. Сейчас стрелки считаются с того, куда ты смотришь.';
+  if (lockKind !== t) {
+    lockKind = t; const dg = $('#digits'); dg.className = 'digits ' + (t === 'digits' ? '' : t);
+    dg.innerHTML = t === 'digits' ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map(d => `<button data-d="${d}">${d}</button>`).join('') + '<button data-d="x" aria-label="Стереть">⌫</button>'
+      : t === 'colors' ? DCOL.map((c, i) => `<button data-d="c${i}" aria-label="${c[1]}">${c[0]}</button>`).join('') + '<button data-d="x" aria-label="Стереть">⌫</button>'
+      : [0, 1, 2, 3].map(i => `<button data-d="a${i}" aria-label="${REL[i]}">${RELA[i]}<small>${REL[i]}</small></button>`).join('') + '<button data-d="x" aria-label="Стереть">⌫</button>';
+  }
+  renderSlots();
+}
+function docHtml(id, want) {
+  const L = lv.L;
+  if (id === 'memo') return `<h3>📋 Памятка штурмана</h3><ul>
+    <li>План показывает всё так, как будет <b>после следующего хода вора</b>. Бледный 💂 — где охранник сейчас.</li>
+    <li>Вор не видит охрану, камеры и лазеры. Сквозь стены не видит, а 💎 🚪 📝 🎛️ замечает только вплотную.</li>
+    <li>У вора только «поворот налево», «поворот направо», «вперёд», «ждать». Каждое — ход. <b>Говори от его лица!</b></li>
+    <li><b style="color:#C4302B">━</b> лазер горит всегда · <b style="color:#B0158C">━</b> мигает (пунктир — будет выключен).</li>
+    <li>💂 видит на ${lv.vr} клетки вперёд, 📹 — на ${lv.camr}; камера поворачивается каждые 2 хода.</li>
+    ${lv.stains.length ? '<li>☕ Под пятном план не виден — спрашивай вора.</li>' : ''}
+    ${lv.gate >= 0 ? '<li>⚡ <b>Лазерный барьер</b> не пройти, пока вор не отключит его на щитке 🎛️. Правила — во вкладке «Щиток».</li>' : ''}
+    <li>Штрафы таймера: стена −5 с, неверный код −10 с, сейф −15 с, щиток −20 с.</li>
+    <li>📡 Пеленг: ${lv.pings ? `показывает вора на 3 секунды (${lv.pings} за попытку)` : 'на этом деле его нет'}.</li></ul>`;
+  if (id === 'guards') {
+    if (!lv.hide) return `<h3>💂 Охрана</h3><p>Охранники и камеры видны на плане. Охранник видит на <b>${lv.vr}</b> клетки вперёд (туда, куда идёт), камера — на <b>${lv.camr}</b>. Стрелка — куда охранник шагнёт дальше. Охрана и камеры двигаются только когда вор делает ход.</p>`;
+    return `<h3>💂 Расписание охраны</h3><p class="warn">Где охрана сейчас, на плане НЕ видно — только маршруты!</p>
+      <p>На ходу 0 каждый охранник стоит в начале маршрута (кружок с номером) и с каждым ходом вора делает шаг по пунктиру. В конце разворачивается и идёт обратно. Смотрит туда, куда идёт, и видит на <b>${lv.vr}</b> клетки.</p>
+      <table><tr><th>№</th><th>Клеток в маршруте</th><th>Полный круг, ходов</th></tr>${lv.guards.map((gd, i) => { const n = gd.path.length, P = 2 * (n - 1); return `<tr><td>${i + 1}</td><td>${n}</td><td>${P}</td></tr>`; }).join('')}</table>
+      <p>Сейчас идёт <b>ход ${sim.t}</b>. Посчитай: остаток от деления хода на «круг» — столько шагов охранник прошёл от кружка (если остаток больше, чем «клеток − 1», — он уже идёт обратно). Вор слышит шаги рядом — спрашивай его.</p>`;
+  }
+  if (id === 'door') {
+    const d = curDoor, st = want.door ? `<div class="state">${adjT(sim.pos, lv.door) ? 'Вор у двери!' : 'Вор прочитал записку.'}</div>` : '';
+    if (d.type === 'digits') return `<h3>🔒 Дверь: паспорт</h3><p>Серийный номер двери:</p><div class="serialdoc">${d.serial.split('').map((x, i) => `<div><b>${x}</b><small>№${i + 1}</small></div>`).join('')}</div><p>На записке 📝 у вора — номера нужных цифр, например «№6 №2 №1». Назови ему цифры <b>в порядке записки</b>, вводит он сам у двери. Ошибка — −10 с.</p>${st}`;
+    if (d.type === 'colors') return `<h3>🔒 Цветной замок</h3><p>На двери горят <b>4 лампы</b> — их видит только вор. На записке 📝 у него нарисована <b>фигура</b>. Для каждой лампы по порядку: строка — цвет лампы, столбец — фигура. В клетке — кнопка, которую жмёт вор.</p>
+      <table><tr><th>Лампа</th>${SHAPES.map(x => `<th>${x[0]}<br><small>${x[1]}</small></th>`).join('')}</tr>${[0, 1, 2, 3].map(c => `<tr><td>${DCOL_NAME(c)}</td>${[0, 1, 2].map(sh => `<td>${DCOL[d.table[sh][c]][0]}</td>`).join('')}</tr>`).join('')}</table><p>Ошибка — −10 с.</p>${st}`;
+    return `<h3>🔒 Стрелочный замок</h3><p>Схемы кода. Стрелки — <b>по плану</b>: ↑ — верх плана, → — правая сторона плана.</p>
+      <p class="rule"><b>Схема А:</b> <span class="big">${d.schemes[0].map(a => ARW[a]).join(' ')}</span></p><p class="rule"><b>Схема Б:</b> <span class="big">${d.schemes[1].map(a => ARW[a]).join(' ')}</span></p>
+      <p>Какая схема — написано на записке 📝 у вора. <span class="warn">У вора кнопки «вперёд / вправо / назад / влево» от его лица!</span> Узнай, куда он смотрит у двери, и переведи. Ошибка — −10 с.</p>${st}`;
+  }
+  if (id === 'safe') {
+    const sf = curSafe;
+    return `<h3>🔐 Сейф</h3><p>У вора <b>6 символов</b>, два из них — обманки. Найди столбик, где есть <b>4</b> из них, и скажи порядок <b>сверху вниз</b>${L >= 5 ? ' — <span class="warn">а если у вора лампа КРАСНАЯ, то снизу вверх</span>' : ''}. Кнопки у вора пронумерованы 1–6. Ошибка −15 с, ${sf.maxStrikes} ошибки — тревога.</p>
+      <div class="mcols glyph">${sf.cols.map((col, c) => `<div class="mcol"><em>${c + 1}</em>${col.map(g => `<i>${g}</i>`).join('')}</div>`).join('')}</div>
+      ${want.safe ? `<div class="state">Вор у сейфа! Нажато ${sim.sp} из 4, ошибок ${sim.strikes}.</div>` : ''}`;
+  }
+  if (id === 'panel') {
+    const pn = curPanel;
+    return `<h3>⚡ Щиток лазерного барьера</h3><p>Номер щитка написан <b>на самом щитке</b> — спроси у вора. Важна его <b>последняя цифра</b>.</p>
+      <p>Вор опишет провода <b>сверху вниз</b>. Возьми правила для их количества и иди по пунктам сверху: первый подходящий — ответ. Провода нумеруются сверху: 1, 2, 3…</p>
+      ${pn.rounds > 1 ? '<p class="warn">Этот щиток в 2 этапа: после верного провода он исчезает, а оставшиеся провода надо описать заново и снова пройти по правилам — уже для нового количества.</p>' : ''}
+      <div class="rule"><b>3 провода</b><ol><li>Если два соседних провода одного цвета — режь третий.</li><li>Иначе, если первый провод синий — режь второй.</li><li>Иначе режь первый.</li></ol></div>
+      <div class="rule"><b>4 провода</b><ol><li>Если жёлтых нет — режь последний.</li><li>Иначе, если белый ровно один и последняя цифра номера щитка чётная — режь первый.</li><li>Иначе, если красных больше, чем синих — режь последний красный.</li><li>Иначе режь третий.</li></ol></div>
+      <div class="rule"><b>5 проводов</b><ol><li>Если первый и последний провод одного цвета — режь третий.</li><li>Иначе, если чёрных больше одного — режь первый чёрный.</li><li>Иначе, если последняя цифра номера щитка нечётная — режь последний.</li><li>Иначе режь второй.</li></ol></div>
+      <div class="rule"><b>6 проводов</b><ol><li>Если белых нет — режь пятый.</li><li>Иначе, если синих ровно два — режь последний синий.</li><li>Иначе, если последняя цифра чётная — режь первый.</li><li>Иначе режь четвёртый.</li></ol></div>
+      <p class="warn">Ошибка −20 с. ${pn.maxStrikes === 1 ? 'Первая же ошибка' : 'Вторая ошибка'} — тревога.</p>${want.panel ? `<div class="state">Вор у щитка!${pn.rounds > 1 ? ` Этап ${(sim.pcut | 0) + 1} из ${pn.rounds}.` : ''}</div>` : ''}`;
+  }
+  return '';
+}
+function renderDocs(want) {
+  const r = role(); if (r !== 'nav' && r !== 'both') { $('#btnDocs').classList.remove('alert'); return; }
+  const list = [{ id: 'memo', icon: '📋' }];
+  if (lv.guards.length || lv.cams.length) list.push({ id: 'guards', icon: '💂' });
+  if (lv.door >= 0) list.push({ id: 'door', icon: '🔒' });
+  if (lv.safe) list.push({ id: 'safe', icon: '🔐' });
+  if (lv.gate >= 0) list.push({ id: 'panel', icon: '⚡' });
+  if (!list.some(x => x.id === docTab)) docTab = 'memo';
+  const tabs = list.map(x => `<button data-t="${x.id}" aria-pressed="${x.id === docTab}" class="${want[x.id] && x.id !== docTab ? 'alert' : ''}">${x.icon} ${DOCN[x.id]}</button>`).join('');
+  if ($('#docTabs').innerHTML !== tabs) $('#docTabs').innerHTML = tabs;
+  const html = docHtml(docTab, want);
+  if (html !== lastDocHtml) { lastDocHtml = html; $('#docBody').innerHTML = html; }
+  $('#btnDocs').classList.toggle('alert', !isWide() && Object.values(want).some(Boolean));
+}
 document.querySelectorAll('.pad .key').forEach(b => b.addEventListener('click', () => { ensureAudio(); act(b.dataset.e); b.blur(); }));
 document.addEventListener('keydown', e => {
   if (e.target && e.target.tagName === 'INPUT') return;
@@ -998,7 +1272,8 @@ function drawNav(now) {
   // hazard zones
   const zone = (cells, col) => { ctx.fillStyle = col; for (const c of cells) ctx.fillRect(ox + (c % W) * T + 1, oy + ((c / W) | 0) * T + 1, T - 2, T - 2); };
   for (const c of lv.cams) { const k = camDir(c, t); if (k >= 0) zone(ray(lv, c.i, k, lv.camr), 'rgba(255,170,40,.32)'); const k2 = -1; if (k2 >= 0 && k2 !== k) { ctx.save(); ctx.setLineDash([3, 3]); ctx.strokeStyle = 'rgba(255,170,40,.55)'; for (const cc of ray(lv, c.i, k2, lv.camr)) ctx.strokeRect(ox + (cc % W) * T + 3, oy + ((cc / W) | 0) * T + 3, T - 6, T - 6); ctx.restore(); } }
-  for (const gd of lv.guards) { const { i, face } = guardAt(gd, t); zone([i, ...ray(lv, i, face, lv.vr)], 'rgba(255,60,60,.30)'); }
+  const showG = !lv.hide || role() === 'both';
+  if (showG) for (const gd of lv.guards) { const { i, face } = guardAt(gd, t); zone([i, ...ray(lv, i, face, lv.vr)], 'rgba(255,60,60,.30)'); }
   // walls
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     const c = y * W + x; if (lv.g[c]) continue;
@@ -1028,7 +1303,19 @@ function drawNav(now) {
   }
   for (const l of lv.lasers) { const [X, Y] = at(l.i); laserBeam(l, X, Y, T, laserOn(l, t)); }
   for (const c of lv.cams) { const [X, Y] = at(c.i); emoji('📹', X + T / 2, Y + T / 2, T * 0.62); }
-  for (const gd of lv.guards) {
+  if (!showG) lv.guards.forEach((gd, gi) => {
+    const [X, Y] = at(gd.path[0]); ctx.fillStyle = '#FF8A8A'; ctx.beginPath(); ctx.arc(X + T / 2, Y + T / 2, T * 0.3, 0, 6.283); ctx.fill();
+    ctx.fillStyle = '#2A0000'; ctx.font = `bold ${Math.round(T * 0.38)}px "PT Mono", monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(gi + 1), X + T / 2, Y + T / 2 + 1);
+  });
+  if (lv.gate >= 0) {
+    const [X, Y] = at(lv.gate), on = !sim.gateOff;
+    ctx.save(); ctx.fillStyle = on ? 'rgba(255,40,40,.35)' : 'rgba(255,40,40,.08)'; ctx.fillRect(X + 1, Y + 1, T - 2, T - 2);
+    ctx.strokeStyle = '#FF3B3B'; ctx.lineWidth = Math.max(2, T * 0.08); if (on) { ctx.shadowColor = '#FF3B3B'; ctx.shadowBlur = 12; } else ctx.setLineDash([3, 4]);
+    for (let k = 1; k < 4; k++) { ctx.beginPath(); ctx.moveTo(X + k * T / 4, Y + 2); ctx.lineTo(X + k * T / 4, Y + T - 2); ctx.stroke(); ctx.beginPath(); ctx.moveTo(X + 2, Y + k * T / 4); ctx.lineTo(X + T - 2, Y + k * T / 4); ctx.stroke(); }
+    ctx.restore();
+  }
+  if (lv.panel >= 0) { const [X, Y] = at(lv.panel); ctx.globalAlpha = sim.gateOff ? 0.45 : 1; emoji('🎛️', X + T / 2, Y + T / 2, T * 0.62); ctx.globalAlpha = 1; }
+  if (showG) for (const gd of lv.guards) {
     const { i, face } = guardAt(gd, t), nx = guardAt(gd, t + 1).i; const [X, Y] = at(i);
     { const pi = guardAt(gd, t - 1).i; if (pi !== i) { const [PX, PY] = at(pi); ctx.globalAlpha = 0.28; emoji('💂', PX + T / 2, PY + T / 2, T * 0.6); ctx.globalAlpha = 1; } }
     if (nx !== i) { const [NX, NY] = at(nx); ctx.strokeStyle = '#FF8A8A'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X + T / 2, Y + T / 2); const mx = (X + NX) / 2 + T / 2, my = (Y + NY) / 2 + T / 2; ctx.lineTo(mx, my); ctx.stroke(); ctx.fillStyle = '#FF8A8A'; ctx.beginPath(); ctx.arc(mx, my, Math.max(2, T * 0.08), 0, 6.283); ctx.fill(); }
@@ -1098,6 +1385,8 @@ function drawRunner(now) {
       if (c === lv.E && near) { ctx.fillStyle = 'rgba(57,255,136,.25)'; ctx.fillRect(X + 2, Y + 2, T - 4, T - 4); emoji('🚪', X + T / 2, Y + T / 2, T * 0.6, er); }
       if (c === lv.gem && !sim.gem && near) emoji(lv.safe ? '🔐' : '💎', X + T / 2, Y + T / 2, T * 0.6, er);
       if (c === lv.note && near) emoji('📝', X + T / 2, Y + T / 2, T * 0.55, er);
+      if (c === lv.panel && near) emoji('🎛️', X + T / 2, Y + T / 2, T * 0.58, er);
+      if (c === lv.gate && !sim.gateOff) { ctx.save(); ctx.fillStyle = 'rgba(255,40,40,.4)'; ctx.fillRect(X, Y, T, T); ctx.strokeStyle = '#FF5050'; ctx.lineWidth = 3; ctx.shadowColor = '#FF3B3B'; ctx.shadowBlur = 14; for (let k = 1; k < 5; k++) { ctx.beginPath(); ctx.moveTo(X + k * T / 5, Y); ctx.lineTo(X + k * T / 5, Y + T); ctx.stroke(); } ctx.restore(); }
       if (c === lv.door) { if (!sim.open) { ctx.fillStyle = '#C9A800'; ctx.fillRect(X + 3, Y + 3, T - 6, T - 6); emoji('🔒', X + T / 2, Y + T / 2, T * 0.5, er); } else emoji('🔓', X + T / 2, Y + T / 2, T * 0.42, er); }
     } else {
       ctx.fillStyle = '#04120A'; ctx.fillRect(X, Y, T, T);
@@ -1525,7 +1814,7 @@ function checkPeerBuild(v) {
 
 /* ---------- boot ---------- */
 renderSoundBtn(); resize();
-try { if (/\.test$|^localhost$|^127\./.test(location.hostname)) window.__game = { setRole: v => { forceRole = v; }, setSafe: v => { curSafe = v; }, doorFor, LM, get curDoor() { return curDoor; }, safeFor, pressSafe, get curSafe() { return curSafe; }, getLevel, solve, simulate, codeFor, act, submitCode, restartLevel, nextLevel, net, role, amWriter, get sim() { return sim; }, get lv() { return lv; }, src: () => src(), get myId() { return myId; } }; } catch (e) {}
+try { if (/\.test$|^localhost$|^127\./.test(location.hostname)) window.__game = { setPanel: v => { curPanel = v; }, panelFor, cutWire, get curPanel() { return curPanel; }, setRole: v => { forceRole = v; }, setSafe: v => { curSafe = v; }, doorFor, LM, get curDoor() { return curDoor; }, safeFor, pressSafe, get curSafe() { return curSafe; }, getLevel, solve, simulate, codeFor, act, submitCode, restartLevel, nextLevel, net, role, amWriter, get sim() { return sim; }, get lv() { return lv; }, src: () => src(), get myId() { return myId; } }; } catch (e) {}
 requestAnimationFrame(frame);
 const code0 = codeFromHash();
 if (code0) joinRoom(code0); else openMenu();
