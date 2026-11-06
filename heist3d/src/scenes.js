@@ -234,7 +234,7 @@ export class Cutscenes {
     }
     s.add(this.vanG);
     this.thief = makeThiefModel();
-    if (this.thief) s.add(this.thief.model);
+    if (this.thief) s.add(this.thief.model, ...this.thief.extra);
   }
   // kind: "arrive" | "escape"; done вызывается в конце (или при пропуске)
   play(kind, done) {
@@ -357,7 +357,7 @@ export class Cutscenes {
       m.visible = th.on;
       m.position.set(th.x, 0.15, th.z);
       m.rotation.y = th.yaw;
-      this.thief.mixer.update(dt);
+      this.thief.update(dt);
     }
     if (t >= a.dur) this.finish();
   }

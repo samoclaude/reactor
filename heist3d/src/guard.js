@@ -76,19 +76,19 @@ function paintUniform(root) {
     if (/pelvis|thigh|calf|root/.test(n)) return 2; // брюки
     return 1; // рубашка
   };
-  const paths = [null, new Path2D(), new Path2D(), new Path2D()];
+  const paths = [new Path2D(), new Path2D(), new Path2D(), new Path2D()];
   for (let i = 0; i < idx.count; i += 3) {
     const a = idx.getX(i),
       b = idx.getX(i + 1),
       c = idx.getX(i + 2),
       z = zoneOf(a);
-    if (!z) continue;
     const p = paths[z];
     p.moveTo(uv.getX(a) * W, uv.getY(a) * H);
     p.lineTo(uv.getX(b) * W, uv.getY(b) * H);
     p.lineTo(uv.getX(c) * W, uv.getY(c) * H);
     p.closePath();
   }
+  skin = { img, paths, W, H };
   // цвет зоны берём у формы, яркость — у исходной текстуры (складки и мышцы остаются), потом затемняем
   const zones = [
     null,
@@ -96,7 +96,20 @@ function paintUniform(root) {
     ["#1d2330", "#3e424a"],
     ["#101010", "#2a2a2a"],
   ];
-  for (let z = 1; z <= 3; z++) {
+  paintZones(g, paths, zones);
+  const t = new THREE.CanvasTexture(cv);
+  t.flipY = false;
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 4;
+  body.material = body.material.clone();
+  body.material.map = t;
+  body.material.roughness = 1;
+  body.material.needsUpdate = true;
+}
+let skin = null; // исходная текстура тела и зоны (кожа, верх, низ, обувь)
+function paintZones(g, paths, zones) {
+  for (let z = 0; z <= 3; z++) {
+    if (!zones[z]) continue;
     g.save();
     g.lineWidth = 3;
     g.lineJoin = "round";
@@ -110,14 +123,30 @@ function paintUniform(root) {
     g.stroke(paths[z]);
     g.restore();
   }
+}
+// наряд вора: чёрная маска и перчатки, тёмная толстовка, чёрные штаны и ботинки
+let thiefMat = null;
+function thiefMaterial(body) {
+  if (thiefMat || !skin) return thiefMat;
+  const cv = document.createElement("canvas");
+  cv.width = skin.W;
+  cv.height = skin.H;
+  const g = cv.getContext("2d");
+  g.drawImage(skin.img, 0, 0);
+  paintZones(g, skin.paths, [
+    ["#121212", "#2a2a2a"],
+    ["#2e3138", "#55585e"],
+    ["#18191c", "#36373b"],
+    ["#0d0d0d", "#222222"],
+  ]);
   const t = new THREE.CanvasTexture(cv);
   t.flipY = false;
   t.colorSpace = THREE.SRGBColorSpace;
-  t.anisotropy = 4;
-  body.material = body.material.clone();
-  body.material.map = t;
-  body.material.roughness = 1;
-  body.material.needsUpdate = true;
+  thiefMat = body.material.clone();
+  thiefMat.map = t;
+  thiefMat.color.setScalar(0.6); // ткань темнее, иначе фонари делают её похожей на кожу
+  thiefMat.roughness = 1;
+  return thiefMat;
 }
 
 // фуражка и фонарь — отдельные объекты, каждый кадр встают к голове и к правой руке
@@ -208,26 +237,126 @@ function makeTorch() {
 }
 
 // вор для сценок: тот же персонаж, весь в чёрном; play("walk" | "run")
-let thiefMat = null;
+const maskMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.9 });
+// «комбинезон»: копия тела без рельефа мышц и пальцев (сглаживание Таубина по сваренным вершинам)
+// и чуть раздутая наружу — так вор одет, а не голый
+let suitGeo = null;
+function suitGeometry(src) {
+  if (suitGeo) return suitGeo;
+  const geo = src.clone(),
+    pos = geo.getAttribute("position"),
+    n = pos.count,
+    idx = geo.index;
+  const wid = new Int32Array(n),
+    ids = new Map();
+  for (let i = 0; i < n; i++) {
+    const k = `${Math.round(pos.getX(i) * 1e4)},${Math.round(pos.getY(i) * 1e4)},${Math.round(pos.getZ(i) * 1e4)}`;
+    if (!ids.has(k)) ids.set(k, ids.size);
+    wid[i] = ids.get(k);
+  }
+  const m = ids.size,
+    P = new Float32Array(m * 3),
+    nb = Array.from({ length: m }, () => new Set());
+  for (let i = 0; i < n; i++) {
+    P[wid[i] * 3] = pos.getX(i);
+    P[wid[i] * 3 + 1] = pos.getY(i);
+    P[wid[i] * 3 + 2] = pos.getZ(i);
+  }
+  for (let i = 0; i < idx.count; i += 3) {
+    const a = wid[idx.getX(i)],
+      b = wid[idx.getX(i + 1)],
+      c = wid[idx.getX(i + 2)];
+    nb[a].add(b).add(c);
+    nb[b].add(a).add(c);
+    nb[c].add(a).add(b);
+  }
+  const Q = new Float32Array(m * 3);
+  for (let it = 0; it < 16; it++) {
+    const f = it % 2 ? -0.53 : 0.5; // Таубин: сгладить и вернуть объём, чтобы не усыхало
+    for (let v = 0; v < m; v++) {
+      let x = 0,
+        y = 0,
+        z = 0;
+      for (const u of nb[v]) {
+        x += P[u * 3];
+        y += P[u * 3 + 1];
+        z += P[u * 3 + 2];
+      }
+      const k = nb[v].size || 1;
+      Q[v * 3] = P[v * 3] + f * (x / k - P[v * 3]);
+      Q[v * 3 + 1] = P[v * 3 + 1] + f * (y / k - P[v * 3 + 1]);
+      Q[v * 3 + 2] = P[v * 3 + 2] + f * (z / k - P[v * 3 + 2]);
+    }
+    P.set(Q);
+  }
+  const out = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) {
+    out[i * 3] = P[wid[i] * 3];
+    out[i * 3 + 1] = P[wid[i] * 3 + 1];
+    out[i * 3 + 2] = P[wid[i] * 3 + 2];
+  }
+  geo.setAttribute("position", new THREE.BufferAttribute(out, 3));
+  geo.computeVertexNormals();
+  // раздуть по нормали на долю роста — складки ткани, а не кожа
+  geo.computeBoundingBox();
+  const h = geo.boundingBox.max.y - geo.boundingBox.min.y,
+    off = h * 0.008,
+    nr = geo.getAttribute("normal");
+  for (let i = 0; i < n; i++) {
+    out[i * 3] += nr.getX(i) * off;
+    out[i * 3 + 1] += nr.getY(i) * off;
+    out[i * 3 + 2] += nr.getZ(i) * off;
+  }
+  geo.attributes.position.needsUpdate = true;
+  geo.computeBoundingSphere();
+  suitGeo = geo;
+  return geo;
+}
 export function makeThiefModel() {
   if (!base) return null;
   const model = skClone(base);
-  thiefMat =
-    thiefMat ||
-    new THREE.MeshStandardMaterial({ color: 0x474c57, roughness: 0.6 });
+  let spine = null;
   model.traverse((o) => {
-    if (o.isMesh) o.material = thiefMat;
+    if (o.isSkinnedMesh && /Superhero/i.test(o.material.name)) {
+      const m = thiefMaterial(o);
+      if (m) o.material = m;
+      o.geometry = suitGeometry(o.geometry);
+    } else if (o.isMesh) o.material = maskMat; // лицо и глаза — под чёрной маской
+    if (o.isBone && o.name === "spine_03") spine = o;
   });
+  // рюкзак: каждый кадр встаёт к спине (как фуражка охранника к голове)
+  const pack = new THREE.Mesh(
+    new THREE.BoxGeometry(0.34, 0.44, 0.17),
+    new THREE.MeshStandardMaterial({ color: 0x3a3f47, roughness: 0.85 }),
+  );
+  const strap = new THREE.Mesh(
+    new THREE.BoxGeometry(0.36, 0.05, 0.19),
+    new THREE.MeshStandardMaterial({ color: 0x0c0d0f, roughness: 0.7 }),
+  );
+  strap.position.y = 0.08;
+  pack.add(strap);
   const mixer = new THREE.AnimationMixer(model),
     walk = mixer.clipAction(clips.Walk_Loop),
-    run = mixer.clipAction(clips.Sprint_Loop);
+    run = mixer.clipAction(clips.Sprint_Loop),
+    tmp = new THREE.Vector3(),
+    q = new THREE.Quaternion();
   return {
     model,
-    mixer,
+    extra: [pack],
     play(n) {
       walk.stop();
       run.stop();
       (n === "run" ? run : walk).reset().play();
+    },
+    update(dt) {
+      mixer.update(dt);
+      pack.visible = model.visible;
+      if (!spine) return;
+      model.updateMatrixWorld(true);
+      spine.getWorldPosition(tmp);
+      model.getWorldQuaternion(q);
+      pack.position.copy(tmp).add(new THREE.Vector3(0, -0.02, -0.17).applyQuaternion(q));
+      pack.quaternion.copy(q);
     },
   };
 }

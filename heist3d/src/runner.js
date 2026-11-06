@@ -1,12 +1,12 @@
-// Вор от первого лица: W/S/A/D, мышь (захват курсора по клику), Shift — бег.
+// Вор от первого лица: W/S/A/D, мышь (захват курсора по клику), Shift — красться (медленно и тихо).
 // Упирается в стены и мебель по растру проходимости из world.js.
 import * as THREE from "three";
 import { rasterFree } from "./world.js";
 
 export const EYE = 1.62;
 const RADIUS = 0.24,
-  WALK = 2.3,
-  RUN = 3.6,
+  WALK = 3.5, // обычный шаг: около комнаты за такт, охрана рядом слышит
+  SNEAK = 1.8, // Shift: крадётся, около полкомнаты за такт, бесшумно
   ACC = 12,
   SENS = 0.0022;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -86,7 +86,7 @@ export class Runner {
       fx /= len;
       fz /= len;
     }
-    const sp = on("ShiftLeft") || on("ShiftRight") ? RUN : WALK,
+    const sp = on("ShiftLeft") || on("ShiftRight") ? SNEAK : WALK,
       s = Math.sin(this.yaw),
       c = Math.cos(this.yaw);
     const tx = (fx * c + fz * s) * sp,
@@ -109,8 +109,8 @@ export class Runner {
     }
     // шаги и лёгкое покачивание
     const v = Math.hypot(this.vel.x, this.vel.y);
-    // бежит — быстрее шага: охрана рядом это слышит
-    this.running = v > WALK + 0.3;
+    // идёт быстрее, чем крадётся: охрана рядом это слышит
+    this.loud = v > SNEAK + 0.3;
     if (v > 0.3) {
       const prev = this.stepPhase;
       this.stepPhase += dt * v * 1.9;
@@ -118,11 +118,11 @@ export class Runner {
         Math.floor(prev / Math.PI) !== Math.floor(this.stepPhase / Math.PI) &&
         this.onStep
       )
-        this.onStep(v > WALK + 0.3);
+        this.onStep(this.loud);
     }
     this.bob +=
       ((v > 0.3
-        ? Math.sin(this.stepPhase * 2) * 0.025 * Math.min(1, v / WALK)
+        ? Math.sin(this.stepPhase * 2) * 0.025 * Math.min(1, v / SNEAK)
         : 0) -
         this.bob) *
       Math.min(1, dt * 10);
