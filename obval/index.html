@@ -269,6 +269,8 @@ button:focus-visible, summary:focus-visible { outline: 2px solid var(--fg); outl
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
 </style>
+<link rel="manifest" href="../manifest.webmanifest">
+<script>if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('../sw.js', { scope: '../' }).catch(() => {}));</script>
 </head>
 <body>
 

@@ -1,0 +1,23 @@
+{
+  "name": "Реактор: игры на двоих",
+  "short_name": "Реактор",
+  "description": "Наши игры на двоих: создавай комнату и кидай брату ссылку.",
+  "lang": "ru",
+  "start_url": "games/",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0E0B16",
+  "theme_color": "#0E0B16",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "КС Угадайка", "url": "ks/" },
+    { "name": "Блеф-кости", "url": "blef/" },
+    { "name": "Реактор", "url": "./" },
+    { "name": "Обвал", "url": "obval/" }
+  ]
+}

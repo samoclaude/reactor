@@ -6,9 +6,15 @@
 <meta name="theme-color" content="#0E0B16">
 <meta name="description" content="Все наши игры на двоих: выбирай и зови брата.">
 <meta property="og:title" content="Игры на двоих">
-<meta property="og:description" content="КС Угадайка, Ограбление, Блеф-кости, Реактор, Обвал, Сумо на льду.">
+<meta property="og:description" content="КС Угадайка, Блеф-кости, Реактор, Обвал, Сумо на льду.">
 <title>Игры на двоих</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230E0B16'/%3E%3Crect x='14' y='22' width='36' height='22' rx='11' fill='%23FFD23F'/%3E%3Ccircle cx='24' cy='33' r='3' fill='%230E0B16'/%3E%3Ccircle cx='40' cy='30' r='2.5' fill='%230E0B16'/%3E%3Ccircle cx='44' cy='35' r='2.5' fill='%230E0B16'/%3E%3C/svg%3E">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Реактор">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800&family=Rubik+Mono+One&display=swap">
@@ -43,7 +49,11 @@ a.game:hover { box-shadow: 0 18px 40px -16px var(--a); }
 .tx em { font-style: normal; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.55); }
 .go { font-size: 22px; color: var(--a); }
 .new { display: inline-block; margin-left: 6px; padding: 2px 6px; border-radius: 6px; background: #FFD23F; color: #1A1400; font-family: var(--font-ui); font-size: 10px; font-weight: 800; letter-spacing: .06em; vertical-align: middle; }
-footer { margin-top: 6px; font-size: 12px; color: var(--muted); text-align: center; line-height: 1.5; }
+footer { margin-top: 6px; font-size: 12px; color: var(--muted); text-align: center; line-height: 1.5; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+footer[hidden] { display: none; }
+.install { appearance: none; border: 0; cursor: pointer; padding: 14px 22px; border-radius: 16px; background: #FFD23F; color: #1A1400; font-family: var(--font-ui); font-size: 16px; font-weight: 800; box-shadow: 0 14px 30px -14px #FFD23F; transition: transform .15s; }
+.install:active { transform: scale(.97); }
+.install[hidden] { display: none; }
 </style>
 </head>
 <body>
@@ -54,11 +64,6 @@ footer { margin-top: 6px; font-size: 12px; color: var(--muted); text-align: cent
   <a class="game" href="../ks/" style="--a:#F2A541;--b:#1A2433">
     <div class="ic">🎯</div>
     <div class="tx"><b>КС Угадайка<span class="new">НОВОЕ</span></b><span>Тяни карточку про КС, брат угадывает вопросами «да/нет».</span><em>2 игрока · 254 карточки</em></div>
-    <div class="go">›</div>
-  </a>
-  <a class="game" href="../heist/" style="--a:#FFD23F;--b:#0D2B4E">
-    <div class="ic">🥷</div>
-    <div class="tx"><b>Ограбление</b><span>Кооп по звонку: один видит план здания, другой идёт вслепую.</span><em>кооп · 2 игрока · бесконечно уровней</em></div>
     <div class="go">›</div>
   </a>
   <a class="game" href="../blef/" style="--a:#F2B53A;--b:#2C211C">
@@ -82,7 +87,43 @@ footer { margin-top: 6px; font-size: 12px; color: var(--muted); text-align: cent
     <div class="go">›</div>
   </a>
 
-  <footer>Совет: добавь эту страницу на главный экран телефона, будет как приложение.</footer>
+  <footer id="installBox">
+    <button class="install" id="installBtn" type="button" hidden>📲 Установить как приложение</button>
+    <span id="installTip">Совет: в меню Chrome ⋮ нажми «Установить» или «Добавить на главный экран», будет как приложение.</span>
+  </footer>
 </main>
+<script>
+// Установка как приложения: свой значок «Реактор» на главном экране, без адресной строки.
+(() => {
+  const box = document.getElementById('installBox');
+  const btn = document.getElementById('installBtn');
+  const tip = document.getElementById('installTip');
+  const done = 'Готово! Ищи значок «Реактор» на главном экране.';
+  const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  if (standalone) { box.hidden = true; }
+  else if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+    tip.textContent = 'На iPhone: открой в Safari, нажми «Поделиться» и выбери «На экран „Домой“».';
+  }
+  let prompt = null;
+  addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    prompt = e;
+    btn.hidden = false;
+    tip.textContent = 'Своя иконка на главном экране, игры открываются без адресной строки.';
+  });
+  btn.addEventListener('click', async () => {
+    if (!prompt) return;
+    prompt.prompt();
+    const choice = await prompt.userChoice.catch(() => null);
+    prompt = null;
+    btn.hidden = true;
+    if (choice && choice.outcome === 'accepted') tip.textContent = done;
+  });
+  addEventListener('appinstalled', () => { btn.hidden = true; tip.textContent = done; });
+  if ('serviceWorker' in navigator) {
+    addEventListener('load', () => navigator.serviceWorker.register('../sw.js', { scope: '../' }).catch(() => {}));
+  }
+})();
+</script>
 </body>
 </html>

@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Иконка приложения «Реактор: игры на двоих». Квадрат без скруглений: годится как maskable,
+       всё важное лежит в центральном круге 80%. Обычная иконка = эта же, обрезанная скруглённым квадратом. -->
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="18%" r="90%">
+      <stop offset="0" stop-color="#3A2A66"/>
+      <stop offset=".55" stop-color="#1A1330"/>
+      <stop offset="1" stop-color="#0E0B16"/>
+    </radialGradient>
+    <linearGradient id="pad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFE37A"/>
+      <stop offset="1" stop-color="#F4B416"/>
+    </linearGradient>
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="26"/></filter>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <ellipse cx="256" cy="300" rx="160" ry="74" fill="#FFD23F" opacity=".38" filter="url(#glow)"/>
+  <rect x="96" y="176" width="320" height="176" rx="88" fill="url(#pad)"/>
+  <rect x="132" y="190" width="248" height="14" rx="7" fill="#fff" opacity=".28"/>
+  <rect x="140" y="252" width="80" height="26" rx="7" fill="#0E0B16"/>
+  <rect x="167" y="225" width="26" height="80" rx="7" fill="#0E0B16"/>
+  <circle cx="318" cy="244" r="18" fill="#0E0B16"/>
+  <circle cx="358" cy="284" r="18" fill="#0E0B16"/>
+</svg>

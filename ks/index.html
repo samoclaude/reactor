@@ -249,6 +249,8 @@ details.deck-set .field + .field { margin-top: 12px; }
 @media (max-height: 640px) { .chip-sub { display: none; } .stack { width: 100px; height: 134px; } .ammo { font-size: 32px; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
+<link rel="manifest" href="../manifest.webmanifest">
+<script>if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('../sw.js', { scope: '../' }).catch(() => {}));</script>
 </head>
 <body>
 
