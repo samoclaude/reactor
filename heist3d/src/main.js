@@ -228,7 +228,12 @@ function renderMain() {
     composer = new EffectComposer(renderer);
     composer.addPass(new RenderPass(scene, camera));
     composer.addPass(
-      new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.55, 0.45, 0.8),
+      new UnrealBloomPass(
+        new THREE.Vector2(innerWidth, innerHeight),
+        0.55,
+        0.45,
+        0.8,
+      ),
     );
     composer.addPass(new OutputPass());
     composer.setPixelRatio(renderer.getPixelRatio());
@@ -617,6 +622,8 @@ function sync(full) {
   const s = src();
   if (!s) return;
   const k = s.code + "|" + s.lvl;
+  // «Ещё раз» (своё или напарника): то же дело, новая попытка
+  const again = !!lv && lvKey === k && simAtt >= 0 && s.att !== simAtt;
   if (!lv || lvKey !== k) {
     lv = G.getLevel(s.code, s.lvl);
     lvKey = k;
@@ -647,6 +654,7 @@ function sync(full) {
     tickAt = performance.now();
   }
   ui();
+  if (again && $("#brief").hidden && $("#menu").hidden) arrive();
 }
 function placeRunner() {
   const [x, z] = W.cellXZ(lv, sim.pos);
@@ -960,7 +968,8 @@ function ui() {
     };
     setTimeout(() => {
       // пока ждали, могли нажать «заново» или открыть меню — тогда без сценки
-      if (!sim || !sim.won || lastWonKey !== ak || !$("#menu").hidden) return showWon();
+      if (!sim || !sim.won || lastWonKey !== ak || !$("#menu").hidden)
+        return showWon();
       if (cuts.ready()) cuts.play("escape", showWon);
       else showWon();
     }, 900);
@@ -992,20 +1001,28 @@ function showBrief() {
   $("#brief").hidden = false;
   runner.unlock();
 }
+// старт попытки: таймер (событие g) пишет вор.
+// lock — захват мыши только прямо из клика (после сценки браузер не даст, вор кликнет сам)
+function startAttempt(lock) {
+  const s = src();
+  if (s && amWriter() && !s.log.length && sim && !sim.caught) pushEv("g");
+  if (lock && role() !== "nav") canvas.requestPointerLock();
+}
+// сценка «приезд» — на каждой попытке, один раз; false — сценки не будет
+function arrive() {
+  const s = src();
+  if (!s || s.log.length || !cuts.ready() || cuts.active) return false;
+  const k = s.code + "|" + s.lvl + "|" + (s.att | 0);
+  if (arrivedKey.has(k)) return false;
+  arrivedKey.add(k);
+  runner.unlock();
+  cuts.play("arrive", () => startAttempt(false));
+  return true;
+}
 $("#btnBrief").addEventListener("click", () => {
   A.ensureAudio();
   $("#brief").hidden = true;
-  const s = src();
-  // lock — захват мыши только прямо из клика (после сценки браузер не даст, вор кликнет сам)
-  const go = (lock) => {
-    if (s && amWriter() && !s.log.length && sim && !sim.caught) pushEv("g");
-    if (lock && role() !== "nav") canvas.requestPointerLock();
-  };
-  if (s && !s.log.length && !(s.att | 0) && cuts.ready() && !arrivedKey.has(s.code + "|" + s.lvl)) {
-    arrivedKey.add(s.code + "|" + s.lvl);
-    runner.unlock();
-    cuts.play("arrive", () => go(false));
-  } else go(true);
+  if (!arrive()) startAttempt(true);
 });
 function restartLevel() {
   const s = src();
