@@ -1,0 +1,1357 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#10131A">
+<meta name="description" content="КС Угадайка: тяни карточку про Counter-Strike, брат угадывает вопросами «да/нет». Онлайн по коду комнаты.">
+<meta property="og:title" content="КС Угадайка">
+<meta property="og:description" content="Клатчи, бусты, игроки и мейджоры. Угадай карточку за 20 вопросов!">
+<meta property="og:type" content="website">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%2310131A'/%3E%3Ccircle cx='32' cy='32' r='17' fill='none' stroke='%23F2A541' stroke-width='5'/%3E%3Cpath d='M32 6v14M32 44v14M6 32h14M44 32h14' stroke='%235B9DF5' stroke-width='5' stroke-linecap='round'/%3E%3Ccircle cx='32' cy='32' r='4' fill='%23F2A541'/%3E%3C/svg%3E">
+<title>КС Угадайка</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800;900&family=Rubik+Mono+One&display=swap">
+<style>
+:root {
+  /* Night match on de_dust: slate HUD, two sides in T-orange and CT-blue, the card is sand-coloured paper. Single look by choice. */
+  --bg: #10131A;
+  --surface: #1A1F29;
+  --cell: #232A37;
+  --line: #333C4D;
+  --fg: #F1F3F7;
+  --muted: #9AA3B5;
+  --sand: #F1E4C6;
+  --sand2: #E2D0A6;
+  --ink: #241C10;
+  --t: #F2A541;
+  --ct: #5B9DF5;
+  --ok: #6FDCA0;
+  --bad: #FF6259;
+  --font-display: "Rubik Mono One", "Arial Black", system-ui, sans-serif;
+  --font-ui: "Nunito", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { height: 100%; }
+body {
+  height: 100%; margin: 0; overflow: hidden;
+  background: radial-gradient(90% 50% at 0% 0%, rgba(242,165,65,.13), transparent 60%), radial-gradient(90% 50% at 100% 100%, rgba(91,157,245,.13), transparent 60%), var(--bg);
+  color: var(--fg); font-family: var(--font-ui); font-size: 14px;
+  touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+}
+button { font-family: inherit; color: inherit; }
+button:focus-visible, summary:focus-visible, input:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+
+.app {
+  position: relative; z-index: 1; height: 100%; max-width: 560px; margin: 0 auto;
+  display: flex; flex-direction: column; gap: 9px;
+  padding-top: calc(10px + env(safe-area-inset-top, 0px));
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 8px; font-family: var(--font-display); font-size: 12.5px; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; min-width: 0; }
+.brand svg { flex: none; }
+.top-actions { display: flex; gap: 8px; }
+.icon-btn { width: 40px; height: 40px; border-radius: 12px; cursor: pointer; display: grid; place-items: center; border: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 85%, transparent); }
+.icon-btn:active { transform: scale(.94); }
+.pill { display: inline-flex; align-items: center; gap: 7px; flex: none; height: 34px; padding: 0 12px; border-radius: 99px; cursor: pointer; border: 1px solid var(--line); background: var(--surface); font-weight: 700; font-size: 12px; }
+.pill b { font-family: var(--font-display); font-weight: 400; letter-spacing: .08em; font-size: 11px; }
+
+/* players */
+.players { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.chip { --c: var(--fg); display: flex; flex-direction: column; gap: 3px; min-width: 0; padding: 8px 10px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); transition: border-color .25s, box-shadow .25s, transform .25s; }
+.chip.active { border-color: var(--c); box-shadow: 0 0 0 1px var(--c), 0 10px 26px -12px var(--c); transform: translateY(-1px); }
+.chip-row { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.chip-tag { flex: none; min-width: 22px; height: 18px; padding: 0 4px; border-radius: 5px; display: grid; place-items: center; background: var(--c); color: #11151C; font: 400 9px var(--font-display); }
+.chip-name { font-weight: 800; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.chip-score { margin-left: auto; font-family: var(--font-display); font-size: 18px; color: var(--c); }
+.chip-score.bump { animation: bump .6s cubic-bezier(.2,.9,.3,1.5); }
+@keyframes bump { 30% { transform: scale(1.5); } }
+.chip-sub { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chip-sub .on-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--muted); margin-right: 5px; vertical-align: 1px; }
+.chip-sub .on-dot.on { background: var(--ok); box-shadow: 0 0 6px var(--ok); }
+.roundbar { display: flex; align-items: center; gap: 10px; font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.roundbar .track { flex: 1; display: flex; gap: 3px; }
+.roundbar .track i { flex: 1; height: 4px; border-radius: 2px; background: var(--line); }
+.roundbar .track i.t { background: var(--t); } .roundbar .track i.ct { background: var(--ct); }
+.roundbar .track i.now { background: var(--fg); opacity: .6; }
+
+/* table */
+.table { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 10px; padding: 2px 0 4px; }
+.last { --c: var(--fg); display: flex; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); font-size: 13.5px; line-height: 1.35; animation: rise .35s ease; }
+.last .badge { flex: none; font: 400 15px var(--font-display); color: var(--c); }
+.last b { font-weight: 900; }
+.last.good { border-color: color-mix(in srgb, var(--ok) 45%, var(--line)); }
+
+.deal { flex: 1; min-height: 240px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; padding: 18px 8px; }
+.stack { position: relative; width: 132px; height: 178px; margin-bottom: 4px; }
+.stack .back { position: absolute; inset: 0; border-radius: 16px; background: linear-gradient(150deg, #2C3445, #1B212C); border: 1px solid #3C4659; box-shadow: 0 16px 30px -18px #000; display: grid; place-items: center; }
+.stack .back:nth-child(1) { transform: translate(-10px, 8px) rotate(-7deg); opacity: .55; }
+.stack .back:nth-child(2) { transform: translate(8px, 4px) rotate(5deg); opacity: .8; }
+.stack .back svg { opacity: .9; }
+.stack.go .back:nth-child(3) { animation: lift .5s ease forwards; }
+@keyframes lift { to { transform: translateY(-30px) rotate(-3deg); opacity: 0; } }
+.deal h2 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: clamp(17px, 5.4vw, 22px); line-height: 1.2; text-wrap: balance; }
+.deal h2 b { color: var(--c, var(--fg)); font-weight: 400; }
+.deal p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.45; max-width: 36ch; text-wrap: pretty; }
+
+.card { --c: var(--t); position: relative; border-radius: 18px; background: linear-gradient(170deg, var(--sand), var(--sand2)); color: var(--ink); box-shadow: 0 18px 40px -22px #000, inset 0 0 0 1px rgba(0,0,0,.08); overflow: hidden; }
+.card.dealt { animation: deal .4s cubic-bezier(.2,.8,.2,1); }
+@keyframes deal { from { transform: translateY(18px) rotate(-2deg) scale(.96); opacity: .3; } to { transform: none; opacity: 1; } }
+.card-strip { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 14px; background: var(--c); color: #16110A; font-size: 11.5px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
+.pips { display: inline-flex; gap: 4px; align-items: center; }
+.pips i { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid #16110A; }
+.pips i.on { background: #16110A; }
+.card-body { padding: 14px 15px 14px; display: flex; flex-direction: column; gap: 9px; }
+.card-title { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: clamp(17px, 5.2vw, 21px); line-height: 1.2; overflow-wrap: anywhere; }
+.card-text { margin: 0; font-size: 16px; font-weight: 600; line-height: 1.45; }
+.card-tools { display: flex; justify-content: space-between; gap: 10px; }
+.card-link { border: 0; background: none; padding: 4px 0; color: #6D5B3C; font-size: 12.5px; font-weight: 700; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.card-link:disabled { opacity: .35; cursor: default; }
+.cover { position: absolute; inset: 37px 0 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 16px; text-align: center; background: linear-gradient(170deg, var(--sand), var(--sand2)); cursor: pointer; border: 0; color: var(--ink); width: 100%; font: 700 14px var(--font-ui); }
+.cover b { font: 400 16px var(--font-display); }
+
+.hints { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.hints li { padding: 8px 11px; border-radius: 10px; font-size: 14px; font-weight: 700; background: rgba(0,0,0,.07); }
+.hints li span { font-size: 10.5px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; opacity: .6; margin-right: 6px; }
+.table > .hints li, .guess .hints li { background: var(--cell); color: var(--fg); }
+
+.guess { display: flex; flex-direction: column; gap: 12px; padding: 4px 0; }
+.guess-head { text-align: center; display: flex; flex-direction: column; gap: 4px; align-items: center; padding-top: 6px; }
+.guess-head .eye { font-size: 11px; font-weight: 900; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); }
+.guess-head h2 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: clamp(18px, 5.6vw, 23px); line-height: 1.2; }
+.guess-head h2 b { color: var(--c); font-weight: 400; }
+.tips { margin: 0; padding: 12px 14px; border-radius: 14px; background: var(--surface); border: 1px dashed var(--line); color: var(--muted); font-size: 13px; line-height: 1.5; }
+.tips b { color: var(--fg); }
+.guess-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+/* ammo hud */
+.hud { display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: 18px; background: var(--surface); border: 1px solid var(--line); }
+.hud-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; }
+.eyebrow { font-size: 10.5px; font-weight: 900; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+.ammo { font-family: var(--font-display); font-size: 40px; line-height: .95; color: var(--c, var(--fg)); }
+.ammo small { font-size: 14px; color: var(--muted); margin-left: 3px; }
+.prize { text-align: right; }
+.prize b { display: block; font-family: var(--font-display); font-weight: 400; font-size: 17px; margin-top: 3px; }
+.mag { display: flex; gap: 3px; }
+.mag i { flex: 1; height: 15px; max-width: 12px; border-radius: 2px 2px 1px 1px; background: var(--line); }
+.mag i.full { background: var(--c, var(--fg)); }
+.mag.low i.full { background: var(--bad); }
+.acts { display: flex; flex-direction: column; gap: 8px; }
+.qrow { display: grid; grid-template-columns: 56px 1fr; gap: 8px; }
+.endrow { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.act { min-height: 52px; border: 0; border-radius: 15px; cursor: pointer; font: 900 15px var(--font-ui); display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 0 10px; }
+.act:not(:disabled):active { transform: scale(.97); }
+.act.main { background: var(--c, var(--fg)); color: #11151C; box-shadow: 0 10px 24px -12px var(--c, var(--fg)); font-size: 16px; }
+.act.soft { background: var(--cell); border: 1px solid var(--line); }
+.act.good { background: var(--ok); color: #062615; }
+.act.bad { background: var(--bad); color: #2C0603; }
+.act:disabled { background: var(--cell); color: var(--muted); box-shadow: none; cursor: default; border-color: var(--line); }
+.wait { min-height: 52px; display: flex; align-items: center; justify-content: center; gap: 9px; font-size: 15px; text-align: center; color: var(--muted); }
+.wait b { color: var(--c, var(--fg)); font-weight: 900; }
+.wait .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c, var(--fg)); box-shadow: 0 0 10px var(--c, var(--fg)); animation: blink 1s infinite alternate; }
+@keyframes blink { 0% { opacity: .2; } 100% { opacity: 1; } }
+
+/* sheet (menu + room) */
+.overlay { position: fixed; inset: 0; z-index: 20; display: flex; align-items: flex-end; justify-content: center; pointer-events: none;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(to bottom, transparent 15%, color-mix(in srgb, var(--bg) 90%, transparent) 50%); }
+.sheet { pointer-events: auto; width: 100%; max-width: 520px; padding: 20px 18px 16px; border-radius: 26px; background: color-mix(in srgb, var(--surface) 97%, transparent); border: 1px solid var(--line);
+  -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); box-shadow: 0 -20px 60px -30px rgba(0,0,0,.8); animation: rise .45s cubic-bezier(.2,.8,.2,1);
+  max-height: calc(100% - 24px - env(safe-area-inset-top, 0px)); overflow-y: auto; }
+.view { display: flex; flex-direction: column; gap: 14px; }
+@keyframes rise { from { transform: translateY(26px); opacity: 0; } to { transform: none; opacity: 1; } }
+.logo { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: clamp(26px, 8.6vw, 38px); line-height: 1; display: flex; align-items: center; gap: 12px; }
+.logo span { color: var(--t); }
+.tag { margin: -4px 0 0; color: var(--muted); font-size: 14px; line-height: 1.45; max-width: 46ch; text-wrap: pretty; }
+.field { display: flex; flex-direction: column; gap: 8px; }
+.label { font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.seg { display: grid; grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr)); gap: 6px; }
+.seg button { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 9px 4px 8px; border-radius: 13px; cursor: pointer; border: 1px solid var(--line); background: var(--cell); transition: background .2s, border-color .2s; }
+.seg b { font-family: var(--font-display); font-weight: 400; font-size: 13.5px; line-height: 1.1; }
+.seg span { font-size: 11px; color: var(--muted); white-space: nowrap; font-weight: 700; }
+.seg button[aria-pressed="true"] { background: var(--t); border-color: var(--t); color: #1A1206; }
+.seg button[aria-pressed="true"] span { color: #5C3E10; }
+.toggles { display: flex; flex-wrap: wrap; gap: 6px; }
+.toggles button { padding: 7px 10px; border-radius: 99px; border: 1px solid var(--line); background: var(--cell); font-weight: 800; font-size: 12.5px; color: var(--muted); cursor: pointer; }
+.toggles button i { font-style: normal; font-size: 11px; opacity: .7; margin-left: 4px; }
+.toggles button[aria-pressed="true"] { background: var(--fg); border-color: var(--fg); color: #11151C; }
+details.deck-set summary { cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+details.deck-set summary::-webkit-details-marker { display: none; }
+details.deck-set summary .deck-sum { font-size: 12.5px; color: var(--fg); font-weight: 700; text-align: right; }
+details.deck-set[open] summary { margin-bottom: 10px; }
+details.deck-set .field + .field { margin-top: 12px; }
+.actions { display: flex; gap: 8px; }
+.cta { flex: 1; min-height: 54px; border: 0; border-radius: 17px; cursor: pointer; background: var(--t); color: #1A1206; font: 400 15px var(--font-display); letter-spacing: .04em; text-transform: uppercase; box-shadow: 0 12px 30px -12px var(--t); }
+.cta:active { transform: scale(.98); }
+.ghost { min-height: 54px; padding: 0 18px; border-radius: 17px; cursor: pointer; border: 1px solid var(--line); background: transparent; font-weight: 800; font-size: 15px; }
+.ghost.small { min-height: 40px; padding: 0 14px; border-radius: 12px; font-size: 13px; }
+.ghost.ready { background: var(--t); border-color: var(--t); color: #1A1206; }
+.inp { width: 100%; min-width: 0; height: 50px; padding: 0 14px; border-radius: 14px; border: 1px solid var(--line); background: var(--cell); color: var(--fg); font: 700 16px var(--font-ui); }
+.inp::placeholder { color: var(--muted); }
+.inp:focus { outline: 2px solid var(--t); outline-offset: 1px; }
+.join-row { display: flex; gap: 8px; }
+.join-row .inp { flex: 1; font-family: var(--font-display); font-weight: 400; letter-spacing: .3em; text-transform: uppercase; text-align: center; }
+.join-row .ghost { min-height: 50px; }
+.rules { border-top: 1px solid var(--line); padding-top: 12px; }
+.rules summary { cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; font-weight: 800; font-size: 14px; }
+.rules summary::-webkit-details-marker { display: none; }
+.rules summary::after { content: "+"; font-family: var(--font-display); color: var(--muted); font-size: 16px; }
+.rules[open] summary::after { content: "–"; }
+.rules ol { margin: 10px 0 2px; padding-left: 20px; display: flex; flex-direction: column; gap: 7px; color: color-mix(in srgb, var(--fg) 85%, var(--muted)); line-height: 1.45; font-size: 13.5px; }
+.rules li::marker { color: var(--t); font-weight: 800; }
+.foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.link-btn { border: 0; background: none; padding: 4px 0; color: var(--muted); font-size: 12px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.foot a { color: var(--muted); font-size: 12px; font-weight: 700; }
+.room-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.code { font-family: var(--font-display); font-size: clamp(36px, 12vw, 50px); letter-spacing: .12em; line-height: 1.1; -webkit-user-select: text; user-select: text; }
+.link-box { display: flex; gap: 8px; align-items: center; }
+.link-text { flex: 1; min-width: 0; padding: 11px 12px; border-radius: 12px; background: var(--cell); border: 1px solid var(--line); color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; -webkit-user-select: all; user-select: all; }
+.link-box .pill { height: 42px; }
+.seats { display: flex; flex-direction: column; gap: 6px; }
+.seat { --c: var(--fg); display: flex; align-items: center; gap: 10px; min-width: 0; padding: 10px 12px; border-radius: 14px; background: var(--cell); border: 1px solid var(--line); }
+.seat-name { font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.seat.empty .seat-name { color: var(--muted); font-weight: 600; }
+.seat.empty .chip-tag { opacity: .35; }
+.seat-state { margin-left: auto; flex: none; font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.seat-state.on::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+.net-note { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.45; }
+.net-note.err { color: #FF8D8D; }
+.room-cfg { margin: 0; font-size: 12.5px; color: var(--muted); }
+.room-cfg b { color: var(--fg); }
+
+/* final */
+.overlay.center { align-items: center; pointer-events: auto; background: color-mix(in srgb, var(--bg) 74%, transparent); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.final { --wc: var(--t); width: 100%; max-width: 400px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 26px 20px 20px; border-radius: 28px; background: var(--surface); border: 1px solid color-mix(in srgb, var(--wc) 45%, var(--line)); box-shadow: 0 30px 90px -30px var(--wc); animation: rise .5s cubic-bezier(.2,.8,.2,1); }
+.win-name { font-family: var(--font-display); font-size: clamp(26px, 8.5vw, 40px); line-height: 1.05; color: var(--wc); text-shadow: 0 0 30px color-mix(in srgb, var(--wc) 50%, transparent); overflow-wrap: anywhere; }
+.win-sub { margin-top: -8px; font-size: 15px; font-weight: 700; color: color-mix(in srgb, var(--fg) 85%, var(--muted)); }
+.tally { display: flex; justify-content: center; gap: 8px; width: 100%; }
+.tally-item { flex: 1 1 0; max-width: 150px; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 10px 6px; border-radius: 14px; background: var(--cell); }
+.tally-item b { font-family: var(--font-display); font-weight: 400; font-size: 24px; color: var(--c); line-height: 1.15; }
+.tally-item span { font-size: 12px; color: var(--muted); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.win-stat { font-size: 13px; color: var(--muted); line-height: 1.5; max-width: 34ch; }
+.win-stat b { color: var(--fg); font-weight: 800; }
+.final .actions { width: 100%; }
+
+.toast { position: fixed; left: 50%; z-index: 30; top: calc(env(safe-area-inset-top, 0px) + 64px); transform: translate(-50%, -8px); opacity: 0; pointer-events: none; max-width: calc(100% - 32px);
+  padding: 10px 16px; border-radius: 99px; background: var(--sand); color: var(--ink); font-weight: 800; font-size: 14px; text-align: center; transition: opacity .25s, transform .25s; }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.update { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); transform: translateX(-50%); z-index: 40; display: flex; gap: 10px; align-items: center; padding: 8px 8px 8px 14px; border-radius: 16px; background: var(--sand); color: var(--ink); font-weight: 800; font-size: 13px; max-width: calc(100% - 32px); }
+.update button { border: 0; border-radius: 11px; padding: 8px 12px; background: var(--ink); color: var(--sand); font-weight: 900; cursor: pointer; }
+@media (max-height: 640px) { .chip-sub { display: none; } .stack { width: 100px; height: 134px; } .ammo { font-size: 32px; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header class="top">
+    <div class="brand"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="6.5" stroke="#F2A541"/><path d="M12 1.5v5M12 17.5v5M1.5 12h5M17.5 12h5" stroke="#5B9DF5"/></svg>КС Угадайка</div>
+    <div class="top-actions">
+      <button class="pill" id="btnRoom" hidden>Комната <b id="roomPillCode"></b></button>
+      <button class="icon-btn" id="btnSound" aria-label="Звук"></button>
+      <button class="icon-btn" id="btnMenu" aria-label="Меню">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <section class="players" id="players" aria-label="Игроки"></section>
+  <div class="roundbar" id="roundbar"><span id="roundTxt">Раунд 1</span><div class="track" id="track"></div></div>
+
+  <main class="table" id="table" aria-live="polite"></main>
+
+  <section class="acts" id="acts"></section>
+</div>
+
+<div class="overlay" id="sheet">
+  <div class="sheet" role="dialog" aria-label="Меню игры">
+    <div class="view" id="vMain">
+      <h1 class="logo">КС <span>Угадайка</span></h1>
+      <p class="tag">Один тянет карточку про КС: клатч, буст, игрок, оружие или мейджор. Второй угадывает вопросами «да/нет». 20 вопросов, подсказки за очки.</p>
+
+      <div class="field">
+        <div class="label">Как играем</div>
+        <div class="seg" id="segWhere" style="--cols:2">
+          <button data-v="online"><b>Онлайн</b><span>каждый со своего</span></button>
+          <button data-v="local"><b>Рядом</b><span>один телефон</span></button>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="label">Сколько раундов</div>
+        <div class="seg" id="segLen">
+          <button data-v="6"><b>6</b><span>по 3 карточки</span></button>
+          <button data-v="10"><b>10</b><span>по 5 карточек</span></button>
+          <button data-v="14"><b>14</b><span>по 7 карточек</span></button>
+        </div>
+      </div>
+
+      <details class="deck-set" id="deckSet">
+        <summary><span class="label">Колода</span><span class="deck-sum" id="deckSum"></span></summary>
+        <div class="field"><div class="toggles" id="catToggles"></div></div>
+        <div class="field"><div class="label">Сложность</div><div class="toggles" id="diffToggles"></div></div>
+      </details>
+
+      <div class="field" id="fName" hidden>
+        <label class="label" for="inName">Твоё имя</label>
+        <input class="inp" id="inName" maxlength="12" autocomplete="nickname" placeholder="Как тебя звать">
+      </div>
+
+      <div class="actions" id="localActions">
+        <button class="ghost" id="btnContinue" hidden>Продолжить</button>
+        <button class="cta" id="btnStart">Играть</button>
+      </div>
+
+      <div class="view" id="onlineActions" hidden>
+        <button class="cta" id="btnCreate">Создать комнату</button>
+        <div class="join-row">
+          <input class="inp" id="inCode" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="код" aria-label="Код комнаты">
+          <button class="ghost" id="btnJoin">Войти</button>
+        </div>
+      </div>
+
+      <details class="rules" id="rules">
+        <summary>Как играть</summary>
+        <ol>
+          <li>Загадывающий тянет карточку. Её видит только он. На карточке момент, буст, игрок, оружие или что-то ещё из КС, написанное предложением.</li>
+          <li>Второй задаёт вопросы, на которые можно ответить «да» или «нет». После каждого вопроса загадывающий жмёт «+1». Попытка назвать ответ тоже считается вопросом. Всего 20.</li>
+          <li>Угадал суть карточки — загадывающий жмёт «Угадал». Очки угадавшему: лёгкая 2, средняя 3, сложная 4. Угадал за 5 вопросов и меньше — ещё +2, за 10 и меньше — +1.</li>
+          <li>Подсказка: категория, потом намёк, потом первые буквы ответа. Каждая отнимает 1 очко у угадывающего, но меньше 1 очка он не получит.</li>
+          <li>Не угадал за 20 вопросов или сдался — 2 очка тому, кто загадывал. Потом меняетесь. В конце побеждает тот, у кого больше очков.</li>
+          <li>Незнакомую карточку можно поменять, пока не задан первый вопрос.</li>
+        </ol>
+      </details>
+      <div class="foot">
+        <span class="label" id="scoreLine"></span>
+        <button class="link-btn" id="btnReset">Сбросить счёт</button>
+      </div>
+      <div class="foot"><a href="../games/">← Все игры</a><span class="label" id="buildTag"></span></div>
+    </div>
+
+    <div class="view" id="vRoom" hidden>
+      <div class="room-top">
+        <div>
+          <div class="eyebrow">Комната</div>
+          <div class="code" id="roomCode">····</div>
+        </div>
+        <button class="ghost small" id="btnLeave">Выйти</button>
+      </div>
+      <div class="link-box">
+        <span class="link-text" id="roomLink"></span>
+        <button class="pill" id="btnShare">Поделиться</button>
+      </div>
+      <div class="seats" id="seats"></div>
+      <p class="room-cfg" id="roomCfg"></p>
+      <p class="net-note" id="netNote">Подключаюсь…</p>
+      <div class="field">
+        <label class="label" for="inName2">Твоё имя</label>
+        <input class="inp" id="inName2" maxlength="12" autocomplete="nickname" placeholder="Как тебя звать">
+      </div>
+      <div class="actions">
+        <button class="cta" id="btnRoomClose" hidden>К игре</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay center" id="win" hidden>
+  <div class="final" id="winCard" role="dialog" aria-label="Итог матча">
+    <div class="eyebrow" id="winEye">Матч окончен</div>
+    <div class="win-name" id="winName">Терры</div>
+    <div class="win-sub" id="winSub">забирают матч</div>
+    <div class="tally" id="tally"></div>
+    <div class="win-stat" id="winStat"></div>
+    <div class="actions">
+      <button class="ghost" id="btnToMenu">Меню</button>
+      <button class="cta" id="btnAgain">Реванш</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+<div class="update" id="update" hidden><span id="updateText">Вышла новая версия игры</span><button id="btnUpdate">Обновить</button></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+(() => {
+'use strict';
+const SB_URL = 'https://ulfqprrjdyycznobirxw.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVsZnFwcnJqZHl5Y3pub2Jpcnh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM3OTg4NTMsImV4cCI6MjEwOTM3NDg1M30.zIjRlMNnqg59jZRprHcCoIkoBiIis45vw5vP4bhF_tc';
+const APP = 'ks';
+const BUILD = 'ks-1';
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const PD = [
+  { name: 'Терры', color: '#F2A541', tag: 'T' },
+  { name: 'Спецназ', color: '#5B9DF5', tag: 'CT' },
+];
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(APP + ':' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(APP + ':' + k, JSON.stringify(v)); } catch (e) {} }
+};
+const sess = {
+  get(k) { try { return sessionStorage.getItem(APP + ':' + k); } catch (e) { return null; } },
+  set(k, v) { try { sessionStorage.setItem(APP + ':' + k, v); } catch (e) {} }
+};
+const plural = (n, a, b, c) => { const m10 = n % 10, m100 = n % 100; if (m10 === 1 && m100 !== 11) return a; if (m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20)) return b; return c; };
+
+/* =====================================================================
+   CARDS — [категория, сложность 1..3, ответ, карточка, подсказка]
+   ===================================================================== */
+const CATS = { moment: 'Моменты и клатчи', boost: 'Бусты', gun: 'Оружие и стрельба', util: 'Гранаты и тактика', pro: 'Игроки', team: 'Команды и турниры', map: 'Карты и места', life: 'Жизнь в КС' };
+const CAT_KEYS = Object.keys(CATS);
+const DIFF = { 1: 'Лёгкая', 2: 'Средняя', 3: 'Сложная' };
+const CARDS = [
+["moment",2,"Olofboost","Fnatic подсаживают olofmeister высоко над картой Overpass, он со скаутом видит полкарты и тащит камбэк против LDLC, но после скандала Fnatic снимаются с матча.","Скандал на мейджоре DreamHack 2014"],
+["moment",2,"Дефьюз olofmeister в огне","olofmeister разминирует бомбу на B Overpass прямо в огне от молотова против Dignitas и успевает за мгновение до смерти.","ESL One Cologne 2014"],
+["moment",1,"Прыжок coldzera с AWP","coldzera подпрыгивает с AWP у квартир на B Mirage и одним выстрелом без прицела убивает сразу двоих игроков Liquid.","MLG Columbus 2016"],
+["moment",2,"Двойной ноускоп s1mple с хевена","s1mple за Liquid спрыгивает с хевена на B Cache, убивает dennis ноускопом, а потом вторым ноускопом снимает KRIMZ.","ESL One Cologne 2016"],
+["moment",3,"Четыре AWP у Fnatic","В овертайме финала мейджора Fnatic за атаку берут сразу четыре AWP на Dust2 и выигрывают раунд против EnVyUs.","ESL One Cologne 2015"],
+["moment",3,"Граната Dosia в Pit","Dosia в финале мейджора кидает HE-гранату в Pit на Inferno, где сэйвились игроки Immortals, и после взрыва бомбы они не выживают.","Краков 2017, Gambit"],
+["moment",3,"Табличка Via Adamo","friberg так часто выносил банан на Inferno, что Valve повесили там табличку с его именем «Via Adamo».","Улица в честь игрока"],
+["moment",2,"Stewie2K держит B в финале Бостона","FaZe нужен один раунд до титула, они рашат B на Inferno, а Stewie2K в одиночку их останавливает и выводит финал в овертайм.","Бостон 2018, Cloud9"],
+["moment",3,"Эйс Happy с Deagle","Happy с Desert Eagle делает эйс на Inferno против TSM, и фанаты потом выбрали это лучшим моментом десятилетия в CS:GO.","DreamHack London 2015"],
+["moment",3,"GuardiaN 1 против 5","GuardiaN за FaZe выигрывает раунд один против пяти у Fnatic в финале IEM Katowice 2018.","Снайпер, Катовице"],
+["moment",3,"Эйс-клатч rain на Cache","rain выигрывает раунд один против пяти у EnVyUs на Cache на мейджоре в Клуж-Напоке 2015.","Норвежец"],
+["moment",3,"Hiko 1 против 4 с M4","Hiko с M4 один заходит на заминированную точку против четырёх игроков Luminosity и выигрывает раунд.","MLG Columbus 2016, Liquid"],
+["moment",3,"pashaBiceps 1 против 4","pashaBiceps остаётся один против четырёх Immortals и хитрым манёвром выигрывает раунд для Virtus.pro.","Краков 2017"],
+["moment",3,"Jame с Галилом 1 против 5","Jame с Галилом выигрывает раунд один против пяти у mousesports и добивает последнего хэдшотом с Глока в прыжке.","Стокгольм 2021, Virtus.pro"],
+["moment",3,"Клатч magixx в Антверпене","magixx в овертайме на Dust2 убивает троих с M4, поднимает AWP и снимает rain — клатч один против четырёх против FaZe.","Антверпен 2022, Spirit"],
+["moment",2,"Спрей magixx один против четырёх","magixx в четвертьфинале мейджора в Кёльне 2026 остаётся один против четырёх G2 после плента и просто зажимает спрей.","Spirit, 2026"],
+["moment",1,"donk 1 против 5 на Mirage","17-летний donk выигрывает раунд один против пяти у HEROIC на Mirage и смеётся, а HLTV называет это хайлайтом года.","Шанхай 2024, Spirit"],
+["moment",3,"donk 1 против 5 с Галилом","donk с Галилом ставит бомбу и в одиночку убивает всю Vitality на BLAST Rivals 2025.","Второй такой клатч в его карьере"],
+["moment",3,"ZywOo с P250 против NAVI","ZywOo в пистолетном раунде решающей карты финала IEM Beijing 2020 с P250 выигрывает раунд один против пяти у NAVI.","Vitality"],
+["moment",3,"m0NESY 1 против 5 на Anubis","m0NESY за G2 выигрывает раунд один против пяти у NAVI на Anubis на BLAST World Final 2023.","Снайпер"],
+["moment",3,"Snax 1 против 4 на пистолетке","Snax в пистолетном раунде выигрывает ретейк один против четырёх у NAVI на ESL One New York 2016.","Virtus.pro"],
+["moment",3,"cadiaN 1 против 4","Капитан HEROIC cadiaN выигрывает раунд один против четырёх у Gambit на ESL Pro League.","Датчанин"],
+["moment",3,"refrezh 1 против 5","refrezh из HEROIC выигрывает безнадёжный раунд один против пяти у Liquid, а потом его команда забирает карту.","ESL Pro League 2021"],
+["moment",2,"Xyp9x почти без HP","Xyp9x почти без здоровья выигрывает раунд один против двух у Virtus.pro на Overpass в финале мейджора.","ELEAGUE Atlanta 2017, Astralis"],
+["moment",3,"10 из 10 у flamie","flamie забирает все десять убийств в двух пистолетных раундах против FaZe на мейджоре в Катовице 2019.","NAVI, USP-S"],
+["moment",3,"Четыре хэдшота f0rest за 6 секунд","f0rest с AK за шесть секунд делает четыре хэдшота издалека против LDLC.","DreamHack Winter 2014, NiP"],
+["moment",3,"Клатч KRIMZ в финале Кёльна","KRIMZ выигрывает один против трёх у EnVyUs в финале мейджора и не даёт им взять восьмой мап-поинт подряд.","ESL One Cologne 2015, Fnatic"],
+["moment",2,"Промахи NiKo с Deagle","NiKo в финале мейджора на Nuke мажет важные выстрелы с Desert Eagle, и NAVI забирают титул.","Стокгольм 2021, G2"],
+["moment",2,"Слив Liquid с 15:9 и 15:6","Liquid ведут 15:9 на Mirage и 15:6 на Cache против Luminosity и всё равно проигрывают серию 0:2.","MLG Columbus 2016"],
+["moment",3,"Эйс paz на Cobblestone","paz из Space Soldiers делает эйс с AWP на Cobblestone против Cloud9 и чуть не выкидывает будущих чемпионов из Бостона.","Бостон 2018"],
+["moment",3,"Эйс gade с USP-S","gade из OpTic делает эйс в пистолетном раунде против TyLoo: пять убийств, все в голову.","FACEIT London 2018"],
+["moment",3,"Спрей-трансфер isak","isak из GamerLegion в последнем раунде карты в полуфинале мейджора переносит спрей AK с одного врага на другого и выводит команду в финал.","Париж 2023"],
+["moment",3,"Буст pashaBiceps и NEO","pashaBiceps и NEO делают буст и забирают первое убийство в важном раунде против Fnatic на мейджоре.","Катовице 2015, Virtus.pro"],
+["moment",1,"Первый мейджор NiKo","NiKo после многих лет попыток и двух проигранных финалов наконец поднимает трофей мейджора — с Falcons в Кёльне 2026.","Больше 3000 дней ожидания"],
+["moment",3,"Клатч HObbit в финале Кракова","HObbit выигрывает очень важный клатч в финале мейджора против Immortals и помогает Gambit взять титул.","Казахстанец"],
+
+["boost",1,"Буст на мешках на Overpass","КТ подсаживает тиммейта на мешки у точки B на Overpass, и тот сверху видит каждого, кто идёт на шорт.","Самый частый буст на этой карте"],
+["boost",2,"Буст у банки на шорте Overpass","Террористы подсаживаются на шорте у большой банки на Overpass и видят хевен, бочки и выход из монстра.","Тихий вход на B"],
+["boost",3,"Буст за КТ-стенкой на B Overpass","КТ прячется на бусте за стенкой у точки B на Overpass, отдаёт плент и стреляет в спины тем, кто зашёл из монстра или с шорта.","Сливается с текстурой стены"],
+["boost",3,"Буст у банка на Overpass","Игрок подсаживается в щель у банка на Overpass и выглядывает на лонг A одной головой.","Сторона A"],
+["boost",3,"Буст на лестнице коннектора Overpass","КТ стоит на бусте на лестнице коннектора и видит, как террористы выходят из трубы на шорт, а их флешки его не слепят.","Труба на шорт"],
+["boost",3,"Буст на детской площадке Overpass","Буст на игровой площадке на Overpass, с которого видно выход из туалетов и можно наказать снайпера.","Playground"],
+["boost",1,"Буст на трёх игроков","Трое встают друг на друга, чтобы верхний залез туда, куда обычно не попасть.","Как у Fnatic в 2014"],
+["boost",1,"Обычный буст","Ты садишься на корточки, тиммейт прыгает тебе на голову и смотрит поверх стены.","Нужны двое"],
+["boost",2,"Пиксель-буст","Встаёшь на крошечный выступ текстуры, которого почти не видно, и стоишь как будто в воздухе.","Pixel walk"],
+["boost",2,"С машины к квартирам Mirage","КТ разбегается с ножом, прыгает с машины на B Mirage и встаёт на стену напротив выхода из квартир.","Оттуда можно запрыгнуть в окно"],
+["boost",2,"Полка в маркете Mirage","Игрок запрыгивает на полку в маркете на Mirage и держит оттуда точку B.","Работает и за КТ, и за Т"],
+["boost",2,"С ящиков на миде к колонне Mirage","С ящиков на миде Mirage разбегаешься и запрыгиваешь к колонне, откуда стреляешь тех, кто выходит из коннектора или окна.","Мид"],
+["boost",3,"С ящика на точке A на палас Mirage","С ящика на точке A Mirage пиксельно забираешься по текстурам прямо на палас и заходишь сзади.","Сложный самобуст"],
+["boost",3,"Буст на кирпичах на шорте Mirage","Буст на кирпичах на шорте B Mirage, чтобы видеть поверх смока на катвоке.","Сторона B"],
+["boost",3,"Буст на мусорке за ракетами Mirage","Буст на мусорном баке за ракетами на A Mirage для ретейка: видно за дефолтом и под балконом.","Сторона A"],
+["boost",3,"Буст на рампе A Mirage против AWP","Террорист в начале раунда прыгает на голову сидящему тиммейту на рампе A Mirage, и снайпер КТ целится не туда.","Ломает прицел снайперу"],
+["boost",2,"Тетрис-буст на Mirage","Буст на тетрисе у точки A Mirage, чтобы выглянуть выше привычных линий прицела во время захода.","Рядом с рампой"],
+["boost",2,"Ящик у дверей лонга Dust2","Самобуст на ящик у дверей лонга на Dust2, где тебя не достают молотовы и гранаты.","Длинный коридор"],
+["boost",2,"Большой ящик на КТ-спавне Dust2","Самобуст на большой ящик на КТ-спавне Dust2, чтобы защищать A от тех, кто идёт с лонга или с B.","КТ"],
+["boost",2,"Буст на катвоке Dust2","Буст на кэте на Dust2, откуда видно мид, шорт и нижние туннели.","Шорт A"],
+["boost",3,"Картина в квартирах Inferno","На Inferno в квартирах можно присяд-прыжком залезть на картину на стене и ждать врагов прямо там.","Самобуст"],
+["boost",2,"Полстенки на банане Inferno","КТ прыгает с бочки на половинку стены на банане Inferno и видит террористов раньше, чем они его.","Банан"],
+["boost",3,"С балкона на стену Inferno","С балкона на A Inferno можно встать на стену и стрелять тех, кто выходит из квартир и с мида.","Точка A"],
+["boost",2,"Буст на ньюбоксе Inferno","Буст на новом ящике на B Inferno — раньше он был ещё сильнее, чем сейчас.","Newbox"],
+["boost",2,"Буст у гробов на Inferno","Буст у гробов на B Inferno, чтобы смотреть поверх смока КТ во время быстрого раша.","Coffins"],
+["boost",3,"Буст за фейк-вентом на Nuke","Пиксельный буст на заднюю сторону фейк-вента на точке A Nuke — очень раздражающая позиция.","Nuke"],
+["boost",2,"Буст на ящиках на рампе Nuke","Буст на ящиках на рампе Nuke, чтобы держать рампу.","Nuke"],
+["boost",2,"Буст на точке A Ancient","Самобуст на точке A Ancient, с которого стреляешь тех, кто выходит с мейна или ставит бомбу.","Ancient"],
+["boost",3,"Буст у паласа на Anubis","Буст у паласа и мида на Anubis ради необычного угла.","Египет"],
+
+["gun",1,"AK-47","Главный автомат террористов: убивает одним выстрелом в голову даже врага в шлеме.","Калаш"],
+["gun",1,"M4A1-S","Автомат КТ с глушителем: патронов меньше, но стреляет тихо и точно.","С глушителем"],
+["gun",1,"M4A4","Автомат КТ без глушителя с магазином на 30 патронов.","У него есть брат с глушителем"],
+["gun",1,"AWP","Дорогая снайперская винтовка: убивает с одного попадания в тело, но с ней медленно бегаешь.","Снайперка"],
+["gun",1,"Desert Eagle","Тяжёлый пистолет, из которого можно убить одним выстрелом в голову.","Дигл"],
+["gun",1,"Zeus x27","Электрошокер: бьёт только вплотную, зато убивает с одного разряда.","Не пистолет"],
+["gun",2,"Negev","Пулемёт, который сначала разбрасывает пули, а при долгом зажиме стреляет почти как лазер.","Пулемёт"],
+["gun",2,"SSG 08","Лёгкая снайперка, с которой быстро бегаешь и можно точно стрелять в высшей точке прыжка.","Скаут"],
+["gun",1,"Galil AR","Дешёвый автомат террористов для форс-бая.","Аналог FAMAS"],
+["gun",1,"FAMAS","Дешёвый автомат КТ, который умеет стрелять очередями.","Аналог Галила"],
+["gun",2,"MAC-10","Дешёвый пистолет-пулемёт террористов, с ним бегают в раш на эко.","ПП"],
+["gun",1,"P90","Пистолет-пулемёт с магазином на 50 патронов: зажал и побежал.","ПП"],
+["gun",2,"AUG","Автомат КТ с оптическим прицелом, который можно приблизить.","Оптика"],
+["gun",2,"SG 553","Автомат террористов с оптическим прицелом.","Оптика"],
+["gun",2,"Нож","Убийство этим оружием приносит 1500 долларов и унижает соперника.","Есть у всех"],
+["gun",2,"R8 Revolver","Револьвер, у которого надо зажимать курок перед выстрелом.","Пистолет"],
+["gun",2,"Glock-18","Стартовый пистолет террористов, у которого есть режим очереди по три патрона.","Стартовый"],
+["gun",1,"USP-S","Стартовый пистолет КТ с глушителем, из которого делают хэдшоты на пистолетке.","Стартовый"],
+["gun",2,"Tec-9","Пистолет террористов, из которого быстро убивают на бегу на пистолетке.","Пистолет"],
+["gun",2,"CZ75-Auto","Автоматический пистолет: 12 патронов вылетают очень быстро, а перезарядка долгая.","Пистолет"],
+["gun",1,"Dual Berettas","Два пистолета, по одному в каждой руке.","Дуалы"],
+["gun",2,"MAG-7","Дробовик КТ, хорош для коротких углов.","Дробовик"],
+["gun",2,"Sawed-Off","Обрез — дробовик террористов, убивает только вблизи.","Дробовик"],
+["gun",3,"100 долларов за AWP","За убийство с AWP дают всего 100 долларов — меньше, чем с любого другого оружия.","Деньги"],
+["gun",2,"600 долларов за ПП","За убийство с пистолетов-пулемётов платят 600 долларов — в два раза больше, чем с автомата.","Деньги"],
+["gun",1,"Спрей-контроль","Тянешь мышку вниз по рисунку отдачи, чтобы автомат при зажиме бил в одну точку.","Стрельба"],
+["gun",1,"Тапы","Стреляешь по одному выстрелу, чтобы каждая пуля летела точно.","Стрельба"],
+["gun",1,"Ван-тап","Один выстрел, один хэдшот, один труп.","Стрельба"],
+["gun",2,"Контрстрейф","Нажимаешь кнопку движения в обратную сторону, чтобы мгновенно остановиться и выстрелить точно.","Движение"],
+["gun",1,"Прострел","Убиваешь врага через стену или ящик.","Wallbang"],
+["gun",1,"Ноускоп","Стреляешь из снайперки, не включая прицел.","Снайперка"],
+["gun",2,"Квикскоп","Включаешь прицел AWP и стреляешь почти в тот же момент.","Снайперка"],
+["gun",2,"Префайр","Начинаешь стрелять в угол ещё до того, как увидел там врага.","Угадываешь позицию"],
+["gun",1,"Флик","Резко дёргаешь мышкой на врага и сразу стреляешь.","Снайперам нравится"],
+["gun",2,"Спрей-трансфер","Не отпуская кнопку стрельбы, переводишь спрей с одного врага на другого.","Стрельба"],
+["gun",1,"Банни-хоп","Прыгаешь без остановки и стрейфишь, чтобы набрать скорость.","Движение"],
+["gun",2,"Джамп-пик","Подпрыгиваешь из-за угла, чтобы увидеть снайпера и не подставить голову надолго.","Движение"],
+["gun",1,"Эйс","Один игрок убивает всю команду соперника за раунд.","Пятеро"],
+["gun",1,"Клатч","Ты последний живой в команде и выигрываешь раунд против нескольких врагов.","1 против X"],
+["gun",2,"Хэдшот через смок","Стреляешь вслепую в дым и попадаешь врагу в голову.","Удача"],
+
+["util",1,"Смок","Граната, которая закрывает обзор дымом; в CS2 его можно разогнать HE-гранатой или прострелить.","Граната"],
+["util",1,"Флешка","Граната, которая ослепляет всех, кто на неё смотрит.","Граната"],
+["util",2,"Попфлеш","Флешка, которая взрывается сразу из-за угла, чтобы враг не успел отвернуться.","Граната"],
+["util",1,"Молотов","Бутылка с огнём у террористов, которой выкуривают врага из угла.","У КТ своя версия"],
+["util",2,"Зажигательная граната","Огненная граната КТ, аналог молотова.","Огонь"],
+["util",1,"Потушить огонь смоком","Кидаешь дымовую гранату в огонь, и он гаснет.","Комбо из двух гранат"],
+["util",2,"Джамп-трок","Бросаешь гранату в прыжке, чтобы смок каждый раз ложился в одно и то же место.","Бросок"],
+["util",1,"Декой","Ложная граната, которая издаёт звуки стрельбы и обманывает врагов.","Граната"],
+["util",1,"HE-граната","Осколочная граната, которая просто наносит урон.","Граната"],
+["util",1,"Эко","Раунд, когда команда ничего не покупает и копит деньги.","Экономика"],
+["util",1,"Форс-бай","Команда покупает всё, что может, на последние деньги.","Экономика"],
+["util",1,"Сэйв","Прячешься и не дерёшься, чтобы сохранить дорогое оружие на следующий раунд.","Экономика"],
+["util",1,"Пистолетный раунд","Первый раунд половины, когда у всех только пистолеты.","Начало"],
+["util",1,"Раш Б","Вся команда без остановки бежит на точку B.","«Не стопимся»"],
+["util",1,"Ниндзя-дефуз","Тихо разминируешь бомбу, пока враги не заметили, что ты рядом.","Разминирование"],
+["util",2,"Дефуз-кит","Набор КТ, с которым бомбу разминируют за 5 секунд вместо 10.","Покупается"],
+["util",2,"40 секунд до взрыва","Столько времени проходит от установки бомбы до взрыва.","Таймер"],
+["util",2,"Лёркер","Игрок, который в одиночку тихо ходит по другой стороне карты, чтобы зайти в спину.","Роль"],
+["util",2,"Опорник","Игрок КТ, который в одиночку держит точку до последнего.","Роль"],
+["util",1,"Энтри-фрагер","Игрок, который первым забегает на точку и открывает раунд.","Роль"],
+["util",1,"Капитан","Игрок, который придумывает тактику и говорит команде, что делать.","IGL"],
+["util",2,"Тайм-аут","Капитан останавливает игру, чтобы поговорить с командой посреди матча.","Пауза"],
+["util",2,"Ретейк","КТ отбивают точку, на которой террористы уже поставили бомбу.","После плента"],
+["util",1,"Фейк","Шумишь и кидаешь гранаты на одну точку, а бомбу ставишь на другую.","Обман"],
+["util",2,"Сплит","Команда заходит на точку одновременно с двух сторон.","Тактика"],
+["util",1,"Дроп","Кидаешь тиммейту оружие, потому что у него нет денег.","Помощь"],
+["util",1,"Овертайм","Счёт сравнялся после всех раундов, и играют дополнительные.","Ничья"],
+["util",2,"Бонус за проигрыши","Чем больше раундов подряд проигрывает команда, тем больше денег она получает.","Экономика"],
+["util",2,"16 000 долларов","Больше этой суммы в КС накопить нельзя.","Максимум"],
+["util",2,"Антиэко","Раунд, когда у врагов нет денег, и ты берёшь ПП, чтобы заработать побольше.","Экономика"],
+
+["pro",1,"s1mple","Украинский снайпер, которого многие считают лучшим игроком в истории CS:GO; первый мейджор выиграл с NAVI в Стокгольме 2021.","Украина"],
+["pro",1,"ZywOo","Французский снайпер Vitality, MVP обоих мейджоров 2025 года.","Франция"],
+["pro",1,"donk","Рифлер Spirit, который в 17 лет выиграл мейджор в Шанхае и стал его MVP.","Spirit"],
+["pro",1,"m0NESY","Снайпер Falcons, MVP мейджора в Кёльне 2026, который стал его первым мейджором.","Раньше играл в G2"],
+["pro",1,"NiKo","Боснийский рифлер, который много лет не мог выиграть мейджор и наконец взял его с Falcons в Кёльне 2026.","Босния"],
+["pro",2,"device","Датский снайпер с четырьмя мейджорами за Astralis, MVP мейджора в Берлине 2019.","Дания"],
+["pro",1,"olofmeister","Шведская легенда Fnatic: дефьюз в огне и тот самый буст на Overpass.","Швеция"],
+["pro",2,"GeT_RiGhT","Швед из NiP, которого называют лучшим лёркером в истории Counter-Strike.","NiP"],
+["pro",2,"f0rest","Шведский рифлер NiP, который играл на топ-уровне ещё в 1.6.","NiP"],
+["pro",2,"coldzera","Бразилец, прыгнувший с AWP на Mirage и ставший MVP двух мейджоров подряд в 2016.","Бразилия"],
+["pro",2,"FalleN","Бразильский снайпер и капитан, «отец» бразильского КС; в 2026 дошёл с FURIA до финала мейджора.","Бразилия"],
+["pro",2,"kennyS","Французский снайпер с больше всех убийств с AWP на LAN-турнирах CS:GO.","Франция"],
+["pro",2,"Xyp9x","Датчанин из Astralis по прозвищу «министр клатчей».","Astralis"],
+["pro",2,"karrigan","Датский капитан-ветеран, выиграл мейджор с FaZe в Антверпене и с Falcons в Кёльне 2026.","Капитан"],
+["pro",1,"HObbit","Казахстанский рифлер, чемпион мейджора в Кракове 2017 в составе Gambit.","Казахстан"],
+["pro",2,"AdreN","Казахстанец, MVP мейджора в Кракове 2017, а потом дошёл до финала мейджора в Берлине с AVANGAR.","Казахстан"],
+["pro",2,"mou","Казахстанский снайпер Gambit, выигравший мейджор в Кракове 2017.","Казахстан"],
+["pro",2,"Jame","Снайпер и капитан, известный тем, что часто сэйвит AWP; выиграл мейджор в Рио 2022.","Outsiders"],
+["pro",2,"Dosia","Рифлер Gambit, который кинул HE-гранату в Pit в финале мейджора в Кракове.","Gambit"],
+["pro",2,"Zeus","Украинский капитан, выиграл мейджор в Кракове 2017 с Gambit, а потом вернулся в NAVI.","Капитан"],
+["pro",2,"sh1ro","Спокойный и надёжный снайпер Spirit, чемпион мейджора в Шанхае 2024.","Spirit"],
+["pro",2,"b1t","Украинский рифлер NAVI с двумя мейджорами: Стокгольм 2021 и Копенгаген 2024.","NAVI"],
+["pro",2,"jL","Литовский рифлер NAVI, MVP первого мейджора CS2 в Копенгагене 2024.","NAVI"],
+["pro",2,"ropz","Эстонский рифлер: мейджор с FaZe, а потом два мейджора подряд с Vitality в 2025.","Эстония"],
+["pro",2,"apEX","Громкий французский капитан Vitality, который выигрывал мейджоры и в CS:GO, и в CS2.","Франция"],
+["pro",2,"Stewie2K","Американец, который остановил раш FaZe в финале Бостона 2018.","Cloud9"],
+["pro",3,"dupreeh","Датчанин, который первым в истории выиграл пять мейджоров.","Astralis и Vitality"],
+["pro",2,"shroud","Бывший игрок Cloud9, ставший одним из самых популярных стримеров в мире.","Стример"],
+["pro",2,"ScreaM","Бельгиец, которого называют «машиной хэдшотов».","Однотапы"],
+["pro",2,"pashaBiceps","Поляк из Virtus.pro, звезда мемов про CS:GO.","Польша"],
+["pro",3,"friberg","Швед из NiP по прозвищу «король банана».","Inferno"],
+["pro",3,"YEKINDAR","Латвийский энтри-фрагер, который в 2026 играл за FURIA в финале мейджора.","Латвия"],
+["pro",3,"kyousuke","Молодой рифлер Falcons, лучший в команде по рейтингу в плей-офф мейджора в Кёльне 2026.","Falcons"],
+["pro",2,"flamie","Русский рифлер NAVI, забравший 10 из 10 убийств на двух пистолетках против FaZe.","NAVI"],
+
+["team",1,"NAVI в Стокгольме 2021","NAVI выигрывают мейджор в Стокгольме 2021, не проиграв ни одной карты, а s1mple берёт свой первый мейджор.","Без поражений"],
+["team",1,"NAVI в Копенгагене 2024","NAVI выигрывают самый первый мейджор в CS2, обыграв FaZe в финале.","Первый в CS2"],
+["team",1,"Spirit в Шанхае 2024","Spirit с молодым donk выигрывают мейджор в Шанхае, обыграв FaZe 2:1.","Китай"],
+["team",1,"Vitality в 2025","Vitality выигрывают оба мейджора 2025 года: в Остине и в Будапеште.","Два подряд"],
+["team",1,"Falcons в Кёльне 2026","Falcons выигрывают мейджор в Кёльне 2026, обыграв FURIA 3:0, и все три карты заканчиваются 13:8.","Команда из Саудовской Аравии"],
+["team",1,"Astralis","Датская команда, выигравшая четыре мейджора, из них три подряд.","Дания"],
+["team",2,"Fnatic","Шведская команда, выигравшая три мейджора в CS:GO с 2013 по 2015 год.","Швеция"],
+["team",2,"87 карт подряд NiP","Ninjas in Pyjamas в начале CS:GO выигрывают 87 карт подряд на LAN-турнирах.","Рекорд"],
+["team",1,"Cloud9 в Бостоне 2018","Cloud9 становятся первой командой из Северной Америки, выигравшей мейджор, и обыгрывают FaZe в двух овертаймах.","США"],
+["team",1,"Gambit в Кракове 2017","Gambit с тремя казахстанцами — AdreN, HObbit и mou — выигрывают мейджор в Кракове.","Первая команда СНГ с мейджором"],
+["team",2,"AVANGAR в Берлине 2019","Казахстанская команда AVANGAR доходит до финала мейджора в Берлине и проигрывает Astralis.","Казахстан"],
+["team",3,"Luminosity в Колумбусе 2016","Бразильцы выигрывают первый мейджор с призовым фондом в миллион долларов.","Бразилия"],
+["team",3,"LDLC на DreamHack 2014","Французы выигрывают мейджор после скандала с бустом Fnatic на Overpass.","Франция"],
+["team",2,"FaZe в Антверпене 2022","Команда, где все пятеро игроков из разных стран, выигрывает мейджор в Антверпене.","karrigan"],
+["team",3,"Outsiders в Рио 2022","Бывшие Virtus.pro под другим названием выигрывают мейджор в Бразилии.","Jame"],
+["team",2,"Vitality в Париже 2023","Vitality выигрывают последний мейджор в истории CS:GO, и ZywOo наконец получает свой первый.","Последний в CS:GO"],
+["team",2,"The MongolZ","Команда из Монголии, которая дошла до финала мейджора в Остине 2025.","Азия"],
+["team",2,"FURIA в 2026","Бразильская команда с FalleN и YEKINDAR доходит до финала мейджора в Кёльне 2026.","Бразилия"],
+["team",2,"FaZe — вечное серебро","FaZe проигрывают финалы мейджоров в Копенгагене, Шанхае и Будапеште.","Финалисты"],
+["team",2,"Кёльн — «Собор КС»","Турнир в Кёльне, который называют «Собором Counter-Strike»; в 2026 он стал мейджором.","Германия"],
+["team",2,"PGL в Астане","Большой турнир по КС в столице Казахстана; в 2025 его выиграли Spirit.","Казахстан"],
+["team",3,"NiP на ESL One Cologne 2014","Ninjas in Pyjamas выигрывают свой единственный мейджор, а friberg разрывает банан.","Швеция"],
+["team",2,"Польский Virtus.pro","Польский состав Virtus.pro доходит до финала мейджора в Атланте 2017 и проигрывает Astralis.","Польша"],
+["team",1,"Мейджор","Главный турнир по КС, который поддерживает Valve, с наклейками команд в игре.","Турнир"],
+
+["map",1,"Dust2","Самая известная карта КС: песок, ящики, лонг и туннели.","Классика"],
+["map",1,"Лонг A на Dust2","Длинный коридор к точке A на Dust2, где снайперы стреляют через двери.","Dust2"],
+["map",1,"Катвок на Dust2","Узкий проход наверх к точке A на Dust2 со стороны мида.","Dust2"],
+["map",1,"Туннели B на Dust2","Тёмные коридоры, через которые террористы рашат на B на Dust2.","Dust2"],
+["map",1,"Двери на миде Dust2","Проход посередине Dust2, где снайперы ловят тех, кто перебегает.","Dust2"],
+["map",1,"Mirage","Карта в марокканском городке с паласом, окном и квартирами.","Классика"],
+["map",1,"Палас на Mirage","Балкон с колоннами у точки A Mirage, откуда террористы заходят сверху.","Mirage"],
+["map",1,"Окно на Mirage","Снайперская позиция КТ на миде Mirage.","Mirage"],
+["map",2,"Джангл и коннектор на Mirage","Переходы между мидом и точкой A на Mirage, где КТ держат смоки.","Mirage"],
+["map",1,"Квартиры на Mirage","Проход террористов через дома на точку B Mirage.","Mirage"],
+["map",1,"Inferno","Итальянская деревня с бананом, ямой и квартирами.","Классика"],
+["map",1,"Банан на Inferno","Изогнутый проход к точке B на Inferno, где всегда горят молотовы.","Inferno"],
+["map",2,"Яма на Inferno","Низина у точки A Inferno, где часто сидит КТ со снайперкой.","Pit"],
+["map",1,"Nuke","Карта на атомной станции, где точка A находится прямо над точкой B.","Два этажа"],
+["map",2,"Хевен и хелл на Nuke","Верхняя площадка над точкой A Nuke и место прямо под ней.","Nuke"],
+["map",2,"Аутсайд на Nuke","Большая открытая улица между зданиями на Nuke.","Nuke"],
+["map",2,"Вент на Nuke","Вентиляция, по которой спускаются с точки A на точку B на Nuke.","Nuke"],
+["map",1,"Overpass","Немецкая карта с каналом, парком, туалетами и монстром.","Берлин"],
+["map",2,"Монстр на Overpass","Большой тоннель у точки B на Overpass с нарисованным монстром.","Overpass"],
+["map",2,"Туалеты на Overpass","Общественный туалет на Overpass, через который проходят на A и мид.","Overpass"],
+["map",1,"Vertigo","Карта на стройке небоскрёба, откуда можно упасть вниз.","Высота"],
+["map",1,"Ancient","Карта с древним храмом в джунглях.","Джунгли"],
+["map",2,"Anubis","Египетская карта с каналами, которая пришла в игру из мастерской.","Египет"],
+["map",1,"Train","Карта на железнодорожной станции с вагонами, за которыми прячутся.","Поезда"],
+["map",2,"Cache","Карта в зоне отчуждения у Чернобыля, долго была в турнирах.","Припять"],
+["map",2,"Cobblestone","Карта со средневековым замком и длинным двором для снайперов.","Замок"],
+["map",2,"Office","Карта с заложниками в офисном здании посреди зимы.","Заложники"],
+["map",2,"Italy","Карта с заложниками в итальянском городке.","Заложники"],
+["map",2,"Приставки de_ и cs_","de_ — карты с бомбой, cs_ — карты с заложниками.","Названия карт"],
+["map",1,"КТ-спавн","Место, где появляется спецназ в начале раунда.","Старт"],
+
+["life",1,"Кик за тимкилл","Ты случайно убиваешь своего, и команда тут же кикает тебя голосованием.","Голосование"],
+["life",1,"АФК-тиммейт","Тиммейт стоит на спавне весь раунд и не двигается.","Отошёл"],
+["life",1,"Репорт на читера","Соперник стреляет тебе в голову через стену, и ты кидаешь на него жалобу.","ВХ"],
+["life",2,"Патруль","Обычные игроки смотрят записи подозрительных игроков и решают, читер ли он.","Overwatch"],
+["life",1,"Открытие кейса","Покупаешь ключ, крутится рулетка, и выпадает дешёвый скин.","Казино"],
+["life",1,"Нож из кейса","Самый редкий дроп из кейса — «золотой» предмет.","Мечта"],
+["life",1,"AWP Dragon Lore","Самый знаменитый и дорогой скин на снайперку с драконом.","Скин"],
+["life",1,"StatTrak","Скин со счётчиком, который считает твои убийства.","Скин"],
+["life",2,"Наклейки с автографами","Наклейки с подписями про-игроков, которые выпускают к каждому мейджору.","Мейджор"],
+["life",1,"Premier","Режим CS2 с рейтингом-числом, где перед матчем банят карты.","Рейтинг"],
+["life",1,"10 уровень FACEIT","Сторонняя платформа для игры, где 10-й уровень — мечта каждого.","Платформа"],
+["life",1,"Сильвер","Самое низкое звание в старых рангах КС.","Новичок"],
+["life",1,"Глобал Элит","Самое высокое звание в старых рангах КС.","Топ"],
+["life",1,"Курица на карте","По картам бегают курицы, и их можно подстрелить.","Животное"],
+["life",1,"Музыка в микрофоне","Тиммейт включил музыку в голосовой чат и не слышит, что ему говорят.","Голосовой"],
+["life",1,"Голосование за сдачу","Команда голосует, чтобы закончить матч раньше, потому что всё плохо.","Голосование"],
+["life",1,"Советы мёртвых тиммейтов","Ты остался один, а мёртвые тиммейты кричат в микрофон, что тебе делать.","Клатч"],
+["life",1,"Бан за выход из матча","Выходишь из игры посреди матча и получаешь бан на время.","Наказание"],
+["life",1,"Пинг 200","Сервер далеко, всё лагает, и ты умираешь уже за углом.","Интернет"],
+["life",1,"Инспект ножа","Достаёшь нож и крутишь его, чтобы полюбоваться скином.","Кнопка F"],
+["life",1,"Смурф","Опытный игрок на новом аккаунте разносит новичков.","Аккаунт"],
+["life",1,"Дезматч","Режим, где сразу возрождаешься и просто тренируешь стрельбу.","Режим"],
+["life",2,"Гонка вооружений","Режим, где после каждого убийства меняется оружие, а последнее — золотой нож.","Режим"],
+["life",1,"Напарники","Режим два на два на маленькой карте.","Wingman"],
+["life",2,"Danger Zone","Королевская битва, которая была в CS:GO.","Режим"],
+["life",2,"Сёрф","Скользишь по наклонным стенам на специальных картах из мастерской.","Карты сообщества"],
+["life",2,"Граффити","Рисуешь картинку на стене специальной кнопкой.","Спрей"],
+["life",3,"Сабтик","В CS2 сервер учитывает точный момент выстрела между тиками.","Технология"],
+["life",2,"Выход CS2","27 сентября 2023 года CS2 вышла и заменила CS:GO.","Дата"],
+["life",1,"CS 1.6","Старая версия КС, в которую играли в компьютерных клубах.","Ностальгия"],
+["life",1,"Компьютерный клуб","Играешь с друзьями в клубе за компами и платишь по часам.","Ностальгия"],
+["life",1,"Бот тащит","Тиммейт вышел, вместо него играет бот, и он тащит лучше всех.","Компьютер"]
+];
+const ALL_CATS = (1 << CAT_KEYS.length) - 1, ALL_DIFFS = 7;
+let settings = Object.assign({ where: 'online', len: '10', cm: ALL_CATS, dm: ALL_DIFFS }, store.get('settings', {}));
+if (!['online', 'local'].includes(settings.where)) settings.where = 'online';
+if (!['6', '10', '14'].includes(String(settings.len))) settings.len = '10';
+settings.cm = (settings.cm | 0) & ALL_CATS || ALL_CATS; settings.dm = (settings.dm | 0) & ALL_DIFFS || ALL_DIFFS;
+let soundOn = store.get('sound', true);
+let wins = store.get('wins', {}) || {};
+
+/* =====================================================================
+   RULES — deterministic: every phone replays the same move list with the same seeded deck.
+   Only the player who holds the card sends moves.
+   ===================================================================== */
+const MAXQ = 20;
+const M_Q = 1, M_UNDO = 2, M_HINT = 3, M_WIN = 4, M_LOSE = 5, M_SKIP = 6, M_DRAW = 7;
+const validMove = x => x >= 1 && x <= 7;
+function hashStr(s) { let h = 2166136261 | 0; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h | 0; }
+function rng(...parts) {
+  let h = hashStr(parts.join('|'));
+  return () => { h = (h + 0x6D2B79F5) | 0; let t = Math.imul(h ^ (h >>> 15), h | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+const inDeck = (i, cm, dm) => ((cm >> CAT_KEYS.indexOf(CARDS[i][0])) & 1) && ((dm >> (CARDS[i][1] - 1)) & 1);
+function deckFor(seed, cm, dm) {
+  const ids = []; for (let i = 0; i < CARDS.length; i++) if (inDeck(i, cm, dm)) ids.push(i);
+  const r = rng(seed, 'deck');
+  for (let i = ids.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); const x = ids[i]; ids[i] = ids[j]; ids[j] = x; }
+  return ids;
+}
+function newState(cfg) {
+  const deck = deckFor(cfg.seed, cfg.cm, cfg.dm);
+  return { deck, pos: deck.length ? (cfg.game * 31) % deck.length : 0, len: cfg.len, round: 0, holder: cfg.start % 2, phase: 'draw', card: -1, q: 0, h: 0,
+           scores: [0, 0], log: [], over: false, mv: 0, st: { got: [0, 0], qsum: [0, 0], stumped: [0, 0] } };
+}
+const prize = (d, q, h) => Math.max(1, ({ 1: 2, 2: 3, 3: 4 })[d] + (q <= 5 ? 2 : q <= 10 ? 1 : 0) - h);
+function hintsFor(i) { const c = CARDS[i]; return [['Категория', CATS[c[0]]], ['Намёк', c[4]], ['Начинается на', '«' + c[2].slice(0, 3) + '…»']]; }
+function legalIn(s, m) {
+  if (!s || s.over) return false;
+  switch (m) {
+    case M_DRAW: return s.phase === 'draw' && s.deck.length > 0;
+    case M_SKIP: return s.phase === 'ask' && s.q === 0;
+    case M_Q: return s.phase === 'ask' && s.q < MAXQ;
+    case M_UNDO: return s.phase === 'ask' && s.q > 0;
+    case M_HINT: return s.phase === 'ask' && s.h < 3;
+    case M_WIN: case M_LOSE: return s.phase === 'ask';
+  }
+  return false;
+}
+function applyIn(s, m) {
+  s.mv++;
+  if (m === M_DRAW || m === M_SKIP) { s.card = s.deck[s.pos % s.deck.length]; s.pos++; s.phase = 'ask'; s.q = 0; s.h = 0; return { kind: m === M_DRAW ? 'draw' : 'skip' }; }
+  if (m === M_Q) { s.q++; return { kind: 'q' }; }
+  if (m === M_UNDO) { s.q--; return { kind: 'undo' }; }
+  if (m === M_HINT) { s.h++; return { kind: 'hint' }; }
+  const holder = s.holder, guesser = 1 - holder, d = CARDS[s.card][1];
+  let e;
+  if (m === M_WIN) { const q = Math.max(1, s.q), pts = prize(d, q, s.h); s.scores[guesser] += pts; s.st.got[guesser]++; s.st.qsum[guesser] += q; e = { card: s.card, holder, g: true, q, h: s.h, pts, to: guesser }; }
+  else { s.scores[holder] += 2; s.st.stumped[holder]++; e = { card: s.card, holder, g: false, q: s.q, h: s.h, pts: 2, to: holder }; }
+  s.log.unshift(e);
+  s.round++; s.phase = 'draw'; s.card = -1; s.q = 0; s.h = 0; s.holder = guesser;
+  if (s.round >= s.len) s.over = true;
+  return { kind: 'end', e };
+}
+
+/* =====================================================================
+   GAME FLOW
+   ===================================================================== */
+let S = null, players = PD.map(p => ({ name: p.name, color: p.color, tag: p.tag })), inGame = false, finished = false, local = false, coverOn = true, gen = 0, lastBump = -1, dealtFresh = false;
+function me() { return local ? (S ? S.holder : 0) : mySeat(); }
+const amHolder = () => !!S && (local || (net.on && mySeat() === S.holder));
+function newLocalGame() {
+  if (net.on) leaveRoom();
+  local = true; inGame = true; finished = false; gen++;
+  players = PD.map(p => ({ name: p.name, color: p.color, tag: p.tag }));
+  S = newState({ seed: rid(8), len: +settings.len, start: 0, cm: settings.cm, dm: settings.dm, game: 0 });
+  coverOn = true; sheet.hidden = true; $('#win').hidden = true;
+  render(); keepAwake();
+}
+function act(m) {
+  if (!S || !legalIn(S, m) || !amHolder()) return;
+  ensureAudio();
+  if (local) { const res = applyIn(S, m); afterMove(res, true); return; }
+  submitOnline(m);
+}
+function afterMove(res, fresh) {
+  if (!res) return;
+  if (fresh) {
+    if (res.kind === 'draw' || res.kind === 'skip') { sfxDraw(); dealtFresh = true; coverOn = true; }
+    else if (res.kind === 'q') sfxQ(S.q);
+    else if (res.kind === 'undo') tick();
+    else if (res.kind === 'hint') sfxHint();
+    else if (res.kind === 'end') {
+      const e = res.e, who = players[e.to].name;
+      if (e.g) { sfxGood(); toast(`${players[1 - e.holder].name} угадал! +${e.pts}`); } else { sfxBad(); toast(`Не угадал. +2 ${who}`); }
+      lastBump = e.to; buzz(e.g ? [30, 40, 30] : 60);
+      if (local && !S.over) setTimeout(() => toast(`Передай телефон: загадывает ${players[S.holder].name}`), 1600);
+    }
+  }
+  render();
+  if (S.over && !finished) { finished = true; setTimeout(() => { if (finished) showWin(); }, fresh ? 900 : 0); }
+}
+
+/* ---------- render ---------- */
+function chipHTML(k) {
+  const p = players[k], isHolder = S && !S.over && S.holder === k;
+  let sub = !S ? '' : S.over ? 'матч окончен' : isHolder ? (S.phase === 'draw' ? 'тянет карточку' : 'загадал') : 'угадывает';
+  let dot = '';
+  if (net.on && net.room) { const id = net.room.seats[k]; const on = id && isOnline(id); dot = `<span class="on-dot${on ? ' on' : ''}"></span>`; if (!id) sub = 'ждём…'; else if (id === myId) sub = 'ты · ' + sub; }
+  return `<div class="chip${isHolder ? ' active' : ''}" style="--c:${p.color}"><div class="chip-row"><span class="chip-tag">${p.tag}</span><span class="chip-name">${esc(p.name)}</span><span class="chip-score${lastBump === k ? ' bump' : ''}">${S ? S.scores[k] : 0}</span></div><div class="chip-sub">${dot}${esc(sub)}</div></div>`;
+}
+const backSVG = c => `<svg viewBox="0 0 80 80" width="58" height="58" fill="none" stroke="${c}" stroke-width="4" stroke-linecap="round"><circle cx="40" cy="40" r="22"/><circle cx="40" cy="40" r="3" fill="${c}" stroke="none"/><path d="M40 6v16M40 58v16M6 40h16M58 40h16"/></svg>`;
+function magHTML(q) { let s = ''; for (let k = 0; k < MAXQ; k++) s += `<i class="${k < MAXQ - q ? 'full' : ''}"></i>`; return `<div class="mag${MAXQ - q <= 3 ? ' low' : ''}" aria-label="Осталось вопросов: ${MAXQ - q}">${s}</div>`; }
+function hintsHTML(i, h) { if (!h) return ''; return '<ul class="hints">' + hintsFor(i).slice(0, h).map(x => `<li><span>${esc(x[0])}</span>${esc(x[1])}</li>`).join('') + '</ul>'; }
+function lastHTML() {
+  if (!S || !S.log.length || S.phase !== 'draw' || S.over) return '';
+  const e = S.log[0], c = CARDS[e.card], g = players[1 - e.holder];
+  const txt = e.g ? `<b>${esc(g.name)}</b> угадал «${esc(c[2])}» за ${e.q} ${plural(e.q, 'вопрос', 'вопроса', 'вопросов')}${e.h ? `, подсказок ${e.h}` : ''}.`
+                  : `Не угадали «${esc(c[2])}». Очки забирает <b>${esc(players[e.holder].name)}</b>.`;
+  return `<div class="last${e.g ? ' good' : ''}" style="--c:${players[e.to].color}"><span class="badge">+${e.pts}</span><span>${txt}</span></div>`;
+}
+function render() {
+  $('#players').innerHTML = S ? chipHTML(0) + chipHTML(1) : '';
+  lastBump = -1;
+  const tbl = $('#table'), acts = $('#acts');
+  const stackIdle = `<div class="stack"><div class="back">${backSVG('#5B9DF5')}</div><div class="back">${backSVG('#F2A541')}</div><div class="back">${backSVG('#F2A541')}</div></div>`;
+  if (!S) {
+    $('#roundbar').hidden = true;
+    tbl.innerHTML = net.on ? `<div class="deal">${stackIdle}<h2>Подключаюсь к комнате</h2><p>Секунду, ищу комнату ${esc(net.code || '')}.</p></div>`
+                           : `<div class="deal">${stackIdle}<h2>${CARDS.length} карточек про КС</h2><p>Клатчи, бусты, игроки, оружие и мейджоры. Создай комнату и зови брата.</p></div>`;
+    acts.innerHTML = ''; return;
+  }
+  $('#roundbar').hidden = false;
+  $('#roundTxt').textContent = S.over ? 'Матч окончен' : `Раунд ${S.round + 1} из ${S.len}`;
+  let tr = ''; for (let k = 0; k < S.len; k++) { const e = S.log[S.round - 1 - k]; tr += `<i class="${k < S.round ? (e && e.to === 0 ? 't' : 'ct') : k === S.round && !S.over ? 'now' : ''}"></i>`; }
+  $('#track').innerHTML = tr;
+  const hp = players[S.holder], gp = players[1 - S.holder];
+  const holderMe = amHolder();
+  const waitingRoom = net.on && (!net.room || !started(net.room));
+  document.documentElement.style.setProperty('--c', hp.color);
+
+  if (waitingRoom) {
+    tbl.innerHTML = `<div class="deal">${stackIdle}<h2>Ждём второго игрока</h2><p>Отправь брату ссылку или код комнаты. Игра начнётся, как только он зайдёт.</p></div>`;
+    acts.innerHTML = `<button class="act soft" id="aRoom">Показать код комнаты</button>`;
+    $('#aRoom').onclick = showRoomPanel;
+    return;
+  }
+  if (S.over) {
+    tbl.innerHTML = lastHTMLFinal();
+    acts.innerHTML = `<button class="act main" id="aFinal" style="--c:var(--t)">Итог матча</button>`;
+    $('#aFinal').onclick = showWin;
+    return;
+  }
+  if (S.phase === 'draw') {
+    if (holderMe) {
+      const title = local ? `Загадывает <b style="--c:${hp.color}">${esc(hp.name)}</b>` : 'Твоя очередь загадывать';
+      const sub = local ? `Возьми телефон так, чтобы ${esc(gp.name)} не видел экран, и тяни карточку.` : `${esc(gp.name)} будет угадывать. Тяни карточку и не показывай.`;
+      tbl.innerHTML = lastHTML() + `<div class="deal" style="--c:${hp.color}"><div class="stack" id="stack"><div class="back">${backSVG('#5B9DF5')}</div><div class="back">${backSVG('#F2A541')}</div><div class="back">${backSVG(hp.color)}</div></div><h2>${title}</h2><p>${sub}</p></div>`;
+      acts.innerHTML = `<button class="act main" id="aDraw" style="--c:${hp.color}">Взять карточку</button>`;
+      $('#aDraw').onclick = () => { const st = $('#stack'); if (st) st.classList.add('go'); setTimeout(() => act(M_DRAW), 220); };
+    } else {
+      tbl.innerHTML = lastHTML() + `<div class="deal" style="--c:${hp.color}"><div class="stack"><div class="back">${backSVG('#5B9DF5')}</div><div class="back">${backSVG('#F2A541')}</div><div class="back">${backSVG(hp.color)}</div></div><h2><b>${esc(hp.name)}</b> тянет карточку</h2><p>Готовь вопросы. Начни с общего: это игрок? это на какой-то карте? это было на мейджоре?</p></div>`;
+      acts.innerHTML = `<div class="wait" style="--c:${hp.color}"><span class="dot"></span>Ждём <b>${esc(hp.name)}</b></div>`;
+    }
+    return;
+  }
+  // phase: ask
+  const c = CARDS[S.card], left = MAXQ - S.q;
+  if (holderMe) {
+    const pips = [1, 2, 3].map(k => `<i class="${k <= c[1] ? 'on' : ''}"></i>`).join('');
+    const showCover = local && coverOn;
+    tbl.innerHTML = `<article class="card${dealtFresh ? ' dealt' : ''}" style="--c:${hp.color}">
+        <div class="card-strip"><span>${esc(CATS[c[0]])}</span><span class="pips" aria-label="Сложность: ${DIFF[c[1]]}">${pips}</span></div>
+        <div class="card-body">
+          <h2 class="card-title">${esc(c[2])}</h2>
+          <p class="card-text">${esc(c[3])}</p>
+          ${hintsHTML(S.card, S.h)}
+          <div class="card-tools">${local ? '<button class="card-link" id="aCover">Спрятать</button>' : '<span></span>'}<button class="card-link" id="aSkip"${S.q > 0 ? ' disabled' : ''}>Не знаю такое — другая</button></div>
+        </div>
+        ${showCover ? `<button class="cover" id="aReveal"><b>Карточка спрятана</b>Покажи только загадывающему: нажми, чтобы открыть</button>` : ''}
+      </article>`;
+    dealtFresh = false;
+    const pr = prize(c[1], Math.max(1, S.q), S.h);
+    acts.innerHTML = `<div class="hud" style="--c:${hp.color}">
+        <div class="hud-row"><div><div class="eyebrow">Осталось вопросов</div><div class="ammo">${left}<small>/${MAXQ}</small></div></div>
+          <div class="prize"><div class="eyebrow">Угадает сейчас</div><b>+${pr} ${esc(gp.name)}</b></div></div>
+        ${magHTML(S.q)}
+        <div class="qrow"><button class="act soft" id="aUndo" aria-label="Убрать вопрос"${S.q <= 0 ? ' disabled' : ''}>−1</button><button class="act main" id="aQ"${S.q >= MAXQ ? ' disabled' : ''}>${S.q >= MAXQ ? 'Вопросы кончились' : 'Задал вопрос +1'}</button></div>
+        <button class="act soft" id="aHint"${S.h >= 3 ? ' disabled' : ''}>${S.h >= 3 ? 'Подсказки кончились' : `Дать подсказку ${S.h + 1} из 3 (−1 очко)`}</button>
+        <div class="endrow"><button class="act good" id="aWin">Угадал</button><button class="act bad" id="aLose">Не угадал</button></div>
+      </div>`;
+    $('#aQ').onclick = () => act(M_Q); $('#aUndo').onclick = () => act(M_UNDO); $('#aHint').onclick = () => act(M_HINT);
+    $('#aWin').onclick = () => act(M_WIN); $('#aLose').onclick = () => act(M_LOSE);
+    $('#aSkip').onclick = () => act(M_SKIP);
+    if ($('#aCover')) $('#aCover').onclick = () => { coverOn = true; render(); };
+    if ($('#aReveal')) $('#aReveal').onclick = () => { coverOn = false; render(); };
+  } else {
+    tbl.innerHTML = `<div class="guess" style="--c:${hp.color}">
+        <div class="guess-head"><div class="eye">Раунд ${S.round + 1}</div><h2><b>${esc(hp.name)}</b> загадал карточку</h2></div>
+        <div class="hud"><div class="hud-row"><div><div class="eyebrow">Осталось вопросов</div><div class="ammo">${left}<small>/${MAXQ}</small></div></div>
+          <div class="prize"><div class="eyebrow">Угадаешь сейчас</div><b>+${prize(c[1], Math.max(1, S.q + 1), S.h)}</b></div></div>${magHTML(S.q)}</div>
+        ${S.h ? hintsHTML(S.card, S.h) : ''}
+        <p class="tips">Спрашивай только то, на что можно ответить <b>«да»</b> или <b>«нет»</b>. Попытка назвать ответ тоже тратит вопрос. Угадать нужно суть: что, кто и где.</p>
+      </div>`;
+    acts.innerHTML = `<div class="guess-btns"><button class="act soft" id="aAskHint">Попросить подсказку</button><button class="act bad" id="aGiveUp">Сдаюсь</button></div>`;
+    $('#aAskHint').onclick = () => { if (S.h >= 3) { toast('Подсказок больше нет'); return; } send('req', { k: 'hint', g: net.room ? net.room.game : 0, round: S.round }); toast(`Попросил подсказку у ${hp.name}`); };
+    let armed = 0;
+    $('#aGiveUp').onclick = e => {
+      const b = e.currentTarget;
+      if (!armed) { b.textContent = 'Точно сдаёшься?'; armed = setTimeout(() => { armed = 0; if (b.isConnected) b.textContent = 'Сдаюсь'; }, 2500); return; }
+      clearTimeout(armed); armed = 0; send('req', { k: 'giveup', g: net.room ? net.room.game : 0, round: S.round }); b.disabled = true; b.textContent = 'Ждём ответа…';
+    };
+  }
+}
+function lastHTMLFinal() {
+  const rows = S.log.slice(0, 6).map(e => { const c = CARDS[e.card]; return `<li><span>${e.g ? 'угадал' : 'мимо'}</span>${esc(c[2])} · +${e.pts} ${esc(players[e.to].name)}</li>`; }).join('');
+  return `<div class="deal"><h2>Матч окончен</h2><p>Последние карточки:</p></div><ul class="hints">${rows}</ul>`;
+}
+function showWin() {
+  if (!S || !S.over) return;
+  const a = S.scores[0], b = S.scores[1], tie = a === b, w = a > b ? 0 : 1;
+  const card = $('#winCard');
+  card.style.setProperty('--wc', tie ? '#F1E4C6' : players[w].color);
+  $('#winEye').textContent = 'Матч окончен · ' + S.len + ' ' + plural(S.len, 'раунд', 'раунда', 'раундов');
+  $('#winName').textContent = tie ? 'Ничья' : players[w].name;
+  $('#winSub').textContent = tie ? 'одинаково очков' : 'забирает матч';
+  $('#tally').innerHTML = [0, 1].map(k => `<div class="tally-item" style="--c:${players[k].color}"><b>${S.scores[k]}</b><span>${esc(players[k].name)}</span></div>`).join('');
+  const st = [0, 1].map(k => `<b>${esc(players[k].name)}</b>: угадал ${S.st.got[k]}${S.st.got[k] ? ` (в среднем за ${Math.round(S.st.qsum[k] / S.st.got[k])} ${plural(Math.round(S.st.qsum[k] / S.st.got[k]), 'вопрос', 'вопроса', 'вопросов')})` : ''}, не дал угадать ${S.st.stumped[k]}`).join('<br>');
+  $('#winStat').innerHTML = st;
+  $('#win').hidden = false;
+  const key = 'res:' + (local ? 'local' : net.code + ':' + (net.room ? net.room.game : 0));
+  if (!tie && !sess.get(key)) { sess.set(key, '1'); const nm = players[w].name; wins[nm] = (wins[nm] || 0) + 1; store.set('wins', wins); }
+  if (!tie && (local || mySeat() === w)) sfxWin(); else sfxBad();
+}
+
+/* ---------- toast & audio ---------- */
+let toastT = 0;
+function toast(t) { const el = $('#toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), 2400); }
+let actx = null, master = null;
+function ensureAudio() {
+  if (actx) { if (actx.state === 'suspended') actx.resume().catch(() => {}); return; }
+  try { actx = new (window.AudioContext || window.webkitAudioContext)(); master = actx.createGain(); master.gain.value = 0.9; master.connect(actx.destination); } catch (e) { actx = null; }
+}
+const quiet = () => !soundOn || !actx;
+function tone(f, d, o = {}) {
+  if (quiet()) return;
+  const t = actx.currentTime + (o.at || 0), osc = actx.createOscillator(), g = actx.createGain();
+  osc.type = o.type || 'sine'; osc.frequency.setValueAtTime(f, t); if (o.slide) osc.frequency.exponentialRampToValueAtTime(f * o.slide, t + d);
+  g.gain.setValueAtTime(o.v || 0.1, t); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+  osc.connect(g); g.connect(master); osc.start(t); osc.stop(t + d + 0.05);
+}
+const tick = () => tone(900, 0.04, { v: 0.05 });
+const sfxQ = q => { tone(1400, 0.03, { type: 'square', v: 0.04 }); tone(320 + (MAXQ - q) * 22, 0.08, { type: 'triangle', v: 0.08, at: 0.02 }); };
+const sfxDraw = () => { tone(500, 0.12, { type: 'triangle', v: 0.06, slide: 1.8 }); tone(1200, 0.05, { v: 0.04, at: 0.1 }); };
+const sfxHint = () => tone(620, 0.18, { v: 0.1, slide: 1.4 });
+const sfxGood = () => [0, 4, 7].forEach((s, k) => tone(523 * Math.pow(2, s / 12), 0.3, { type: 'triangle', v: 0.12, at: k * 0.08 }));
+const sfxBad = () => tone(260, 0.35, { type: 'sawtooth', v: 0.05, slide: 0.6 });
+const sfxWin = () => [0, 4, 7, 12, 16].forEach((s, k) => tone(523 * Math.pow(2, s / 12), 0.45, { type: 'triangle', v: 0.15, at: k * 0.09 }));
+const sfxTurn = () => { tone(784, 0.12, { v: 0.12 }); tone(1175, 0.2, { v: 0.1, at: 0.1 }); };
+const buzz = ms => { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} };
+const ICON_ON = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>';
+const ICON_OFF = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="m16 9 5 6"/><path d="m21 9-5 6"/></svg>';
+function renderSoundBtn() { const b = $('#btnSound'); b.innerHTML = soundOn ? ICON_ON : ICON_OFF; b.setAttribute('aria-label', soundOn ? 'Выключить звук' : 'Включить звук'); }
+let wake = null;
+async function keepAwake() { try { if ('wakeLock' in navigator && !wake) { wake = await navigator.wakeLock.request('screen'); wake.addEventListener('release', () => { wake = null; }); } } catch (e) {} }
+
+/* =====================================================================
+   ONLINE: rooms over Supabase Realtime (broadcast + presence, no tables).
+   Every client replays the same move list, so only moves travel.
+   ===================================================================== */
+const net = { on: false, code: null, room: null, ch: null, status: 'off', online: new Set(), presence: null, lastSeen: {}, peerKey: {}, applied: 0, wasStarted: false, everOk: false, errorMsg: '', lastHello: 0, presenceSeen: false, timers: {} };
+let sb = null, myId = null;
+function rid(n) { const a = 'abcdefghijkmnpqrstuvwxyz23456789', b = new Uint8Array(n); try { crypto.getRandomValues(b); } catch (e) { for (let i = 0; i < n; i++) b[i] = Math.random() * 256; } let s = ''; for (const x of b) s += a[x % a.length]; return s; }
+const CODE_ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function newCode() { const b = new Uint8Array(4); try { crypto.getRandomValues(b); } catch (e) { for (let i = 0; i < 4; i++) b[i] = Math.random() * 256; } let s = ''; for (const x of b) s += CODE_ABC[x % CODE_ABC.length]; return s; }
+const CYR = { 'А': 'A', 'В': 'B', 'Е': 'E', 'К': 'K', 'М': 'M', 'Н': 'H', 'О': 'O', 'Р': 'P', 'С': 'C', 'Т': 'T', 'У': 'Y', 'Х': 'X' };
+const normCode = s => String(s || '').toUpperCase().replace(/[А-ЯЁ]/g, ch => CYR[ch] || '').replace(/[^A-Z0-9]/g, '').slice(0, 4);
+function codeFromHash() { const c = normCode(decodeURIComponent(location.hash.slice(1))); return c.length === 4 ? c : null; }
+const myName = () => String(store.get('name', '') || '').trim().slice(0, 12);
+let tabBus = null;
+try { tabBus = new BroadcastChannel(APP + '-tabs'); tabBus.onmessage = e => { const d = e.data || {}; if (d.q === 'who' && myId && d.id === myId) tabBus.postMessage({ a: 'mine', id: myId }); }; } catch (e) {}
+function getIdentity() {
+  return new Promise(res => {
+    if (myId) return res(myId);
+    const s = sess.get('cid'); if (s) { myId = s; return res(s); }
+    let cand = store.get('cid', null) || rid(10);
+    if (!tabBus) { myId = cand; sess.set('cid', cand); store.set('cid', cand); return res(cand); }
+    let taken = false; const h = e => { const d = e.data || {}; if (d.a === 'mine' && d.id === cand) taken = true; };
+    tabBus.addEventListener('message', h); tabBus.postMessage({ q: 'who', id: cand });
+    setTimeout(() => { tabBus.removeEventListener('message', h); if (taken) cand = rid(10); else store.set('cid', cand); myId = cand; sess.set('cid', cand); res(cand); }, 180);
+  });
+}
+const filled = r => r.seats.filter(Boolean).length;
+const started = r => !!r && r.seats.every(Boolean);
+const mySeat = () => (net.on && net.room && myId) ? net.room.seats.indexOf(myId) : -1;
+const isOnline = id => id === myId ? net.status === 'ok' : net.online.has(id);
+function cmpKey(a, b) { for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return a[i] - b[i]; return 0; }
+const roomKey = r => [r.game, r.moves.length, filled(r)];
+const inviteUrl = () => location.origin + location.pathname + location.search + '#' + (net.code || '');
+function sanitize(s) {
+  const fit = (a, f) => [0, 1].map(i => (Array.isArray(a) && a[i] != null) ? f(a[i]) : null);
+  const len = [6, 10, 14].includes(s.len | 0) ? s.len | 0 : 10;
+  return {
+    code: s.code, host: s.host || null, n: 2, v: String(s.v || '').slice(0, 16),
+    seats: fit(s.seats, x => String(x).slice(0, 24)), names: fit(s.names, x => String(x).slice(0, 12)),
+    game: Math.max(0, s.game | 0), start: Math.max(0, s.start | 0), len,
+    cm: (s.cm | 0) & ALL_CATS || ALL_CATS, dm: (s.dm | 0) & ALL_DIFFS || ALL_DIFFS,
+    moves: (Array.isArray(s.moves) ? s.moves : []).map(x => x | 0).filter(validMove).slice(0, 4000),
+    results: (Array.isArray(s.results) ? s.results : []).map(x => (x == null ? null : x | 0)).slice(0, 1000)
+  };
+}
+function saveRoom() { if (net.room) store.set('room:' + net.code, net.room); }
+function getClient() {
+  if (sb) return sb;
+  if (!window.supabase || !window.supabase.createClient) throw new Error('nolib');
+  sb = window.supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }, realtime: { params: { eventsPerSecond: 20 } } });
+  return sb;
+}
+function send(t, data) { if (!net.ch) return; try { const p = net.ch.send({ type: 'broadcast', event: 'm', payload: Object.assign({ t, from: myId }, data || {}) }); if (p && p.catch) p.catch(() => {}); } catch (e) {} }
+function hello() {
+  clearTimeout(net.timers.hello);
+  const wait = Math.max(120, 1500 - (Date.now() - net.lastHello));
+  net.timers.hello = setTimeout(() => { net.lastHello = Date.now(); send('hello', { name: myName() || null, v: BUILD }); }, wait);
+}
+// Presence is tracked once per join and never updated: re-tracking makes the realtime client drop the key.
+function trackOnce() { if (!net.ch || net.status !== 'ok') return; try { const p = net.ch.track({ on: 1 }); if (p && p.catch) p.catch(() => {}); } catch (e) {} }
+function ping() { if (!net.ch) return; const r = net.room; if (net.status === 'ok') send('ping', { k: r ? roomKey(r) : null, v: BUILD }); recomputeOnline(); }
+function recomputeOnline() {
+  if (!net.ch) return;
+  let stt = {}; try { stt = net.ch.presenceState() || {}; } catch (e) {}
+  const now = Date.now(), pres = new Set(Object.keys(stt));
+  if (net.presence) for (const id of net.presence) if (!pres.has(id)) delete net.lastSeen[id];
+  net.presence = pres;
+  const on = new Set(pres);
+  for (const id in net.lastSeen) if (now - net.lastSeen[id] < 13000) on.add(id);
+  const r = net.room;
+  if (r && net.wasStarted && net.presenceSeen) {
+    r.seats.forEach((id, k) => {
+      if (!id || id === myId) return;
+      const was = net.online.has(id), is = on.has(id), nm = r.names[k] || PD[k].name;
+      if (was && !is) toast(`${nm}: нет связи`);
+      if (!was && is) toast(`${nm} снова в игре`);
+    });
+  }
+  const changed = on.size !== net.online.size || [...on].some(x => !net.online.has(x));
+  net.online = on; net.presenceSeen = true;
+  if (changed) refreshOnline();
+}
+function amActingHost() {
+  const r = net.room; if (!r) return false;
+  for (const id of r.seats) if (id && (id === myId || net.online.has(id))) return id === myId;
+  const cands = [...net.online, myId].filter(k => k === myId || net.peerKey[k]).sort();
+  return cands[0] === myId;
+}
+async function joinRoom(code, room) {
+  code = normCode(code);
+  if (code.length !== 4) { toast('Код комнаты: 4 символа'); return; }
+  if (net.on && net.code === code) { showRoomPanel(); return; }
+  if (net.on) leaveRoom();
+  await getIdentity();
+  gen++; local = false; finished = false; inGame = false;
+  $('#win').hidden = true;
+  Object.assign(net, { on: true, code, room: null, ch: null, status: 'connecting', online: new Set(), presence: null, lastSeen: {}, peerKey: {}, applied: 0, wasStarted: false, everOk: false, errorMsg: '', lastHello: 0, presenceSeen: false });
+  if (room) { room.code = code; room.host = myId; room.seats[0] = myId; room.names[0] = myName() || null; room.v = BUILD; net.room = room; }
+  else { const snap = store.get('room:' + code, null); if (snap && snap.code === code && Array.isArray(snap.seats)) net.room = sanitize(snap); }
+  if (codeFromHash() !== code) { try { history.replaceState(null, '', '#' + code); } catch (e) { try { location.hash = code; } catch (e2) {} } }
+  if (net.room) { saveRoom(); rebuildOnline(); }
+  else { S = null; render(); }
+  showRoomPanel(); connect();
+}
+function createRoom() {
+  joinRoom(newCode(), { code: '', host: null, n: 2, seats: [null, null], names: [null, null], game: 0, start: 0, len: +settings.len, cm: settings.cm, dm: settings.dm, moves: [], results: [] });
+}
+const NET_ERR = 'Не получается подключиться к серверу. Проверь интернет. В превью внутри Claude онлайн не работает, только на опубликованном сайте.';
+function connect() {
+  let client;
+  try { client = getClient(); } catch (e) { net.status = 'error'; net.errorMsg = 'Не загрузился модуль связи. Проверь интернет и обнови страницу.'; refreshOnline(); return; }
+  const ch = client.channel(APP + '-' + net.code, { config: { broadcast: { self: false, ack: false }, presence: { key: myId } } });
+  net.ch = ch;
+  ch.on('broadcast', { event: 'm' }, msg => { if (net.ch === ch) onMsg((msg && msg.payload) || {}); });
+  ch.on('presence', { event: 'sync' }, () => { if (net.ch === ch) onPresence(); });
+  ch.subscribe(status => {
+    if (net.ch !== ch) return;
+    if (status === 'SUBSCRIBED') {
+      net.status = 'ok'; net.everOk = true; net.errorMsg = '';
+      trackOnce(); hello(); ping();
+      clearTimeout(net.timers.find);
+      net.timers.find = setTimeout(() => { if (net.on && !net.room) { net.errorMsg = 'Комната не найдена. Возможно, её создатель вышел. Попроси новый код.'; refreshOnline(); } }, 7000);
+    } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+      net.status = 'lost'; if (!net.everOk) net.errorMsg = NET_ERR;
+    }
+    refreshOnline();
+  });
+  clearInterval(net.timers.ping); net.timers.ping = setInterval(ping, 5000);
+  clearTimeout(net.timers.conn);
+  net.timers.conn = setTimeout(() => { if (net.ch === ch && !net.everOk) { net.errorMsg = NET_ERR; refreshOnline(); } }, 9000);
+}
+function leaveRoom() {
+  const ch = net.ch; net.ch = null;
+  if (ch) { try { ch.untrack(); } catch (e) {} try { sb && sb.removeChannel(ch); } catch (e) {} }
+  Object.values(net.timers).forEach(t => { clearTimeout(t); clearInterval(t); });
+  Object.assign(net, { on: false, code: null, room: null, status: 'off', online: new Set(), presence: null, lastSeen: {}, peerKey: {}, applied: 0, wasStarted: false, everOk: false, errorMsg: '' });
+  gen++; S = null; inGame = false; finished = false;
+  try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+  $('#btnRoom').hidden = true;
+  render();
+}
+function onMsg(m) {
+  if (!m || !m.t || !m.from || m.from === myId) return;
+  net.lastSeen[m.from] = Date.now();
+  if (!net.online.has(m.from)) recomputeOnline();
+  if (m.v) checkPeerBuild(String(m.v));
+  switch (m.t) {
+    case 'ping': { net.peerKey[m.from] = Array.isArray(m.k) ? m.k : null; const r = net.room; if (Array.isArray(m.k) && (!r || cmpKey(m.k.map(x => x | 0), roomKey(r)) > 0)) hello(); else if (Array.isArray(m.k) && r && cmpKey(m.k.map(x => x | 0), roomKey(r)) < 0 && r.seats.includes(myId)) send('state', { room: r }); break; }
+    case 'hello': onHello(m); break;
+    case 'state': adoptState(m.room); break;
+    case 'move': onMove(m); break;
+    case 'rematch': applyRematch(m.g | 0, m.from); break;
+    case 'name': onName(m); break;
+    case 'req': onReq(m); break;
+    case 'full': if (m.to === myId && mySeat() < 0) { net.errorMsg = 'Комната уже заполнена.'; refreshOnline(); } break;
+  }
+}
+function onHello(m) {
+  const r = net.room; if (!r) return;
+  const id = String(m.from);
+  let seat = r.seats.indexOf(id), changed = false;
+  const host = amActingHost();
+  if (seat < 0 && host) {
+    let k = started(r) ? -1 : r.seats.indexOf(null);
+    if (k < 0) k = r.seats.findIndex(s => s && s !== myId && s !== id && !net.online.has(s));
+    if (k < 0) { send('full', { to: id }); return; }
+    r.seats[k] = id; seat = k; changed = true;
+    r.names[k] = m.name ? String(m.name).slice(0, 12) : (r.names[k] || null);
+  } else if (seat >= 0 && host && m.name && r.names[seat] !== m.name) { r.names[seat] = String(m.name).slice(0, 12); changed = true; }
+  if (changed) { saveRoom(); roomChanged(); }
+  if (host || (seat >= 0 && r.seats.includes(myId))) send('state', { room: r });
+}
+function adoptState(s0) {
+  if (!s0 || s0.code !== net.code || !Array.isArray(s0.seats) || !Array.isArray(s0.moves)) return;
+  const s = sanitize(s0), r = net.room;
+  if (!r) { net.room = s; saveRoom(); rebuildOnline(); refreshOnline(); return; }
+  const c = cmpKey(roomKey(s), roomKey(r));
+  if (c > 0) {
+    const sameGame = s.game === r.game && s.len === r.len && s.cm === r.cm && s.dm === r.dm && r.moves.every((x, i) => s.moves[i] === x);
+    s.names = s.names.map((x, i) => x || r.names[i] || null);
+    if (r.results.length > s.results.length) s.results = r.results.slice();
+    net.room = s; saveRoom();
+    if (sameGame) { roomChanged(); runQueue(); } else rebuildOnline();
+  } else if (c === 0) {
+    let ch = false;
+    s.names.forEach((x, i) => { if (x && !r.names[i]) { r.names[i] = x; ch = true; } });
+    s.results.forEach((x, i) => { if (x != null && r.results[i] == null) { r.results[i] = x; ch = true; } });
+    if (ch) { saveRoom(); roomChanged(); }
+  }
+  refreshOnline();
+}
+function onMove(m) {
+  const r = net.room; if (!r) { hello(); return; }
+  const g = m.g | 0, seq = m.seq | 0, mv = m.mv | 0;
+  if (g < r.game) return; if (g > r.game) { hello(); return; }
+  if (seq < r.moves.length) return; if (seq > r.moves.length) { hello(); return; }
+  if (!validMove(mv)) return;
+  r.moves.push(mv); saveRoom(); runQueue();
+}
+function onName(m) { const r = net.room; if (!r) return; const k = r.seats.indexOf(m.from); if (k < 0) return; r.names[k] = m.name ? String(m.name).slice(0, 12) : null; saveRoom(); roomChanged(); }
+function onReq(m) {
+  const r = net.room; if (!r || !S || S.over) return;
+  if ((m.g | 0) !== r.game || (m.round | 0) !== S.round || mySeat() !== S.holder || S.phase !== 'ask') return;
+  const who = players[1 - S.holder].name;
+  if (m.k === 'giveup') { toast(`${who} сдался`); act(M_LOSE); }
+  else if (m.k === 'hint') { toast(`${who} просит подсказку`); sfxHint(); buzz(40); }
+}
+function onPresence() { recomputeOnline(); const r = net.room; if (!r || !r.seats.includes(myId)) hello(); refreshOnline(); }
+function syncPlayers() { const r = net.room; players = PD.map((p, k) => ({ name: (r && r.names[k]) || p.name, color: p.color, tag: p.tag })); }
+function rebuildOnline() {
+  const r = net.room; if (!r) return;
+  gen++; finished = false; local = false;
+  syncPlayers();
+  S = newState({ seed: r.code, len: r.len, start: r.start, cm: r.cm, dm: r.dm, game: r.game });
+  net.applied = 0;
+  for (const mv of r.moves) {
+    if (!legalIn(S, mv)) { console.warn('ks: move list does not replay'); break; }
+    applyIn(S, mv); net.applied++;
+  }
+  inGame = started(r); $('#win').hidden = true;
+  render();
+  if (S.over) { finished = true; if (r.results[r.game] == null) { r.results[r.game] = S.scores[0] === S.scores[1] ? 2 : (S.scores[0] > S.scores[1] ? 0 : 1); saveRoom(); } }
+}
+function roomChanged() { syncPlayers(); refreshOnline(); }
+function runQueue() {
+  const r = net.room; if (!r || !S) return;
+  let desync = false, last = null;
+  while (net.applied < r.moves.length) {
+    const mv = r.moves[net.applied];
+    if (!legalIn(S, mv)) { desync = true; break; }
+    last = applyIn(S, mv); net.applied++;
+    if (last.kind === 'end') afterMove(last, true);
+  }
+  if (desync) { rebuildOnline(); hello(); refreshOnline(); return; }
+  if (last && last.kind !== 'end') afterMove(last, true);
+  if (last && S.phase === 'draw' && !S.over && S.holder === mySeat()) { setTimeout(() => { sfxTurn(); buzz(30); }, 700); }
+  render();
+}
+function submitOnline(mv) {
+  const r = net.room; if (!r) return;
+  if (net.status !== 'ok') { toast('Нет связи. Подожди пару секунд'); return; }
+  const seq = r.moves.length;
+  r.moves.push(mv); saveRoom();
+  send('move', { g: r.game, seq, mv });
+  runQueue();
+}
+function onlineRematch() { const r = net.room; if (!r) return; const g = r.game + 1; applyRematch(g, null); send('rematch', { g }); send('state', { room: net.room }); }
+function applyRematch(g, from) {
+  const r = net.room; if (!r) return;
+  if (g <= r.game) return; if (g > r.game + 1) { hello(); return; }
+  const q = net.room; q.game = g; q.start = g % 2; q.moves = [];
+  saveRoom(); rebuildOnline();
+  if (from) { const k = q.seats.indexOf(from); toast(`${k >= 0 ? (q.names[k] || PD[k].name) : 'Соперник'} начинает реванш`); }
+  refreshOnline();
+}
+function refreshOnline() {
+  if (!net.on) return;
+  const r = net.room;
+  if (net.errorMsg && net.status === 'ok' && r && mySeat() >= 0) net.errorMsg = '';
+  const stt = started(r);
+  if (stt && !net.wasStarted) {
+    net.wasStarted = true; inGame = true;
+    if (!sheet.hidden) sheet.hidden = true;
+    if (r.game === 0 && r.moves.length === 0 && net.everOk) { toast('Оба в комнате. Поехали!'); sfxTurn(); }
+    keepAwake();
+  }
+  $('#btnRoom').hidden = false; $('#roomPillCode').textContent = net.code || '';
+  renderRoomPanel(); render();
+}
+function showRoomPanel() { $('#vMain').hidden = true; $('#vRoom').hidden = false; sheet.hidden = false; renderRoomPanel(); }
+function deckLabel(cm, dm) {
+  const cats = CAT_KEYS.filter((k, i) => (cm >> i) & 1), diffs = [1, 2, 3].filter(d => (dm >> (d - 1)) & 1);
+  const n = CARDS.filter((_, i) => inDeck(i, cm, dm)).length;
+  const c = cats.length === CAT_KEYS.length ? 'все темы' : cats.length === 1 ? CATS[cats[0]].toLowerCase() : cats.length + ' ' + plural(cats.length, 'тема', 'темы', 'тем');
+  const d = diffs.length === 3 ? '' : ', ' + diffs.map(x => DIFF[x].toLowerCase()).join(' и ');
+  return `${c}${d} · ${n} ${plural(n, 'карточка', 'карточки', 'карточек')}`;
+}
+function renderRoomPanel() {
+  if (!net.on) return;
+  const r = net.room;
+  $('#roomCode').textContent = net.code || '····';
+  $('#roomLink').textContent = inviteUrl();
+  $('#btnShare').textContent = navigator.share ? 'Поделиться' : 'Скопировать';
+  const box = $('#seats'); box.innerHTML = '';
+  if (r) r.seats.forEach((id, k) => {
+    const d = document.createElement('div'); d.className = 'seat' + (id ? '' : ' empty'); d.style.setProperty('--c', PD[k].color);
+    d.innerHTML = `<span class="chip-tag">${PD[k].tag}</span><span class="seat-name"></span><span class="seat-state"></span>`;
+    d.querySelector('.seat-name').textContent = id ? (r.names[k] || PD[k].name) : PD[k].name;
+    const s = d.querySelector('.seat-state');
+    if (!id) s.textContent = 'ждём…';
+    else if (id === myId) { s.textContent = 'ты'; s.classList.toggle('on', net.status === 'ok'); }
+    else if (net.online.has(id)) { s.textContent = 'в сети'; s.classList.add('on'); }
+    else s.textContent = 'не в сети';
+    box.appendChild(d);
+  });
+  $('#roomCfg').innerHTML = r ? `Матч на <b>${r.len} ${plural(r.len, 'раунд', 'раунда', 'раундов')}</b> · колода: <b>${esc(deckLabel(r.cm, r.dm))}</b>` : '';
+  const note = $('#netNote'); let txt, err = false;
+  if (net.errorMsg) { txt = net.errorMsg; err = true; }
+  else if (net.status === 'connecting') txt = 'Подключаюсь…';
+  else if (net.status === 'lost') txt = 'Связь пропала, переподключаюсь…';
+  else if (!r) txt = 'Ищу комнату…';
+  else if (mySeat() < 0) txt = 'Жду, пока меня впустят…';
+  else if (!started(r)) txt = 'Отправь брату ссылку или код. Игра начнётся, как только он зайдёт.';
+  else if (finished) txt = 'Матч окончен. Можно начать реванш.';
+  else txt = 'Игра идёт. Комната живёт, пока в ней кто-то есть.';
+  note.textContent = txt; note.classList.toggle('err', err);
+  $('#btnRoomClose').hidden = !(r && started(r));
+  const n2 = $('#inName2'); if (document.activeElement !== n2) n2.value = myName();
+}
+async function shareInvite() {
+  const url = inviteUrl();
+  if (navigator.share) { try { await navigator.share({ title: 'КС Угадайка', text: `Заходи угадывать! Комната ${net.code}`, url }); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
+  try { await navigator.clipboard.writeText(url); toast('Ссылка скопирована'); }
+  catch (e) { try { const s = getSelection(), rg = document.createRange(); rg.selectNodeContents($('#roomLink')); s.removeAllRanges(); s.addRange(rg); } catch (e2) {} toast('Ссылка выделена. Скопируй её вручную'); }
+}
+
+/* ---------- sheet ---------- */
+const sheet = $('#sheet');
+function syncSeg() {
+  const online = settings.where === 'online';
+  document.querySelectorAll('#segWhere button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === settings.where)));
+  document.querySelectorAll('#segLen button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === String(settings.len))));
+  $('#fName').hidden = !online; $('#localActions').hidden = online; $('#onlineActions').hidden = !online;
+  const n1 = $('#inName'); if (document.activeElement !== n1) n1.value = myName();
+  const ct = $('#catToggles'); ct.innerHTML = '';
+  CAT_KEYS.forEach((k, i) => {
+    const b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-pressed', String(!!((settings.cm >> i) & 1)));
+    b.innerHTML = `${esc(CATS[k])}<i>${CARDS.filter(c => c[0] === k).length}</i>`;
+    b.onclick = () => { const nv = settings.cm ^ (1 << i); if (!nv) { toast('Оставь хотя бы одну тему'); return; } settings.cm = nv; store.set('settings', settings); syncSeg(); };
+    ct.appendChild(b);
+  });
+  const dt = $('#diffToggles'); dt.innerHTML = '';
+  [1, 2, 3].forEach(d => {
+    const b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-pressed', String(!!((settings.dm >> (d - 1)) & 1)));
+    b.textContent = DIFF[d];
+    b.onclick = () => { const nv = settings.dm ^ (1 << (d - 1)); if (!nv) { toast('Оставь хотя бы одну сложность'); return; } settings.dm = nv; store.set('settings', settings); syncSeg(); };
+    dt.appendChild(b);
+  });
+  $('#deckSum').textContent = deckLabel(settings.cm, settings.dm);
+  const names = Object.keys(wins).filter(n => wins[n]).slice(0, 4);
+  $('#scoreLine').textContent = names.length ? 'Победы: ' + names.map(n => `${n} ${wins[n]}`).join(' · ') : 'Побед пока нет';
+}
+function openSheet() {
+  if (net.on) { showRoomPanel(); return; }
+  const mid = local && inGame && !finished;
+  $('#btnContinue').hidden = !mid; $('#btnStart').textContent = mid ? 'Новый матч' : 'Играть';
+  $('#vMain').hidden = false; $('#vRoom').hidden = true; syncSeg(); sheet.hidden = false;
+}
+function segClick(id, key) { $(id).addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; settings[key] = b.dataset.v; store.set('settings', settings); syncSeg(); }); }
+segClick('#segWhere', 'where'); segClick('#segLen', 'len');
+$('#btnStart').addEventListener('click', () => { ensureAudio(); newLocalGame(); });
+$('#btnContinue').addEventListener('click', () => { sheet.hidden = true; });
+$('#btnCreate').addEventListener('click', () => { ensureAudio(); createRoom(); });
+const inCode = $('#inCode');
+inCode.addEventListener('input', () => { const v = normCode(inCode.value); if (inCode.value !== v) inCode.value = v; $('#btnJoin').classList.toggle('ready', v.length === 4); });
+const doJoin = () => { const v = normCode(inCode.value); if (v.length !== 4) { toast('Введи код из 4 символов'); inCode.focus(); return; } ensureAudio(); joinRoom(v); };
+$('#btnJoin').addEventListener('click', doJoin);
+inCode.addEventListener('keydown', e => { if (e.key === 'Enter') doJoin(); });
+let nameT = 0;
+function onNameInput(e) {
+  const v = e.target.value.slice(0, 12); store.set('name', v.trim());
+  (e.target.id === 'inName' ? $('#inName2') : $('#inName')).value = v;
+  if (net.on && net.room && mySeat() >= 0) {
+    clearTimeout(nameT);
+    nameT = setTimeout(() => { const k = mySeat(); if (k < 0) return; net.room.names[k] = myName() || null; saveRoom(); roomChanged(); send('name', { name: myName() || null }); }, 500);
+  }
+}
+$('#inName').addEventListener('input', onNameInput); $('#inName2').addEventListener('input', onNameInput);
+$('#btnShare').addEventListener('click', shareInvite);
+$('#btnLeave').addEventListener('click', () => { leaveRoom(); openSheet(); });
+$('#btnRoomClose').addEventListener('click', () => { sheet.hidden = true; });
+$('#btnRoom').addEventListener('click', showRoomPanel);
+$('#btnMenu').addEventListener('click', () => {
+  if (!sheet.hidden) { if (net.on) { if (net.room && started(net.room)) sheet.hidden = true; return; } if (S) sheet.hidden = true; return; }
+  if (!$('#win').hidden) return;
+  openSheet();
+});
+$('#btnSound').addEventListener('click', () => { soundOn = !soundOn; store.set('sound', soundOn); renderSoundBtn(); if (soundOn) { ensureAudio(); sfxDraw(); } });
+$('#btnAgain').addEventListener('click', () => { ensureAudio(); $('#win').hidden = true; if (net.on) { onlineRematch(); return; } newLocalGame(); });
+$('#btnToMenu').addEventListener('click', () => { $('#win').hidden = true; if (net.on) leaveRoom(); else { S = null; inGame = false; local = false; render(); } openSheet(); });
+let resetArmed = 0;
+$('#btnReset').addEventListener('click', e => {
+  const b = e.currentTarget;
+  if (!resetArmed) { b.textContent = 'Точно? Нажми ещё раз'; resetArmed = setTimeout(() => { resetArmed = 0; b.textContent = 'Сбросить счёт'; }, 3000); return; }
+  clearTimeout(resetArmed); resetArmed = 0; wins = {}; store.set('wins', wins); syncSeg();
+  b.textContent = 'Счёт сброшен'; setTimeout(() => { b.textContent = 'Сбросить счёт'; }, 1800);
+});
+document.addEventListener('pointerdown', () => ensureAudio(), { once: true });
+document.addEventListener('visibilitychange', () => { if (document.hidden) return; if (inGame && !finished) keepAwake(); if (net.on && net.ch) { hello(); ping(); } });
+window.addEventListener('hashchange', () => { const c = codeFromHash(); if (c && (!net.on || net.code !== c)) joinRoom(c); });
+
+/* ---------- version check: both phones must run the same deck ---------- */
+$('#buildTag').textContent = BUILD;
+async function checkUpdate() {
+  try {
+    const res = await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' });
+    const html = await res.text(), m = html.match(/const BUILD = '([^']+)'/);
+    if (m && m[1] !== BUILD) $('#update').hidden = false;
+  } catch (e) {}
+}
+$('#btnUpdate').addEventListener('click', () => { location.reload(); });
+if (/^https?:$/.test(location.protocol)) { setTimeout(checkUpdate, 1500); setInterval(checkUpdate, 90000); }
+let warnedBuild = false;
+function checkPeerBuild(v) {
+  if (v === BUILD || warnedBuild) return;
+  warnedBuild = true; checkUpdate();
+  $('#updateText').textContent = 'У брата другая версия игры. Обновите страницу у обоих'; $('#update').hidden = false;
+}
+
+/* ---------- boot ---------- */
+renderSoundBtn(); syncSeg(); render();
+try { if (/\.test$|^localhost$|^127\./.test(location.hostname)) window.__game = { net, act, legalIn, applyIn, newState, deckFor, prize, CARDS, get S() { return S; }, get players() { return players; }, get myId() { return myId; }, mySeat, joinRoom, createRoom }; } catch (e) {}
+const code0 = codeFromHash();
+if (code0) joinRoom(code0); else openSheet();
+})();
+</script>
+</body>
+</html>
