@@ -1040,18 +1040,14 @@ const CYR = { 'А': 'A', 'В': 'B', 'Е': 'E', 'К': 'K', 'М': 'M', 'Н': 'H', 
 const normCode = s => String(s || '').toUpperCase().replace(/[А-ЯЁ]/g, ch => CYR[ch] || '').replace(/[^A-Z0-9]/g, '').slice(0, 4);
 function codeFromHash() { const c = normCode(decodeURIComponent(location.hash.slice(1))); return c.length === 4 ? c : null; }
 const myName = () => String(store.get('name', '') || '').trim().slice(0, 12);
+// One player id per browser. Reopening the invite link in a new tab keeps the same seat,
+// and the older tab steps aside (it used to get a fresh id and get stuck outside the game).
+const TAB = rid(6);
 let tabBus = null;
-try { tabBus = new BroadcastChannel(APP + '-tabs'); tabBus.onmessage = e => { const d = e.data || {}; if (d.q === 'who' && myId && d.id === myId) tabBus.postMessage({ a: 'mine', id: myId }); }; } catch (e) {}
+try { tabBus = new BroadcastChannel(APP + '-tabs'); tabBus.onmessage = e => { const d = e.data || {}; if (d.a === 'took' && d.tab !== TAB && myId && d.id === myId && net.on && net.code === d.code) { $('#btnLeave').click(); toast('Игра открыта в другой вкладке'); } }; } catch (e) {}
 function getIdentity() {
-  return new Promise(res => {
-    if (myId) return res(myId);
-    const s = sess.get('cid'); if (s) { myId = s; return res(s); }
-    let cand = store.get('cid', null) || rid(10);
-    if (!tabBus) { myId = cand; sess.set('cid', cand); store.set('cid', cand); return res(cand); }
-    let taken = false; const h = e => { const d = e.data || {}; if (d.a === 'mine' && d.id === cand) taken = true; };
-    tabBus.addEventListener('message', h); tabBus.postMessage({ q: 'who', id: cand });
-    setTimeout(() => { tabBus.removeEventListener('message', h); if (taken) cand = rid(10); else store.set('cid', cand); myId = cand; sess.set('cid', cand); res(cand); }, 180);
-  });
+  if (!myId) { myId = store.get('cid', null) || rid(10); store.set('cid', myId); }
+  return Promise.resolve(myId);
 }
 const filled = r => r.seats.filter(Boolean).length;
 const started = r => !!r && (r.locked === 1 || r.seats.every(Boolean));
@@ -1122,6 +1118,7 @@ async function joinRoom(code, room) {
   if (net.on && net.code === code) { showRoomPanel(); return; }
   if (net.on) leaveRoom();
   await getIdentity();
+  try { tabBus && tabBus.postMessage({ a: 'took', id: myId, code, tab: TAB }); } catch (e) {}
   gen++; clearTimeout(botTimer); demo = false; inGame = false; finished = false; busy = false; paused = false;
   $('#win').hidden = true;
   Object.assign(net, { on: true, code, room: null, ch: null, status: 'connecting', online: new Set(), presence: null, lastSeen: {}, peerKey: {}, applied: 0, running: false, wasStarted: false, everOk: false, errorMsg: '', lastHello: 0, presenceSeen: false });

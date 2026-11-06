@@ -387,7 +387,7 @@ details.deck-set .field + .field { margin-top: 12px; }
 const SB_URL = 'https://ulfqprrjdyycznobirxw.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVsZnFwcnJqZHl5Y3pub2Jpcnh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM3OTg4NTMsImV4cCI6MjEwOTM3NDg1M30.zIjRlMNnqg59jZRprHcCoIkoBiIis45vw5vP4bhF_tc';
 const APP = 'ks';
-const BUILD = 'ks-1';
+const BUILD = 'ks-2';
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -797,6 +797,13 @@ function render() {
   lastBump = -1;
   const tbl = $('#table'), acts = $('#acts');
   const stackIdle = `<div class="stack"><div class="back">${backSVG('#5B9DF5')}</div><div class="back">${backSVG('#F2A541')}</div><div class="back">${backSVG('#F2A541')}</div></div>`;
+  if (!S && parked) {
+    $('#roundbar').hidden = true;
+    tbl.innerHTML = `<div class="deal">${stackIdle}<h2>Игра открыта в другой вкладке</h2><p>Продолжай там. Или нажми ниже, и играй здесь: та вкладка отключится.</p></div>`;
+    acts.innerHTML = `<button class="act main" id="aHere" style="--c:${PD[1].color}">Играть здесь</button>`;
+    $('#aHere').onclick = () => { const c = parked; joinRoom(c); };
+    return;
+  }
   if (!S) {
     $('#roundbar').hidden = true;
     tbl.innerHTML = net.on ? `<div class="deal">${stackIdle}<h2>Подключаюсь к комнате</h2><p>Секунду, ищу комнату ${esc(net.code || '')}.</p></div>`
@@ -816,6 +823,12 @@ function render() {
     tbl.innerHTML = `<div class="deal">${stackIdle}<h2>Ждём второго игрока</h2><p>Отправь брату ссылку или код комнаты. Игра начнётся, как только он зайдёт.</p></div>`;
     acts.innerHTML = `<button class="act soft" id="aRoom">Показать код комнаты</button>`;
     $('#aRoom').onclick = showRoomPanel;
+    return;
+  }
+  if (net.on && net.room && started(net.room) && mySeat() < 0) {
+    tbl.innerHTML = `<div class="deal">${stackIdle}<h2>Ты сейчас не за столом</h2><p>В комнате уже двое. Если один из них ты, но с другой вкладки, браузера или телефона, нажми на своё имя. Старое окно отключится.</p></div>`;
+    acts.innerHTML = net.room.seats.map((id, k) => `<button class="act main" data-seat="${k}" style="--c:${players[k].color}">Я — ${esc(players[k].name)}</button>`).join('');
+    acts.querySelectorAll('[data-seat]').forEach(b => { b.onclick = () => claimSeat(+b.dataset.seat); });
     return;
   }
   if (S.over) {
@@ -950,25 +963,25 @@ const CYR = { 'А': 'A', 'В': 'B', 'Е': 'E', 'К': 'K', 'М': 'M', 'Н': 'H', 
 const normCode = s => String(s || '').toUpperCase().replace(/[А-ЯЁ]/g, ch => CYR[ch] || '').replace(/[^A-Z0-9]/g, '').slice(0, 4);
 function codeFromHash() { const c = normCode(decodeURIComponent(location.hash.slice(1))); return c.length === 4 ? c : null; }
 const myName = () => String(store.get('name', '') || '').trim().slice(0, 12);
-let tabBus = null;
-try { tabBus = new BroadcastChannel(APP + '-tabs'); tabBus.onmessage = e => { const d = e.data || {}; if (d.q === 'who' && myId && d.id === myId) tabBus.postMessage({ a: 'mine', id: myId }); }; } catch (e) {}
+// One player id per browser. Reopening the invite link in a new tab keeps the same seat,
+// and the older tab steps aside (it used to get a fresh id and silently become a spectator).
+const TAB = rid(6);
+let tabBus = null, parked = null;
+try { tabBus = new BroadcastChannel(APP + '-tabs'); tabBus.onmessage = e => { const d = e.data || {}; if (d.a === 'took' && d.tab !== TAB && myId && d.id === myId && net.on && net.code === d.code) parkHere(); }; } catch (e) {}
 function getIdentity() {
-  return new Promise(res => {
-    if (myId) return res(myId);
-    const s = sess.get('cid'); if (s) { myId = s; return res(s); }
-    let cand = store.get('cid', null) || rid(10);
-    if (!tabBus) { myId = cand; sess.set('cid', cand); store.set('cid', cand); return res(cand); }
-    let taken = false; const h = e => { const d = e.data || {}; if (d.a === 'mine' && d.id === cand) taken = true; };
-    tabBus.addEventListener('message', h); tabBus.postMessage({ q: 'who', id: cand });
-    setTimeout(() => { tabBus.removeEventListener('message', h); if (taken) cand = rid(10); else store.set('cid', cand); myId = cand; sess.set('cid', cand); res(cand); }, 180);
-  });
+  if (!myId) { myId = store.get('cid', null) || rid(10); store.set('cid', myId); }
+  return Promise.resolve(myId);
+}
+function parkHere() {
+  const code = net.code; leaveRoom(); parked = code;
+  sheet.hidden = true; $('#win').hidden = true; render();
 }
 const filled = r => r.seats.filter(Boolean).length;
 const started = r => !!r && r.seats.every(Boolean);
 const mySeat = () => (net.on && net.room && myId) ? net.room.seats.indexOf(myId) : -1;
 const isOnline = id => id === myId ? net.status === 'ok' : net.online.has(id);
 function cmpKey(a, b) { for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return a[i] - b[i]; return 0; }
-const roomKey = r => [r.game, r.moves.length, filled(r)];
+const roomKey = r => [r.game, r.moves.length, filled(r), r.sv | 0]; // sv grows when a seat changes hands
 const inviteUrl = () => location.origin + location.pathname + location.search + '#' + (net.code || '');
 function sanitize(s) {
   const fit = (a, f) => [0, 1].map(i => (Array.isArray(a) && a[i] != null) ? f(a[i]) : null);
@@ -976,7 +989,7 @@ function sanitize(s) {
   return {
     code: s.code, host: s.host || null, n: 2, v: String(s.v || '').slice(0, 16),
     seats: fit(s.seats, x => String(x).slice(0, 24)), names: fit(s.names, x => String(x).slice(0, 12)),
-    game: Math.max(0, s.game | 0), start: Math.max(0, s.start | 0), len,
+    game: Math.max(0, s.game | 0), start: Math.max(0, s.start | 0), len, sv: Math.max(0, s.sv | 0),
     cm: (s.cm | 0) & ALL_CATS || ALL_CATS, dm: (s.dm | 0) & ALL_DIFFS || ALL_DIFFS,
     moves: (Array.isArray(s.moves) ? s.moves : []).map(x => x | 0).filter(validMove).slice(0, 4000),
     results: (Array.isArray(s.results) ? s.results : []).map(x => (x == null ? null : x | 0)).slice(0, 1000)
@@ -1030,7 +1043,9 @@ async function joinRoom(code, room) {
   if (code.length !== 4) { toast('Код комнаты: 4 символа'); return; }
   if (net.on && net.code === code) { showRoomPanel(); return; }
   if (net.on) leaveRoom();
+  parked = null;
   await getIdentity();
+  try { tabBus && tabBus.postMessage({ a: 'took', id: myId, code, tab: TAB }); } catch (e) {}
   gen++; local = false; finished = false; inGame = false;
   $('#win').hidden = true;
   Object.assign(net, { on: true, code, room: null, ch: null, status: 'connecting', online: new Set(), presence: null, lastSeen: {}, peerKey: {}, applied: 0, wasStarted: false, everOk: false, errorMsg: '', lastHello: 0, presenceSeen: false });
@@ -1042,7 +1057,7 @@ async function joinRoom(code, room) {
   showRoomPanel(); connect();
 }
 function createRoom() {
-  joinRoom(newCode(), { code: '', host: null, n: 2, seats: [null, null], names: [null, null], game: 0, start: 0, len: +settings.len, cm: settings.cm, dm: settings.dm, moves: [], results: [] });
+  joinRoom(newCode(), { code: '', host: null, n: 2, seats: [null, null], names: [null, null], game: 0, start: 0, sv: 0, len: +settings.len, cm: settings.cm, dm: settings.dm, moves: [], results: [] });
 }
 const NET_ERR = 'Не получается подключиться к серверу. Проверь интернет. В превью внутри Claude онлайн не работает, только на опубликованном сайте.';
 function connect() {
@@ -1091,6 +1106,7 @@ function onMsg(m) {
     case 'rematch': applyRematch(m.g | 0, m.from); break;
     case 'name': onName(m); break;
     case 'req': onReq(m); break;
+    case 'claim': onClaim(m); break;
     case 'full': if (m.to === myId && mySeat() < 0) { net.errorMsg = 'Комната уже заполнена.'; refreshOnline(); } break;
   }
 }
@@ -1102,7 +1118,8 @@ function onHello(m) {
   if (seat < 0 && host) {
     let k = started(r) ? -1 : r.seats.indexOf(null);
     if (k < 0) k = r.seats.findIndex(s => s && s !== myId && s !== id && !net.online.has(s));
-    if (k < 0) { send('full', { to: id }); return; }
+    if (k < 0) { send('full', { to: id }); send('state', { room: r }); return; }
+    if (r.seats[k]) r.sv = (r.sv | 0) + 1;
     r.seats[k] = id; seat = k; changed = true;
     r.names[k] = m.name ? String(m.name).slice(0, 12) : (r.names[k] || null);
   } else if (seat >= 0 && host && m.name && r.names[seat] !== m.name) { r.names[seat] = String(m.name).slice(0, 12); changed = true; }
@@ -1111,7 +1128,7 @@ function onHello(m) {
 }
 function adoptState(s0) {
   if (!s0 || s0.code !== net.code || !Array.isArray(s0.seats) || !Array.isArray(s0.moves)) return;
-  const s = sanitize(s0), r = net.room;
+  const s = sanitize(s0), r = net.room, before = mySeat();
   if (!r) { net.room = s; saveRoom(); rebuildOnline(); refreshOnline(); return; }
   const c = cmpKey(roomKey(s), roomKey(r));
   if (c > 0) {
@@ -1126,7 +1143,29 @@ function adoptState(s0) {
     s.results.forEach((x, i) => { if (x != null && r.results[i] == null) { r.results[i] = x; ch = true; } });
     if (ch) { saveRoom(); roomChanged(); }
   }
+  if (before >= 0 && mySeat() < 0) toast('Твоё место заняли с другого окна или телефона');
   refreshOnline();
+}
+/* A player who opened the room from another browser or phone gets a new id and lands outside the table.
+   They tap their name; any seated player hands the seat over. Brothers only, so no passwords. */
+function claimSeat(k) {
+  const r = net.room; if (!r || !started(r)) return;
+  if (net.status !== 'ok') { toast('Нет связи. Подожди пару секунд'); return; }
+  const othersHere = r.seats.some(id => id && id !== myId && net.online.has(id));
+  if (!othersHere) { applyClaim(k, myId, myName() || null); return; }
+  send('claim', { seat: k, name: myName() || null }); toast('Сажусь за стол…');
+}
+function onClaim(m) {
+  const r = net.room; if (!r || !started(r) || mySeat() < 0) return;
+  const k = m.seat | 0, id = String(m.from);
+  if ((k !== 0 && k !== 1) || r.seats.includes(id)) return;
+  applyClaim(k, id, m.name);
+}
+function applyClaim(k, id, name) {
+  const r = net.room, before = mySeat();
+  r.seats[k] = id; if (name) r.names[k] = String(name).slice(0, 12); r.sv = (r.sv | 0) + 1;
+  saveRoom(); roomChanged(); send('state', { room: r });
+  if (before >= 0 && mySeat() < 0) toast('Твоё место заняли с другого окна или телефона');
 }
 function onMove(m) {
   const r = net.room; if (!r) { hello(); return; }
