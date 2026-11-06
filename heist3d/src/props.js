@@ -22,6 +22,7 @@ export const FILES = {
   console: "ClassicConsole_01",
   chandelier: "Chandelier_01",
   radio: "vintage_radio_transceiver",
+  camera: "security_camera_02", // голова отдельным узлом head, поворачивается
   // свои модели (Blender-скрипты, см. assets/CREDITS.md)
   piano: "piano",
   violin: "violin",
@@ -33,7 +34,7 @@ export const FILES = {
   drape: "drape",
 };
 // эти модели берутся как есть, без normalize: координаты уже совпадают с игрой
-const RAW = new Set(["safe", "vault"]);
+const RAW = new Set(["safe", "vault", "camera"]);
 const lib = {};
 // модели, у которых лицо смотрит не в +Z: поворот вокруг Y при загрузке
 const ROT_Y = { clock: -Math.PI / 2 };
@@ -234,7 +235,7 @@ export function hideModel(kind) {
     ? prop("wardrobe", { h: 2.2 })
     : prop("drape", { h: 3.12 });
 }
-// сейф и дверь хранилища: копии в координатах игры (или null, если не загрузились)
+// сейф, дверь хранилища и камера: копии в координатах игры (или null, если не загрузились)
 export function rawModel(n) {
   return lib[n] ? lib[n].clone(true) : null;
 }

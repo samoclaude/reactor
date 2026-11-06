@@ -245,17 +245,20 @@ function tryGen(seed, L, tr, easy) {
   if (!easy && lv.guards.length < d.guards) return null;
   addSideTrips(lv, dS, used, RNG(seed + '|side|' + L + '|' + tr));
   // cameras on walls, looking along corridors
+  // в 3D камера висит на стене комнаты под потолком: в углах между проёмами её нет, сквозь стену она не видит —
+  // поэтому смотрит в одну комнату (и дальше, если проём напротив): 2 такта в комнату, 2 такта отвёрнута
   const camC = shuffle(wallC.filter(t => lv.deco[t] == null));
   for (const t of camC) {
     if (lv.cams.length >= d.cams) break;
     const x = t % W, y = (t / W) | 0, dirs = [];
+    if (x % 2 === 0 && y % 2 === 0) continue;
     for (let k = 0; k < 4; k++) {
       const nx = x + DX[k], ny = y + DY[k]; if (nx < 0 || ny < 0 || nx >= W || ny >= H || !g[id(nx, ny)]) continue;
       let ok = true, c = t; for (let s = 0; s < lv.camr; s++) { const cx2 = c % W + DX[k], cy2 = ((c / W) | 0) + DY[k]; if (cx2 < 0 || cy2 < 0 || cx2 >= W || cy2 >= H) break; c = id(cx2, cy2); if (!g[c]) break; if (dS[c] < 3 || c === lv.E) ok = false; }
       if (ok) dirs.push(k);
     }
     if (!dirs.length || lv.cams.some(c => Math.abs(c.i % W - x) + Math.abs(((c.i / W) | 0) - y) < 4)) continue;
-    lv.cams.push({ i: t, dirs: dirs.length === 1 ? [dirs[0], -1] : shuffle(dirs).slice(0, 3) });
+    lv.cams.push({ i: t, dirs: [dirs.length === 1 ? dirs[0] : shuffle(dirs)[0], -1] });
   }
   if (lv.guards.length && !easy) {
     const hard = new Set(lv.lasers.filter(l => l.m === 0).map(l => l.i)), reach = bfs(lv, lv.S, hard, true);
@@ -365,7 +368,8 @@ function addHides(lv) {
   const cand = [];
   for (let y = 1; y < H; y += 2) for (let x = 1; x < W; x += 2) {
     const c = y * W + x; if (!g[c] || busy.has(c)) continue;
-    const walls = [0, 1, 2, 3].filter(d => { const t = stepT(lv, c, d); return t >= 0 && !g[t] && lv.deco[t] == null; });
+    // не на стене с камерой: портьера там до потолка
+    const walls = [0, 1, 2, 3].filter(d => { const t = stepT(lv, c, d); return t >= 0 && !g[t] && lv.deco[t] == null && !lv.cams.some(q => q.i === t); });
     const near = Math.min(...gp.map(q => Math.abs(q % W - x) + Math.abs(((q / W) | 0) - y)));
     if (walls.length && near <= 2) cand.push({ c, walls, near, k: r() });
   }

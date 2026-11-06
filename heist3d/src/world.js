@@ -553,6 +553,76 @@ export function setLaser(o, on, now, ghost) {
   o.ledMat.color.setRGB(flick, 0.16 * flick, 0.12 * flick);
 }
 
+/* ---------- камера наблюдения: на стене комнаты под потолком, голова поворачивается по тактам ---------- */
+// модель Poly Haven security_camera_02: крепление у стены (z = 0), объектив смотрит в +Z
+const CAM_PIVOT = [0, 0.028, 0.152], // ось поворота головы на кронштейне
+  CAM_Y = 2.6,
+  CAM_SCALE = 1.2;
+export function buildCamera(lv, c, model) {
+  const k = c.dirs.find((d) => d >= 0),
+    [dx, dz] = dirV(k),
+    rx = (c.i % lv.W) + dx,
+    ry = ((c.i / lv.W) | 0) + dz,
+    wallDir = (k + 2) % 4; // стена комнаты, на которой висит камера
+  const g = new THREE.Group();
+  g.position.set(cOf(rx) - (dx * ROOM) / 2, CAM_Y, cOf(ry) - (dz * ROOM) / 2);
+  g.rotation.y = yawOf(wallDir);
+  g.scale.setScalar(CAM_SCALE);
+  const pivot = new THREE.Group();
+  pivot.position.set(...CAM_PIVOT);
+  pivot.rotation.order = "YXZ";
+  g.add(pivot);
+  if (model) {
+    g.add(model);
+    g.updateMatrixWorld(true);
+    const head = model.getObjectByName("head");
+    if (head) pivot.attach(head);
+  } else {
+    // заглушка, если модель не загрузилась
+    const mat = new THREE.MeshStandardMaterial({
+      color: 0xd8d8d4,
+      roughness: 0.5,
+    });
+    const plate = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.16, 0.03), mat);
+    plate.position.z = 0.015;
+    g.add(plate);
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.12, 0.34), mat);
+    body.position.set(0, 0.06, 0.07);
+    body.castShadow = true;
+    pivot.add(body);
+  }
+  pivot.rotation.x = 0.28; // смотрит чуть вниз, в комнату
+  // красный огонёк под объективом: горит, пока камера смотрит в комнату
+  const ledMat = new THREE.MeshBasicMaterial({
+    color: 0xff2020,
+    toneMapped: false,
+  });
+  const led = new THREE.Mesh(new THREE.SphereGeometry(0.009, 8, 6), ledMat);
+  led.position.set(0.045, 0, 0.2);
+  pivot.add(led);
+  const glow = glowSprite(0xff2a1e, 0.2, 0.8);
+  glow.position.copy(led.position);
+  pivot.add(glow);
+  return {
+    group: g,
+    pivot,
+    ledMat,
+    glow,
+    cam: c,
+    spot: { room: ry * lv.W + rx, wallDir }, // эту стену не занимать окном и бра
+    side: c.i % 2 ? 1 : -1, // куда отворачивается
+    pan: 0,
+  };
+}
+// looking — камера смотрит в комнату; иначе голова отвёрнута вдоль стены и огонёк погашен
+export function setCamera(o, looking, dt) {
+  o.pan += ((looking ? 0 : o.side * 1.25) - o.pan) * Math.min(1, dt * 6);
+  o.pivot.rotation.y = o.pan;
+  const v = looking ? 1 : 0.12;
+  o.ledMat.color.setRGB(v, 0.06 * v, 0.05 * v);
+  o.glow.visible = looking;
+}
+
 /* ---------- охранник-заглушка: тело, голова и луч фонаря длиной в его зону обзора ---------- */
 const coneMat = () =>
   new THREE.ShaderMaterial({

@@ -242,20 +242,35 @@ export function buildVan(radioModel) {
     o.userData.click = "radio";
   });
   pingBtn.userData.click = "radio";
-  // кружка кофе — отсюда пятна на схеме
-  const mug = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.045, 0.04, 0.1, 20),
-    std({ color: 0xe9e4da, roughness: 0.35 }),
+  // кружка кофе — отсюда пятна на схеме: стенки с толщиной, ручка, кофе чуть ниже края
+  const mug = new THREE.Group(),
+    cupMat = std({ color: 0xe9e4da, roughness: 0.3 });
+  const cup = new THREE.Mesh(
+    new THREE.LatheGeometry(
+      [
+        [0, 0], [0.037, 0], [0.041, 0.004], [0.043, 0.05], [0.045, 0.097], [0.044, 0.1],
+        [0.041, 0.1], [0.04, 0.097], [0.038, 0.05], [0.035, 0.012], [0, 0.01],
+      ].map(([r, y]) => new THREE.Vector2(r, y)),
+      32,
+    ),
+    cupMat,
   );
-  mug.position.set(0.32, 0.835, -0.55);
-  scene.add(mug);
+  cup.castShadow = true;
+  mug.add(cup);
+  const handle = new THREE.Mesh(new THREE.TorusGeometry(0.025, 0.0065, 8, 18, Math.PI), cupMat);
+  handle.rotation.z = -Math.PI / 2; // дуга сбоку, концы у стенки
+  handle.position.set(0.043, 0.052, 0);
+  mug.add(handle);
   const coffee = new THREE.Mesh(
-    new THREE.CircleGeometry(0.04, 20),
-    std({ color: 0x2a160a, roughness: 0.15 }),
+    new THREE.CircleGeometry(0.0395, 28),
+    std({ color: 0x2a160a, roughness: 0.08 }),
   );
   coffee.rotation.x = -Math.PI / 2;
-  coffee.position.set(0.32, 0.875, -0.55);
-  scene.add(coffee);
+  coffee.position.y = 0.084;
+  mug.add(coffee);
+  mug.position.set(0.32, 0.785, -0.55);
+  mug.rotation.y = -0.6; // ручка вправо и чуть к штурману
+  scene.add(mug);
   // мониторы наблюдения на стене за столом: три камеры у особняка (картинку рисует drawFeeds)
   const feeds = [],
     monMat = std({ color: 0x15161a, roughness: 0.5, metalness: 0.4 }),

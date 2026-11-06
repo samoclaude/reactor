@@ -12,13 +12,13 @@
 ## Модели (CC0, Poly Haven)
 `fancy_picture_frame_01`, `potted_plant_01`, `marble_bust_01`, `wooden_bookshelf_worn`, `book_encyclopedia_set_01`,
 `antique_ceramic_vase_01`, `vintage_grandfather_clock_01`, `ornate_mirror_01`, `lion_head`, `kite_shield`,
-`brass_candleholders`, `ClassicConsole_01`, `Chandelier_01`, `vintage_radio_transceiver`.
+`brass_candleholders`, `ClassicConsole_01`, `Chandelier_01`, `vintage_radio_transceiver`, `security_camera_02`.
 Сжаты gltf-transform (meshopt, WebP), у тяжёлых упрощена геометрия.
 
 ## Свои модели (CC0)
 `piano`, `violin`, `owl`, `dino`, `safe`, `vault`, `wardrobe`, `drape`, `van_ext` — построены скриптами Python в Blender 4.5
 (Claude, 06.11.2026), без чужих ассетов и текстур, сжаты gltf-transform meshopt. Скрипты укрытий и фургона — в `tools/models/`.
-У `book_encyclopedia_set_01`, `Chandelier_01`, `lion_head` геометрия упрощена в Blender (Decimate) ради скорости.
+У `book_encyclopedia_set_01`, `Chandelier_01`, `lion_head`, `security_camera_02` геометрия упрощена в Blender (Decimate) ради скорости.
 
 ## Охранник (CC0, Quaternius)
 - Universal Base Characters (`Superhero_Male_FullBody`) — https://quaternius.itch.io/universal-base-characters
