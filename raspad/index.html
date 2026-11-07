@@ -1,0 +1,1174 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#06121A">
+<meta name="description" content="Распад: бросай атомы, атом распадается, когда его число совпадает с рядом или столбцом. Цепные реакции и общая таблица рекордов.">
+<meta property="og:title" content="Распад">
+<meta property="og:description" content="Цепные реакции на рекорд. Побей брата в задании дня!">
+<meta property="og:type" content="website">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%2306121A'/%3E%3Ccircle cx='32' cy='32' r='22' fill='none' stroke='%233DF2C2' stroke-width='3' stroke-dasharray='9 6'/%3E%3Ccircle cx='32' cy='32' r='14' fill='%23FFD23F'/%3E%3Cpath d='M27 25h9l-5 6h5l-9 9 3-7h-5z' fill='%2306121A'/%3E%3C/svg%3E">
+<title>Распад</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=Rubik+Mono+One&display=swap">
+<style>
+:root {
+  /* Ночной реактор: тёмная бирюза, мятное свечение, атомы семи цветов. Только тёмная тема, как во всех играх Реактора. */
+  --bg: #06121A;
+  --surface: #0C1D27;
+  --surface2: #112834;
+  --line: #1C3B49;
+  --fg: #E9F7F8;
+  --muted: #8AAAB3;
+  --mint: #3DF2C2;
+  --hot: #FF4D5E;
+  --gold: #FFD23F;
+  --c1: #FF5470; --c2: #FF8F3F; --c3: #FFD23F; --c4: #8BE36A; --c5: #3ED7E0; --c6: #7B8CFF; --c7: #C77BFF;
+  --font-display: "Rubik Mono One", "Arial Black", system-ui, sans-serif;
+  --font-ui: "Nunito", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { height: 100%; }
+body {
+  height: 100%; margin: 0; overflow: hidden;
+  background: radial-gradient(120% 70% at 50% 30%, #0E2A35, var(--bg) 70%); background-color: var(--bg); color: var(--fg);
+  font-family: var(--font-ui); font-size: 14px;
+  touch-action: manipulation; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
+}
+button { font-family: inherit; color: inherit; }
+button:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid var(--mint); outline-offset: 2px; }
+
+.app {
+  position: relative; height: 100%; max-width: 560px; margin: 0 auto;
+  display: flex; flex-direction: column; gap: 10px;
+  padding-top: calc(10px + env(safe-area-inset-top, 0px));
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.top { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex: none; }
+.top-l, .top-r { display: flex; gap: 8px; align-items: center; }
+.brand { font-family: var(--font-display); font-size: 13px; letter-spacing: .12em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.brand small { font-family: var(--font-ui); font-weight: 800; letter-spacing: .06em; font-size: 11px; color: var(--muted); margin-left: 6px; }
+.icon-btn {
+  width: 40px; height: 40px; flex: none; border-radius: 12px; cursor: pointer; display: grid; place-items: center; text-decoration: none; color: var(--fg);
+  border: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 85%, transparent);
+}
+.icon-btn:active { transform: scale(.94); }
+.screen { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
+
+/* ---------- атомы ---------- */
+.atom { position: absolute; left: 0; top: 0; width: var(--cell); height: var(--cell); display: grid; place-items: center; pointer-events: none; will-change: transform; }
+.orb {
+  position: relative; width: 86%; height: 86%; border-radius: 50%; display: grid; place-items: center;
+  background: radial-gradient(circle at 34% 30%, color-mix(in srgb, var(--c) 35%, #fff) 0 10%, var(--c) 46%, color-mix(in srgb, var(--c) 55%, #000) 100%);
+  box-shadow: 0 0 calc(var(--cell) * .3) color-mix(in srgb, var(--c) 40%, transparent), inset 0 calc(var(--cell) * -.06) calc(var(--cell) * .12) rgba(0,0,0,.25);
+}
+.orb b { font-family: var(--font-display); font-weight: 400; font-size: calc(var(--cell) * .38); line-height: 1; color: #08131A; text-shadow: 0 1px 0 rgba(255,255,255,.35); }
+.atom.arm .orb {
+  border-radius: 30%;
+  background: radial-gradient(circle at 34% 28%, #A9B6BE 0 8%, #6A7982 40%, #323D44 100%);
+  box-shadow: 0 2px 0 #1A2227, inset 0 0 0 2px rgba(255,255,255,.08), inset 0 calc(var(--cell) * -.08) calc(var(--cell) * .14) rgba(0,0,0,.35);
+}
+.atom.arm.s1 .orb { background: radial-gradient(circle at 34% 28%, #C3CDD3 0 8%, #84929A 42%, #46525A 100%); }
+.atom.arm svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.atom.hot .orb { animation: hot .17s ease-in-out infinite alternate; }
+@keyframes hot { to { transform: scale(1.12); filter: brightness(1.5) saturate(1.2); } }
+.atom.pop .orb { animation: pop .26s ease-out forwards; }
+@keyframes pop { 0% { transform: scale(1.15); filter: brightness(2); } 100% { transform: scale(1.7); opacity: 0; filter: brightness(2.5); } }
+.atom.reveal .orb { animation: reveal .45s ease-out; }
+@keyframes reveal { 0% { transform: scale(.6); filter: brightness(2.4); } 60% { transform: scale(1.12); } 100% { transform: scale(1); } }
+.atom.crack .orb { animation: crack .3s ease-out; }
+@keyframes crack { 0% { transform: translateX(0); } 25% { transform: translateX(-8%) rotate(-6deg); } 50% { transform: translateX(7%) rotate(5deg); } 100% { transform: none; } }
+.atom.land .orb { animation: land .2s ease-out; }
+@keyframes land { 0% { transform: scale(1.12, .84) translateY(6%); } 100% { transform: none; } }
+.atom.dead .orb { filter: grayscale(.4) brightness(.8); box-shadow: 0 0 0 3px var(--hot), 0 0 24px var(--hot); }
+
+/* ---------- меню ---------- */
+.menu { overflow-y: auto; overscroll-behavior: contain; padding-bottom: 6px; scrollbar-width: none; }
+.menu::-webkit-scrollbar { display: none; }
+.hero { display: flex; flex-direction: column; gap: 8px; padding: 6px 0 2px; }
+.hero-row { display: flex; align-items: center; gap: 14px; }
+.hero-atoms { display: flex; gap: 4px; --cell: 34px; }
+.hero-atoms .atom { position: relative; transform: none !important; }
+.hero-atoms .atom:nth-child(2) { animation: bob 2.4s ease-in-out infinite; }
+.hero-atoms .atom:nth-child(1) { animation: bob 2.4s ease-in-out -.8s infinite; }
+.hero-atoms .atom:nth-child(3) { animation: bob 2.4s ease-in-out -1.6s infinite; }
+@keyframes bob { 50% { translate: 0 -5px; } }
+h1 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: clamp(34px, 11vw, 52px); line-height: 1; letter-spacing: .02em; background: linear-gradient(90deg, var(--c1), var(--c3) 45%, var(--mint)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.lead { margin: 0; color: var(--muted); font-size: 15px; line-height: 1.45; }
+.lead b { color: var(--fg); }
+.card {
+  --a: var(--mint);
+  appearance: none; width: 100%; text-align: left; cursor: pointer;
+  display: grid; grid-template-columns: 56px 1fr auto; align-items: center; gap: 14px; padding: 14px; border-radius: 20px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--a) 16%, var(--surface)), var(--surface));
+  border: 1px solid color-mix(in srgb, var(--a) 35%, transparent);
+  box-shadow: 0 16px 34px -22px var(--a);
+  transition: transform .15s;
+}
+.card:active { transform: scale(.98); }
+.card .ic { width: 56px; height: 56px; border-radius: 16px; display: grid; place-items: center; font-size: 28px; background: rgba(0,0,0,.25); box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
+.card .tx { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.card .tx b { font-family: var(--font-display); font-weight: 400; font-size: 16px; color: var(--a); letter-spacing: .02em; }
+.card .tx span { font-size: 13px; line-height: 1.35; color: rgba(255,255,255,.82); }
+.card .tx em { font-style: normal; font-size: 12px; font-weight: 800; color: rgba(255,255,255,.6); }
+.card .tx em.lead-line { color: var(--gold); }
+.card .go { font-size: 22px; color: var(--a); }
+.card.daily { --a: var(--gold); }
+.card.free { --a: var(--mint); }
+.restart { align-self: flex-end; margin-top: -4px; background: none; border: 0; color: var(--muted); font-weight: 800; font-size: 13px; cursor: pointer; padding: 4px 6px; text-decoration: underline; text-underline-offset: 3px; }
+.field-row { display: flex; flex-direction: column; gap: 6px; }
+.label { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.inp {
+  width: 100%; height: 46px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface); color: var(--fg);
+  padding: 0 14px; font: 700 16px var(--font-ui); -webkit-user-select: text; user-select: text;
+}
+.inp::placeholder { color: color-mix(in srgb, var(--muted) 70%, transparent); }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.btn {
+  appearance: none; border: 1px solid var(--line); cursor: pointer; height: 48px; border-radius: 14px; padding: 0 16px;
+  background: var(--surface); font-weight: 800; font-size: 15px; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn:active { transform: scale(.97); }
+.btn.primary { background: var(--mint); border-color: var(--mint); color: #04211A; box-shadow: 0 14px 30px -16px var(--mint); }
+.btn.gold { background: var(--gold); border-color: var(--gold); color: #1E1700; }
+
+/* ---------- игра ---------- */
+.hud { display: grid; grid-template-columns: 1.6fr 1fr 1fr; gap: 8px; flex: none; }
+.stat { border-radius: 14px; background: var(--surface); border: 1px solid var(--line); padding: 7px 10px; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.stat span { font-size: 10.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.stat b { font-family: var(--font-display); font-weight: 400; font-size: 18px; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stat.main b { color: var(--mint); font-size: 21px; }
+.stat b.bump { animation: bump .3s ease-out; }
+@keyframes bump { 40% { transform: scale(1.12); color: #fff; } }
+.rise { display: flex; align-items: center; gap: 10px; flex: none; min-height: 18px; }
+.rise-label { font-size: 12px; font-weight: 800; color: var(--muted); white-space: nowrap; }
+.rise-label b { color: var(--fg); }
+.rise.warn .rise-label, .rise.warn .rise-label b { color: var(--hot); }
+.dots { display: flex; gap: 3px; flex: 1; min-width: 0; }
+.dots i { flex: 1; height: 6px; border-radius: 3px; background: var(--line); max-width: 22px; transition: background .2s; }
+.dots i.on { background: var(--mint); }
+.rise.warn .dots i.on { background: var(--hot); animation: blink .6s ease-in-out infinite alternate; }
+@keyframes blink { to { opacity: .45; } }
+
+.stage { flex: 1; min-height: 0; display: grid; place-items: end center; }
+.field { position: relative; touch-action: none; cursor: pointer; }
+.grid {
+  position: absolute; left: 0; right: 0; bottom: 0; top: var(--cell);
+  border-radius: 16px; border: 1px solid var(--line);
+  background:
+    radial-gradient(circle at center, rgba(120,220,220,.07) 0 26%, rgba(120,220,220,.025) 27% 38%, transparent 40%) 0 0 / var(--cell) var(--cell),
+    linear-gradient(180deg, #0B222D, #081820);
+  box-shadow: inset 0 0 40px rgba(61,242,194,.06), 0 20px 50px -30px rgba(61,242,194,.35);
+  transition: border-color .3s, box-shadow .3s;
+}
+.grid.warn { border-color: var(--hot); box-shadow: inset 0 0 40px rgba(255,77,94,.18), 0 0 0 1px var(--hot), 0 20px 50px -26px rgba(255,77,94,.6); animation: warnPulse .8s ease-in-out infinite alternate; }
+@keyframes warnPulse { to { box-shadow: inset 0 0 26px rgba(255,77,94,.08), 0 0 0 1px rgba(255,77,94,.4), 0 20px 50px -30px rgba(255,77,94,.3); } }
+.aim { position: absolute; top: var(--cell); width: var(--cell); height: calc(var(--cell) * 7); border-radius: 12px; background: linear-gradient(180deg, rgba(61,242,194,.16), rgba(61,242,194,.04)); pointer-events: none; transition: left .08s; }
+.aim.full { background: linear-gradient(180deg, rgba(255,77,94,.25), rgba(255,77,94,.06)); }
+.ghost { position: absolute; left: 0; top: 0; width: var(--cell); height: var(--cell); pointer-events: none; display: grid; place-items: center; transition: transform .08s; }
+.ghost::before { content: ''; width: 72%; height: 72%; border-radius: 50%; border: 2px dashed rgba(61,242,194,.55); }
+.layer, .fx { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.fx { overflow: visible; }
+.launch { transition: transform .08s ease-out, opacity .12s; }
+.launch.gone { opacity: 0; }
+.spark { position: absolute; width: 7px; height: 7px; border-radius: 50%; margin: -3.5px 0 0 -3.5px; pointer-events: none; }
+.ring { position: absolute; border-radius: 50%; border: 3px solid; pointer-events: none; }
+.float { position: absolute; transform: translate(-50%, -50%); font-family: var(--font-display); font-size: 16px; color: #fff; text-shadow: 0 2px 10px rgba(0,0,0,.6); white-space: nowrap; pointer-events: none; }
+.badge {
+  position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%); pointer-events: none; white-space: nowrap; text-align: center;
+  font-family: var(--font-display); font-size: clamp(26px, 9vw, 40px); line-height: 1; color: var(--gold);
+  text-shadow: 0 0 24px rgba(255,210,63,.6), 0 3px 0 #3A2A00;
+}
+.badge small { display: block; font-size: .42em; margin-top: 6px; color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,.7); }
+
+.dock { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; flex: none; }
+.slot {
+  --cell: 50px;
+  appearance: none; cursor: default; display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 16px; min-width: 0;
+  background: var(--surface); border: 1px solid var(--line); text-align: left;
+}
+.slot .atom { position: relative; transform: none !important; flex: none; }
+.slot .k { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.slot .k span { font-size: 10.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.slot .k b { font-size: 13px; font-weight: 800; }
+.slot.cur { border-color: color-mix(in srgb, var(--mint) 55%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--mint) 25%, transparent) inset; }
+.slot.hold { cursor: pointer; justify-content: flex-end; flex-direction: row-reverse; text-align: right; }
+.slot.hold .k { align-items: flex-end; }
+.slot.hold:active { transform: scale(.97); }
+.swap {
+  width: 52px; height: 52px; border-radius: 50%; cursor: pointer; display: grid; place-items: center;
+  border: 1px solid color-mix(in srgb, var(--mint) 45%, transparent); background: color-mix(in srgb, var(--mint) 12%, var(--surface)); color: var(--mint);
+}
+.swap:active { transform: scale(.92) rotate(180deg); }
+.swap svg { transition: transform .25s; }
+.swap.spin svg { transform: rotate(180deg); }
+
+/* ---------- оверлеи ---------- */
+.overlay {
+  position: fixed; inset: 0; z-index: 20; display: grid; place-items: end center;
+  background: rgba(2, 8, 12, .72); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  padding: 16px max(16px, env(safe-area-inset-right, 0px)) calc(16px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+  animation: fadeIn .2s ease-out;
+}
+@keyframes fadeIn { from { opacity: 0; } }
+#ovTop, #ovHelp { z-index: 25; }
+.panel {
+  width: 100%; max-width: 528px; max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px - env(safe-area-inset-top, 0px)); overflow-y: auto; overscroll-behavior: contain;
+  border-radius: 24px; background: linear-gradient(180deg, var(--surface2), var(--surface)); border: 1px solid var(--line);
+  padding: 18px; display: flex; flex-direction: column; gap: 14px; animation: rise .28s cubic-bezier(.2,.9,.3,1.1);
+}
+@keyframes rise { from { transform: translateY(30px); opacity: 0; } }
+.sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.sheet-head b { font-family: var(--font-display); font-weight: 400; font-size: 18px; letter-spacing: .03em; }
+.tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 4px; border-radius: 14px; background: var(--bg); border: 1px solid var(--line); }
+.tabs button { appearance: none; border: 0; background: none; height: 38px; border-radius: 10px; font-weight: 800; font-size: 14px; cursor: pointer; color: var(--muted); }
+.tabs button.on { background: var(--surface2); color: var(--fg); box-shadow: 0 0 0 1px var(--line); }
+.list { display: flex; flex-direction: column; gap: 6px; min-height: 120px; }
+.list .empty { color: var(--muted); text-align: center; padding: 26px 10px; line-height: 1.5; }
+.lr { display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 14px; background: var(--bg); border: 1px solid var(--line); }
+.lr .n { font-family: var(--font-display); font-size: 15px; color: var(--muted); text-align: center; }
+.lr:nth-child(1) .n { color: var(--gold); }
+.lr .who { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.lr .who b { font-weight: 800; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lr .who span { font-size: 12px; color: var(--muted); font-weight: 700; }
+.lr .sc { font-family: var(--font-display); font-size: 16px; }
+.lr.me { border-color: color-mix(in srgb, var(--mint) 60%, transparent); background: color-mix(in srgb, var(--mint) 8%, var(--bg)); }
+.lr.me .who b::after { content: ' · ты'; color: var(--mint); font-weight: 800; }
+.note { font-size: 12px; color: var(--muted); text-align: center; line-height: 1.45; margin: 0; }
+
+.over-k { font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); text-align: center; }
+.over-score { font-family: var(--font-display); font-size: clamp(40px, 13vw, 58px); line-height: 1; text-align: center; color: var(--mint); text-shadow: 0 0 30px rgba(61,242,194,.4); }
+.over-best { align-self: center; padding: 5px 12px; border-radius: 999px; background: var(--gold); color: #1E1700; font-weight: 900; font-size: 13px; letter-spacing: .04em; animation: pulse .5s ease-out 2; }
+@keyframes pulse { 40% { transform: scale(1.08); } }
+.over-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.over-stats div { border-radius: 14px; background: var(--bg); border: 1px solid var(--line); padding: 8px; text-align: center; display: flex; flex-direction: column; gap: 2px; }
+.over-stats span { font-size: 10.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.over-stats b { font-family: var(--font-display); font-weight: 400; font-size: 17px; }
+.over-rank { text-align: center; font-weight: 800; font-size: 15px; line-height: 1.45; min-height: 22px; }
+.over-rank .gold { color: var(--gold); }
+.over-rank .dim { color: var(--muted); font-weight: 700; font-size: 13px; }
+.over-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.over-actions .btn.primary { grid-column: 1 / -1; height: 54px; font-size: 17px; }
+.name-ask { display: flex; gap: 8px; }
+.name-ask .btn { flex: none; }
+
+.help { display: flex; flex-direction: column; gap: 12px; font-size: 15px; line-height: 1.5; }
+.help p { margin: 0; }
+.help b { color: var(--fg); }
+.help .rule { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 16px; background: var(--bg); border: 1px solid var(--line); }
+.help .rule .t { font-weight: 900; color: var(--mint); font-size: 13px; letter-spacing: .06em; text-transform: uppercase; }
+.mini { --cell: 34px; display: flex; gap: 2px; align-items: flex-end; flex-wrap: wrap; }
+.mini .atom { position: relative; transform: none !important; }
+.mini .col { display: flex; flex-direction: column-reverse; gap: 2px; }
+.mini .gap { width: 34px; height: 34px; border-radius: 50%; border: 1px dashed var(--line); }
+.mini .atom.hot .orb { animation: none; box-shadow: 0 0 0 3px #fff, 0 0 18px var(--c); }
+.pts { display: flex; flex-wrap: wrap; gap: 6px; }
+.pts span { padding: 4px 8px; border-radius: 8px; background: var(--surface2); font-weight: 800; font-size: 13px; }
+
+.toast {
+  position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); z-index: 40; transform: translate(-50%, 20px); opacity: 0; pointer-events: none;
+  background: var(--fg); color: var(--bg); font-weight: 800; padding: 10px 16px; border-radius: 12px; max-width: calc(100% - 32px); text-align: center; transition: all .25s;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+@media (prefers-reduced-motion: reduce) {
+  .hero-atoms .atom { animation: none !important; }
+}
+</style>
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="Реактор">
+<script>if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('../sw.js', { scope: '../' }).catch(() => {}));</script>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="top-l">
+      <a class="icon-btn" id="btnGames" href="../games/" aria-label="Все игры">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      </a>
+      <button class="icon-btn" id="btnBack" aria-label="В меню" hidden>
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <div class="brand" id="brand">Распад</div>
+    </div>
+    <div class="top-r">
+      <button class="icon-btn" id="btnSound" aria-label="Звук"></button>
+      <button class="icon-btn" id="btnTopBar" aria-label="Рекорды">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>
+      </button>
+      <button class="icon-btn" id="btnHelp" aria-label="Как играть">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.6 2.6 0 0 1 5 .9c0 1.7-2.5 2.2-2.5 3.6"/><path d="M12 17.2h.01"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- МЕНЮ -->
+  <section class="screen menu" id="scrMenu">
+    <div class="hero">
+      <div class="hero-row">
+        <div class="hero-atoms" id="heroAtoms" aria-hidden="true"></div>
+      </div>
+      <h1>Распад</h1>
+      <p class="lead">Бросай атомы в реактор. Атом <b>распадается</b>, когда его число равно длине ряда или высоте столбца. Цепные реакции дают кучу очков, а снизу ползёт броня.</p>
+    </div>
+
+    <button class="card daily" id="btnDaily">
+      <div class="ic">🔥</div>
+      <div class="tx"><b>Задание дня</b><span id="dailyDate">У всех одинаковые атомы: честная битва за рекорд дня</span><em class="lead-line" id="dailyLead">Загружаю лидера…</em><em id="dailyMine"></em></div>
+      <div class="go">›</div>
+    </button>
+    <button class="restart" id="btnDailyNew" hidden>Начать задание дня заново</button>
+
+    <button class="card free" id="btnFree">
+      <div class="ic">⚛️</div>
+      <div class="tx"><b>Свободная игра</b><span id="freeSub">Случайные атомы каждый раз, рекорд за всё время</span><em class="lead-line" id="freeLead"></em><em id="freeMine"></em></div>
+      <div class="go">›</div>
+    </button>
+    <button class="restart" id="btnFreeNew" hidden>Начать свободную игру заново</button>
+
+    <div class="field-row">
+      <label class="label" for="inName">Твоё имя в рекордах</label>
+      <input class="inp" id="inName" maxlength="16" autocomplete="nickname" placeholder="Как тебя звать">
+    </div>
+    <div class="row2">
+      <button class="btn" id="btnTop">🏆 Рекорды</button>
+      <button class="btn" id="btnHelp2">📖 Как играть</button>
+    </div>
+  </section>
+
+  <!-- ИГРА -->
+  <section class="screen" id="scrGame" hidden>
+    <div class="hud">
+      <div class="stat main"><span>Очки</span><b id="hudScore">0</b></div>
+      <div class="stat"><span>Уровень</span><b id="hudLevel">1</b></div>
+      <div class="stat"><span>Цепь</span><b id="hudChain">—</b></div>
+    </div>
+    <div class="rise" id="rise"><span class="rise-label" id="riseLabel"></span><div class="dots" id="riseDots"></div></div>
+    <div class="stage" id="stage">
+      <div class="field" id="field" role="application" aria-label="Реактор 7 на 7. Нажми на столбец, чтобы бросить атом. Клавиши 1–7 бросают, пробел меняет с запасом.">
+        <div class="grid" id="grid"></div>
+        <div class="aim" id="aim"></div>
+        <div class="ghost" id="ghost"></div>
+        <div class="layer" id="layer"></div>
+        <div class="fx" id="fx"></div>
+      </div>
+    </div>
+    <div class="dock">
+      <div class="slot cur"><div id="slotCur"></div><div class="k"><span>Бросаешь</span><b id="curTip">тапни столбец</b></div></div>
+      <button class="swap" id="btnSwap" aria-label="Поменять с запасом">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4 3 8l4 4"/><path d="M3 8h13a4 4 0 0 1 4 4"/><path d="m17 20 4-4-4-4"/><path d="M21 16H8a4 4 0 0 1-4-4"/></svg>
+      </button>
+      <button class="slot hold" id="slotHoldBtn" aria-label="Взять атом из запаса"><div id="slotHold"></div><div class="k"><span>Запас</span><b>поменять</b></div></button>
+    </div>
+  </section>
+</div>
+
+<!-- РЕКОРДЫ -->
+<div class="overlay" id="ovTop" hidden>
+  <div class="panel" role="dialog" aria-label="Рекорды">
+    <div class="sheet-head"><b>🏆 Рекорды</b><button class="icon-btn" data-close aria-label="Закрыть">✕</button></div>
+    <div class="tabs" id="topTabs"><button data-t="daily" class="on">Задание дня</button><button data-t="free">Свободная</button></div>
+    <p class="note" id="topNote"></p>
+    <div class="list" id="topList"></div>
+  </div>
+</div>
+
+<!-- КАК ИГРАТЬ -->
+<div class="overlay" id="ovHelp" hidden>
+  <div class="panel" role="dialog" aria-label="Как играть">
+    <div class="sheet-head"><b>Как играть</b><button class="icon-btn" data-close aria-label="Закрыть">✕</button></div>
+    <div class="help">
+      <p>Нажми на столбец (или веди пальцем и отпусти), и атом упадёт вниз. Цель: продержаться подольше и набрать больше очков.</p>
+      <div class="rule">
+        <div class="t">Когда атом распадается</div>
+        <p>Если его <b>число = сколько атомов стоит в его ряду подряд</b>, без пустых клеток.</p>
+        <div class="mini" id="exRow"></div>
+        <p>Или если его <b>число = высота его столбца</b>.</p>
+        <div class="mini" id="exCol"></div>
+      </div>
+      <div class="rule">
+        <div class="t">Цепные реакции</div>
+        <p>После распада всё над ним падает вниз. Появились новые совпадения? Это цепь, и каждое звено дорожает. Очки за каждый атом:</p>
+        <div class="pts"><span>×1 → 10</span><span>×2 → 40</span><span>×3 → 100</span><span>×4 → 200</span><span>×5 → 350</span><span>×6 → 560</span><span>×7 → 840</span><span>×8 → 1200</span></div>
+      </div>
+      <div class="rule">
+        <div class="t">Броня</div>
+        <p>Серые атомы в броне сами не распадаются. Каждый распад рядом с ними бьёт по броне: <b>первый удар трескает, второй открывает число</b>.</p>
+        <div class="mini" id="exArm"></div>
+        <p>Каждые несколько бросков снизу <b>поднимается целый ряд брони</b>. Шкала над реактором показывает, сколько бросков осталось. С каждым уровнем подъёмы чаще. Если какой-то столбец вылезет за верх — конец игры.</p>
+      </div>
+      <div class="rule">
+        <div class="t">Запас</div>
+        <p>У тебя всегда два атома: тот, что бросаешь, и запасной. Кнопка ⇄ меняет их местами, сколько угодно раз. Планируй на два хода вперёд!</p>
+      </div>
+      <div class="rule">
+        <div class="t">Задание дня</div>
+        <p>Сегодня у всех <b>одни и те же атомы и подъёмы</b>, так что сравнение с братом честное. Пробовать можно сколько угодно, в таблицу идёт лучший результат. Завтра новое задание.</p>
+      </div>
+      <p class="note">Бонусы: новый уровень +100 × уровень, пустой реактор +5000. На компьютере: клавиши 1–7 бросают, ← → целятся, пробел меняет с запасом.</p>
+      <button class="btn primary" data-close>Понятно, играем</button>
+    </div>
+  </div>
+</div>
+
+<!-- КОНЕЦ ИГРЫ -->
+<div class="overlay" id="ovOver" hidden>
+  <div class="panel" role="dialog" aria-label="Конец игры">
+    <div class="over-k" id="ovKind">Реактор переполнен</div>
+    <div class="over-score" id="ovScore">0</div>
+    <div class="over-best" id="ovBest" hidden>🔥 Новый личный рекорд!</div>
+    <div class="over-stats">
+      <div><span>Уровень</span><b id="ovLevel">1</b></div>
+      <div><span>Бросков</span><b id="ovDrops">0</b></div>
+      <div><span>Цепь</span><b id="ovChain">0</b></div>
+    </div>
+    <div class="over-rank" id="ovRank"></div>
+    <div class="name-ask" id="ovNameBox" hidden>
+      <input class="inp" id="ovName" maxlength="16" autocomplete="nickname" placeholder="Имя для таблицы рекордов">
+      <button class="btn gold" id="ovNameSave">Сохранить</button>
+    </div>
+    <div class="over-actions">
+      <button class="btn primary" id="ovAgain">Ещё раз</button>
+      <button class="btn" id="ovTopBtn">🏆 Рекорды</button>
+      <button class="btn" id="ovMenu">Меню</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(() => {
+'use strict';
+const APP = 'raspad';
+const SB_URL = 'https://ulfqprrjdyycznobirxw.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVsZnFwcnJqZHl5Y3pub2Jpcnh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM3OTg4NTMsImV4cCI6MjEwOTM3NDg1M30.zIjRlMNnqg59jZRprHcCoIkoBiIis45vw5vP4bhF_tc';
+const W = 7, H = 7;
+const CFG = { startDrops: 16, minDrops: 5, armorChance: 0.1, clearBonus: 5000 };
+const FAST = /[?&]fast=1/.test(location.search);
+const T = ms => FAST ? Math.max(1, Math.round(ms / 12)) : ms;
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(APP + ':' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { if (v == null) localStorage.removeItem(APP + ':' + k); else localStorage.setItem(APP + ':' + k, JSON.stringify(v)); } catch (e) {} }
+};
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const plural = (n, a, b, c) => { const m10 = n % 10, m100 = n % 100; if (m10 === 1 && m100 !== 11) return a; if (m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20)) return b; return c; };
+const fmt = n => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+const pad2 = n => String(n).padStart(2, '0');
+const todayStr = () => { const d = new Date(); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); };
+const dayHuman = s => { const [y, m, d] = s.split('-').map(Number); try { return new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long' }).format(new Date(y, m - 1, d)); } catch (e) { return s; } };
+
+/* =====================================================================
+   ДВИЖОК. Чистая логика: ход → журнал событий, который потом проигрывает анимация.
+   Все случайности считаются от зерна и номера, поэтому задание дня одинаковое у всех,
+   как бы игрок ни пользовался запасом.
+   ===================================================================== */
+function hash32(a, b, c) {
+  let h = (a ^ 0x9E3779B9) >>> 0;
+  h = Math.imul(h ^ (b + 0x85EBCA6B), 0xC2B2AE35) >>> 0;
+  h = Math.imul(h ^ (c + 0x27D4EB2F), 0x165667B1) >>> 0;
+  h ^= h >>> 15; h = Math.imul(h, 0x2C1B3C6D) >>> 0; h ^= h >>> 12; h = Math.imul(h, 0x297A2D39) >>> 0; h ^= h >>> 15;
+  return h >>> 0;
+}
+const rnd = (seed, stream, i) => hash32(seed, stream, i) / 4294967296;
+function fnv(str) { let h = 0x811C9DC5; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193); } return h >>> 0; }
+const pts = c => 10 * c * (c + 1) * (c + 2) / 6;
+const dropsFor = l => Math.max(CFG.minDrops, CFG.startDrops - (l - 1));
+const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+let uid = 1;
+const mk = (v, s) => ({ id: uid++, v, s });
+const pieceAt = (seed, i) => mk(1 + Math.floor(rnd(seed, 1, i) * 7), rnd(seed, 2, i) < CFG.armorChance ? 2 : 0);
+const rowAt = (seed, stream, k) => Array.from({ length: W }, (_, x) => mk(1 + Math.floor(rnd(seed, stream, k * W + x) * 7), 2));
+
+function findMarks(cols) {
+  const marked = [];
+  for (let x = 0; x < W; x++) {
+    const col = cols[x];
+    for (let y = 0; y < col.length; y++) {
+      const a = col[y];
+      if (a.s > 0) continue;
+      let hit = a.v === col.length;
+      if (!hit) {
+        let l = x, r = x;
+        while (l > 0 && cols[l - 1].length > y) l--;
+        while (r < W - 1 && cols[r + 1].length > y) r++;
+        hit = a.v === r - l + 1;
+      }
+      if (hit) marked.push([x, y]);
+    }
+  }
+  return marked;
+}
+const snap = cols => { const out = []; cols.forEach((c, x) => c.forEach((a, y) => out.push([a.id, x, y, a.v, a.s]))); return out; };
+
+function newState(mode, day, seed) {
+  const g = { ver: 1, mode, day, seed, cols: Array.from({ length: W }, () => []), score: 0, level: 1, dropsLeft: dropsFor(1),
+    drops: 0, next: 2, rises: 0, bestChain: 0, popped: 0, over: false, overWhy: null };
+  rowAt(seed, 4, 0).forEach((a, x) => g.cols[x].push(a));
+  g.cur = pieceAt(seed, 0);
+  g.hold = pieceAt(seed, 1);
+  return g;
+}
+
+function resolveLog(g, log) {
+  let chain = 0;
+  for (;;) {
+    const marked = findMarks(g.cols);
+    if (!marked.length) break;
+    chain++;
+    const gain = marked.length * pts(chain);
+    g.score += gain; g.popped += marked.length;
+    const ids = marked.map(([x, y]) => g.cols[x][y].id);
+    const isM = new Set(marked.map(([x, y]) => x * 16 + y));
+    const cracks = [];
+    for (const [x, y] of marked) {
+      for (const [dx, dy] of DIRS) {
+        const nx = x + dx, ny = y + dy;
+        if (nx < 0 || nx >= W || ny < 0) continue;
+        const a = g.cols[nx][ny];
+        if (!a || a.s === 0 || isM.has(nx * 16 + ny)) continue;
+        a.s--; cracks.push([a.id, a.s]);
+      }
+    }
+    let cx = 0, cy = 0;
+    for (const [x, y] of marked) { cx += x; cy += y; }
+    cx /= marked.length; cy /= marked.length;
+    for (let x = 0; x < W; x++) g.cols[x] = g.cols[x].filter((_, y) => !isM.has(x * 16 + y));
+    log.push({ t: 'step', chain, ids, cracks, gain, score: g.score, cx, cy, after: snap(g.cols) });
+  }
+  if (chain > g.bestChain) g.bestChain = chain;
+  return chain;
+}
+
+function playMove(g, x) {
+  if (g.over || g.cols[x].length >= H) return null;
+  const log = [];
+  const a = g.cur;
+  g.cols[x].push(a);
+  log.push({ t: 'land', id: a.id, x, y: g.cols[x].length - 1, after: snap(g.cols) });
+  resolveLog(g, log);
+  g.drops++; g.dropsLeft--;
+  g.cur = pieceAt(g.seed, g.next++);
+  if (g.dropsLeft <= 0) {
+    g.level++;
+    const bonus = 100 * g.level;
+    g.score += bonus;
+    log.push({ t: 'level', level: g.level, bonus, score: g.score });
+    const row = rowAt(g.seed, 3, g.rises++);
+    const over = [];
+    for (let i = 0; i < W; i++) { g.cols[i].unshift(row[i]); for (let y = H; y < g.cols[i].length; y++) over.push(g.cols[i][y].id); }
+    log.push({ t: 'rise', ids: row.map(r => r.id), after: snap(g.cols) });
+    g.dropsLeft = dropsFor(g.level);
+    if (over.length) { g.over = true; g.overWhy = 'rise'; log.push({ t: 'over', ids: over }); }
+    else resolveLog(g, log);
+  }
+  if (!g.over && g.cols.every(c => c.length === 0)) { g.score += CFG.clearBonus; log.push({ t: 'clear', bonus: CFG.clearBonus, score: g.score }); }
+  if (!g.over && g.cols.every(c => c.length >= H)) { g.over = true; g.overWhy = 'full'; log.push({ t: 'over', ids: [] }); }
+  return log;
+}
+function swapHold(g) { const t = g.cur; g.cur = g.hold; g.hold = t; }
+
+/* =====================================================================
+   ЗВУК
+   ===================================================================== */
+let soundOn = store.get('sound', true);
+let actx = null, master = null, noiseBuf = null;
+function ensureAudio() {
+  if (actx) { if (actx.state === 'suspended') actx.resume(); return; }
+  try {
+    actx = new (window.AudioContext || window.webkitAudioContext)();
+    master = actx.createGain(); master.gain.value = 0.7; master.connect(actx.destination);
+    const len = actx.sampleRate * 0.8; noiseBuf = actx.createBuffer(1, len, actx.sampleRate);
+    const d = noiseBuf.getChannelData(0); for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+  } catch (e) { actx = null; }
+}
+const quiet = () => !soundOn || !actx || FAST;
+function tone(f, d, o = {}) {
+  if (quiet()) return;
+  const t = actx.currentTime + (o.at || 0), osc = actx.createOscillator(), g = actx.createGain();
+  osc.type = o.type || 'sine'; osc.frequency.setValueAtTime(f, t);
+  if (o.slide) osc.frequency.exponentialRampToValueAtTime(f * o.slide, t + d);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(o.v || 0.15, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+  osc.connect(g); g.connect(master); osc.start(t); osc.stop(t + d + 0.05);
+}
+function noise(d, o = {}) {
+  if (quiet()) return;
+  const t = actx.currentTime + (o.at || 0), src = actx.createBufferSource(), f = actx.createBiquadFilter(), g = actx.createGain();
+  src.buffer = noiseBuf; f.type = o.type || 'bandpass'; f.frequency.value = o.f || 2000; f.Q.value = o.q || 1.5;
+  g.gain.setValueAtTime(o.v || 0.3, t); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+  src.connect(f); f.connect(g); g.connect(master); src.start(t); src.stop(t + d + 0.05);
+}
+const sfxLand = () => { tone(150, 0.09, { type: 'sine', v: 0.18, slide: 0.6 }); noise(0.05, { f: 900, q: 1, v: 0.12 }); };
+const sfxPop = c => { const f = 330 * Math.pow(2, Math.min(c - 1, 12) * 2 / 12); tone(f, 0.18, { type: 'triangle', v: 0.13, slide: 1.5 }); tone(f * 1.5, 0.14, { type: 'sine', v: 0.07, at: 0.04 }); noise(0.12, { f: 3000, q: 0.8, v: 0.16 }); };
+const sfxCrack = () => noise(0.06, { f: 5200, q: 4, v: 0.22 });
+const sfxReveal = () => { tone(990, 0.12, { type: 'triangle', v: 0.08 }); tone(1480, 0.18, { type: 'triangle', v: 0.06, at: 0.06 }); };
+const sfxRise = () => { noise(0.5, { type: 'lowpass', f: 260, q: 0.7, v: 0.5 }); tone(70, 0.45, { type: 'sawtooth', v: 0.06, slide: 1.4 }); };
+const sfxLevel = () => [0, 4, 7, 12].forEach((s, k) => tone(523 * Math.pow(2, s / 12), 0.25, { type: 'triangle', v: 0.1, at: k * 0.07 }));
+const sfxSwap = () => { tone(700, 0.06, { v: 0.07 }); tone(1050, 0.07, { v: 0.06, at: 0.05 }); };
+const sfxBad = () => tone(150, 0.12, { type: 'square', v: 0.045, slide: 0.75 });
+const sfxOver = () => { [0, -3, -7, -12].forEach((s, k) => tone(392 * Math.pow(2, s / 12), 0.35, { type: 'square', v: 0.05, at: k * 0.14 })); noise(0.8, { type: 'lowpass', f: 300, v: 0.4, at: 0.1 }); };
+const sfxClear = () => [0, 4, 7, 12, 16, 19].forEach((s, k) => tone(523 * Math.pow(2, s / 12), 0.4, { type: 'triangle', v: 0.12, at: k * 0.07 }));
+const buzz = ms => { if (FAST) return; try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} };
+const ICON_ON = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>';
+const ICON_OFF = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="m16 9 5 6"/><path d="m21 9-5 6"/></svg>';
+function renderSoundBtn() { const b = $('#btnSound'); b.innerHTML = soundOn ? ICON_ON : ICON_OFF; b.setAttribute('aria-label', soundOn ? 'Выключить звук' : 'Включить звук'); }
+
+/* =====================================================================
+   ОТРИСОВКА АТОМОВ
+   ===================================================================== */
+const ARMOR = [
+  '',
+  '<svg viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke="rgba(255,255,255,.75)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M50 14 44 34 56 46 46 62 52 86"/><path d="M56 46 74 50 82 64"/><path d="M44 34 26 30"/></g><g fill="rgba(0,0,0,.35)"><circle cx="24" cy="24" r="4"/><circle cx="76" cy="24" r="4"/><circle cx="24" cy="76" r="4"/><circle cx="76" cy="76" r="4"/></g></svg>',
+  '<svg viewBox="0 0 100 100" aria-hidden="true"><g fill="rgba(255,255,255,.35)"><circle cx="24" cy="24" r="5"/><circle cx="76" cy="24" r="5"/><circle cx="24" cy="76" r="5"/><circle cx="76" cy="76" r="5"/></g><path d="M30 50h40" stroke="rgba(0,0,0,.3)" stroke-width="5" stroke-linecap="round"/></svg>'
+];
+function setLook(el, v, s) {
+  el.dataset.v = v;
+  el.classList.toggle('arm', s > 0);
+  el.classList.toggle('s1', s === 1);
+  el.classList.toggle('s2', s === 2);
+  el.style.setProperty('--c', 'var(--c' + v + ')');
+  el.firstChild.innerHTML = s > 0 ? ARMOR[s] : '<b>' + v + '</b>';
+}
+function atomEl(v, s) {
+  const el = document.createElement('div');
+  el.className = 'atom';
+  el.appendChild(document.createElement('div')).className = 'orb';
+  setLook(el, v, s);
+  return el;
+}
+function replay(el, cls) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+
+const field = $('#field'), layer = $('#layer'), fx = $('#fx'), grid = $('#grid'), aimEl = $('#aim'), ghostEl = $('#ghost');
+const els = new Map();
+let cell = 48;
+let launchEl = null;
+const px = (x, y) => [x * cell, (H - y) * cell];
+function pos(el, x, y, dur, ease) {
+  el.style.transition = dur ? 'transform ' + dur + 'ms ' + (ease || 'cubic-bezier(.55,0,1,.45)') : 'none';
+  const [a, b] = px(x, y);
+  el.style.transform = 'translate(' + a + 'px,' + b + 'px)';
+  el._x = x; el._y = y;
+}
+function center(x, y) { const [a, b] = px(x, y); return [a + cell / 2, b + cell / 2]; }
+
+// Привести поле к снимку: создать новые атомы (spawn — откуда они вылетают), сдвинуть остальные.
+function sync(after, o = {}) {
+  const seen = new Set();
+  let maxD = 0;
+  for (const [id, x, y, v, s] of after) {
+    seen.add(id);
+    let el = els.get(id);
+    if (!el) {
+      el = atomEl(v, s); el._s = s;
+      layer.appendChild(el); els.set(id, el);
+      const sp = o.spawn ? o.spawn(x, y) : [x, y];
+      pos(el, sp[0], sp[1], 0);
+      void el.offsetWidth;
+    }
+    if (el._s !== s) { el._s = s; setLook(el, v, s); }
+    const d = Math.abs(el._y - y) + Math.abs(el._x - x);
+    if (d) { maxD = Math.max(maxD, d); pos(el, x, y, o.dur ? o.dur(d) : 0, o.ease); }
+  }
+  for (const [id, el] of els) if (!seen.has(id)) { el.remove(); els.delete(id); }
+  return maxD;
+}
+function clearField() { for (const el of els.values()) el.remove(); els.clear(); fx.innerHTML = ''; }
+
+function burst(x, y, v) {
+  const [cx, cy] = center(x, y);
+  const col = getComputedStyle(document.documentElement).getPropertyValue('--c' + v).trim() || '#fff';
+  const ring = document.createElement('div');
+  ring.className = 'ring';
+  Object.assign(ring.style, { left: cx + 'px', top: cy + 'px', width: '0px', height: '0px', borderColor: col });
+  fx.appendChild(ring);
+  ring.animate([{ width: '0px', height: '0px', margin: '0px', opacity: 0.9 }, { width: cell * 1.6 + 'px', height: cell * 1.6 + 'px', margin: -cell * 0.8 + 'px 0 0 ' + -cell * 0.8 + 'px', opacity: 0 }], { duration: T(380), easing: 'ease-out' }).onfinish = () => ring.remove();
+  const n = 7;
+  for (let i = 0; i < n; i++) {
+    const sp = document.createElement('div');
+    sp.className = 'spark';
+    sp.style.left = cx + 'px'; sp.style.top = cy + 'px'; sp.style.background = col;
+    sp.style.boxShadow = '0 0 8px ' + col;
+    fx.appendChild(sp);
+    const ang = (i / n) * Math.PI * 2 + Math.random() * 0.6, dist = cell * (0.7 + Math.random() * 0.6);
+    sp.animate([{ transform: 'translate(0,0) scale(1)', opacity: 1 }, { transform: 'translate(' + Math.cos(ang) * dist + 'px,' + Math.sin(ang) * dist + 'px) scale(.3)', opacity: 0 }],
+      { duration: T(420 + Math.random() * 200), easing: 'cubic-bezier(.2,.7,.3,1)' }).onfinish = () => sp.remove();
+  }
+}
+function floatText(text, x, y, color) {
+  const [cx, cy] = center(x, y);
+  const el = document.createElement('div');
+  el.className = 'float'; el.textContent = text;
+  el.style.left = cx + 'px'; el.style.top = cy + 'px';
+  if (color) el.style.color = color;
+  fx.appendChild(el);
+  el.animate([{ opacity: 0, translate: '0 6px', scale: 0.7 }, { opacity: 1, translate: '0 -8px', scale: 1.1, offset: 0.25 }, { opacity: 0, translate: '0 -' + cell * 0.9 + 'px', scale: 1 }],
+    { duration: T(900), easing: 'ease-out' }).onfinish = () => el.remove();
+}
+function badge(html, color, dur = 900) {
+  fx.querySelectorAll('.badge').forEach(b => b.remove());
+  const el = document.createElement('div');
+  el.className = 'badge'; el.innerHTML = html;
+  if (color) el.style.color = color;
+  fx.appendChild(el);
+  el.animate([{ opacity: 0, scale: 0.4 }, { opacity: 1, scale: 1.12, offset: 0.2 }, { opacity: 1, scale: 1, offset: 0.7 }, { opacity: 0, scale: 1.05 }],
+    { duration: T(dur), easing: 'ease-out' }).onfinish = () => el.remove();
+}
+function shake(power) {
+  if (FAST || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const p = Math.min(8, power);
+  field.animate([{ transform: 'translate(0,0)' }, { transform: 'translate(' + -p + 'px,' + p / 2 + 'px)' }, { transform: 'translate(' + p + 'px,' + -p / 2 + 'px)' }, { transform: 'translate(' + -p / 2 + 'px,0)' }, { transform: 'translate(0,0)' }], { duration: 260, easing: 'ease-out' });
+}
+
+/* =====================================================================
+   ИГРА
+   ===================================================================== */
+let g = null;
+let busy = false;
+let aimX = 3;
+let aiming = false;
+
+function layout() {
+  if ($('#scrGame').hidden) return;
+  const r = $('#stage').getBoundingClientRect();
+  const c = Math.max(28, Math.min(66, Math.floor(Math.min(r.width / W, r.height / (H + 1)))));
+  cell = c;
+  field.style.setProperty('--cell', c + 'px');
+  field.style.width = W * c + 'px';
+  field.style.height = (H + 1) * c + 'px';
+  for (const el of els.values()) pos(el, el._x, el._y, 0);
+  renderAim();
+}
+
+function renderLaunch(dur) {
+  if (!launchEl) { launchEl = atomEl(1, 0); launchEl.classList.add('launch'); field.insertBefore(launchEl, layer.nextSibling); }
+  if (!g) return;
+  setLook(launchEl, g.cur.v, g.cur.s);
+  launchEl.style.transition = dur === 0 ? 'none' : '';
+  const [a] = px(aimX, H);
+  launchEl.style.transform = 'translate(' + a + 'px,0px)';
+}
+function renderAim() {
+  if (!g) return;
+  const full = g.cols[aimX].length >= H;
+  aimEl.style.left = aimX * cell + 'px';
+  aimEl.classList.toggle('full', full);
+  aimEl.style.opacity = aiming || !busy ? (aiming ? 1 : 0.45) : 0;
+  ghostEl.hidden = full || busy;
+  if (!full) { const [a, b] = px(aimX, g.cols[aimX].length); ghostEl.style.transform = 'translate(' + a + 'px,' + b + 'px)'; }
+  renderLaunch();
+}
+function renderDock() {
+  const cur = $('#slotCur'), hold = $('#slotHold');
+  cur.innerHTML = ''; hold.innerHTML = '';
+  cur.appendChild(atomEl(g.cur.v, g.cur.s));
+  hold.appendChild(atomEl(g.hold.v, g.hold.s));
+  $('#curTip').textContent = g.cur.s ? 'броня' : (g.drops < 3 ? 'тапни столбец' : '');
+}
+function renderHud(bumpScore) {
+  const s = $('#hudScore');
+  s.textContent = fmt(g.score);
+  if (bumpScore) replay(s, 'bump');
+  $('#hudLevel').textContent = g.level;
+  $('#hudChain').textContent = g.bestChain ? '×' + g.bestChain : '—';
+}
+function renderRise() {
+  const total = dropsFor(g.level), left = g.dropsLeft;
+  const dots = $('#riseDots');
+  if (dots.childElementCount !== total) dots.innerHTML = '<i></i>'.repeat(total);
+  [...dots.children].forEach((d, i) => d.classList.toggle('on', i < left));
+  const warn = left <= 2;
+  $('#rise').classList.toggle('warn', warn);
+  grid.classList.toggle('warn', warn);
+  $('#riseLabel').innerHTML = 'Броня через <b>' + left + '</b> ' + plural(left, 'бросок', 'броска', 'бросков');
+}
+function renderAll() {
+  clearField();
+  layout();
+  sync(snap(g.cols));
+  renderHud(); renderRise(); renderDock(); renderAim();
+  $('#brand').innerHTML = 'Распад<small>' + (g.mode === 'daily' ? 'задание дня' : 'свободная') + '</small>';
+}
+
+function saveGame() { if (g) store.set('save:' + g.mode, g.over ? null : g); }
+
+async function animate(ev) {
+  if (ev.t === 'land') {
+    launchEl.classList.add('gone');
+    const d = sync(ev.after, { spawn: (x) => [x, H], dur: d => T(70 + 42 * d), ease: 'cubic-bezier(.55,0,1,.45)' });
+    await sleep(T(70 + 42 * Math.max(1, d)));
+    const el = els.get(ev.id); if (el) replay(el, 'land');
+    sfxLand();
+    await sleep(T(60));
+  } else if (ev.t === 'step') {
+    for (const id of ev.ids) { const el = els.get(id); if (el) el.classList.add('hot'); }
+    sfxPop(ev.chain);
+    if (ev.chain >= 3) buzz(20 + ev.chain * 6);
+    await sleep(T(ev.chain === 1 ? 200 : 240));
+    for (const id of ev.ids) {
+      const el = els.get(id); if (!el) continue;
+      burst(el._x, el._y, el.dataset.v);
+      el.classList.remove('hot'); el.classList.add('pop');
+      els.delete(id);
+      setTimeout(() => el.remove(), T(280));
+    }
+    let revealed = false, cracked = false;
+    for (const [id, s] of ev.cracks) {
+      const el = els.get(id); if (!el) continue;
+      el._s = s; setLook(el, el.dataset.v, s);
+      if (s === 0) { replay(el, 'reveal'); revealed = true; } else { replay(el, 'crack'); cracked = true; }
+    }
+    if (cracked) sfxCrack();
+    if (revealed) sfxReveal();
+    floatText('+' + fmt(ev.gain), ev.cx, ev.cy, ev.chain >= 3 ? 'var(--gold)' : null);
+    if (ev.chain >= 2) badge('ЦЕПЬ ×' + ev.chain, ev.chain >= 5 ? 'var(--c1)' : null, 1000);
+    if (ev.chain >= 3) shake(ev.chain);
+    $('#hudScore').textContent = fmt(ev.score); replay($('#hudScore'), 'bump');
+    await sleep(T(170));
+    const d = sync(ev.after, { dur: d => T(90 + 45 * d), ease: 'cubic-bezier(.55,0,1,.45)' });
+    if (d) await sleep(T(90 + 45 * d + 30));
+  } else if (ev.t === 'level') {
+    $('#hudScore').textContent = fmt(ev.score);
+    $('#hudLevel').textContent = ev.level; replay($('#hudLevel'), 'bump');
+    sfxLevel();
+    badge('УРОВЕНЬ ' + ev.level + '<small>+' + fmt(ev.bonus) + ' очков · броня поднимается</small>', 'var(--mint)', 1100);
+    await sleep(T(520));
+  } else if (ev.t === 'rise') {
+    sfxRise(); buzz(40);
+    sync(ev.after, { spawn: (x, y) => [x, y - 1], dur: () => T(380), ease: 'cubic-bezier(.3,.7,.4,1)' });
+    shake(5);
+    await sleep(T(420));
+  } else if (ev.t === 'clear') {
+    sfxClear();
+    badge('РЕАКТОР ЧИСТ!<small>+' + fmt(ev.bonus) + ' очков</small>', 'var(--gold)', 1400);
+    $('#hudScore').textContent = fmt(ev.score);
+    await sleep(T(700));
+  } else if (ev.t === 'over') {
+    for (const id of ev.ids) { const el = els.get(id); if (el) el.classList.add('dead'); }
+    grid.classList.add('warn');
+    sfxOver(); buzz([60, 40, 120]);
+    shake(8);
+    await sleep(T(1100));
+  }
+}
+
+async function drop(x) {
+  if (busy || !g || g.over) return;
+  ensureAudio();
+  if (g.cols[x].length >= H) { sfxBad(); buzz(30); aimX = x; aiming = true; renderAim(); setTimeout(() => { aiming = false; renderAim(); }, 350); return; }
+  busy = true; aimX = x; aiming = false;
+  renderAim();
+  const log = playMove(g, x);
+  saveGame();
+  for (const ev of log) await animate(ev);
+  renderHud(); renderRise(); renderDock();
+  launchEl.style.transition = 'none';
+  renderAim();
+  void launchEl.offsetWidth;
+  launchEl.classList.remove('gone');
+  launchEl.style.transition = '';
+  busy = false;
+  renderAim();
+  if (g.over) gameOver();
+}
+function swap() {
+  if (busy || !g || g.over) return;
+  ensureAudio();
+  swapHold(g);
+  saveGame();
+  renderDock(); renderAim();
+  sfxSwap();
+  const b = $('#btnSwap'); b.classList.toggle('spin');
+  const a = launchEl && launchEl.firstChild;
+  if (a) a.animate([{ transform: 'scale(.5) rotate(-90deg)', opacity: 0.3 }, { transform: 'none', opacity: 1 }], { duration: 200, easing: 'ease-out' });
+}
+
+function colFromEvent(e) {
+  const r = field.getBoundingClientRect();
+  return Math.max(0, Math.min(W - 1, Math.floor((e.clientX - r.left) / (r.width / W))));
+}
+field.addEventListener('pointerdown', e => {
+  if (!g || busy || g.over) return;
+  ensureAudio();
+  aiming = true; aimX = colFromEvent(e);
+  try { field.setPointerCapture(e.pointerId); } catch (err) {}
+  renderAim();
+});
+field.addEventListener('pointermove', e => {
+  if (!g || busy) return;
+  const x = colFromEvent(e);
+  if (aiming || e.pointerType === 'mouse') { if (x !== aimX) { aimX = x; renderAim(); } }
+});
+field.addEventListener('pointerup', e => {
+  if (!aiming) return;
+  aiming = false;
+  const r = field.getBoundingClientRect();
+  const inside = e.clientX >= r.left - 20 && e.clientX <= r.right + 20 && e.clientY >= r.top - 60 && e.clientY <= r.bottom + 30;
+  if (inside) drop(colFromEvent(e)); else renderAim();
+});
+field.addEventListener('pointercancel', () => { aiming = false; renderAim(); });
+$('#btnSwap').addEventListener('click', swap);
+$('#slotHoldBtn').addEventListener('click', swap);
+addEventListener('keydown', e => {
+  if ($('#scrGame').hidden || !g || document.querySelector('.overlay:not([hidden])')) return;
+  if (e.target && e.target.tagName === 'INPUT') return;
+  if (/^[1-7]$/.test(e.key)) { e.preventDefault(); drop(Number(e.key) - 1); }
+  else if (e.key === 'ArrowLeft') { e.preventDefault(); if (!busy) { aimX = Math.max(0, aimX - 1); renderAim(); } }
+  else if (e.key === 'ArrowRight') { e.preventDefault(); if (!busy) { aimX = Math.min(W - 1, aimX + 1); renderAim(); } }
+  else if (e.key === 'ArrowDown' || e.key === 'Enter') { e.preventDefault(); drop(aimX); }
+  else if (e.key === ' ' || e.key === 'ArrowUp' || e.key.toLowerCase() === 's') { e.preventDefault(); swap(); }
+});
+addEventListener('resize', layout);
+if (window.visualViewport) visualViewport.addEventListener('resize', layout);
+
+/* =====================================================================
+   ЭКРАНЫ И ПАРТИИ
+   ===================================================================== */
+function maxId(st) { let m = 0; for (const c of st.cols) for (const a of c) m = Math.max(m, a.id); return Math.max(m, st.cur.id, st.hold.id); }
+function loadSave(mode) {
+  const s = store.get('save:' + mode, null);
+  if (!s || s.ver !== 1 || s.over || !Array.isArray(s.cols)) return null;
+  if (mode === 'daily' && s.day !== todayStr()) return null;
+  return s;
+}
+function startGame(mode, fresh) {
+  let s = fresh ? null : loadSave(mode);
+  if (s) { g = s; uid = maxId(g) + 1; }
+  else {
+    const day = todayStr();
+    let seed;
+    if (mode === 'daily') seed = fnv('raspad|' + day);
+    else { try { seed = crypto.getRandomValues(new Uint32Array(1))[0]; } catch (e) { seed = (Math.random() * 4294967296) >>> 0; } }
+    g = newState(mode, mode === 'daily' ? day : null, seed);
+    saveGame();
+  }
+  busy = false; aiming = false; aimX = 3;
+  showScreen('game');
+  renderAll();
+  if (!store.get('helped', false)) { store.set('helped', true); openHelp(); }
+}
+function showScreen(which) {
+  $('#scrMenu').hidden = which !== 'menu';
+  $('#scrGame').hidden = which !== 'game';
+  $('#btnGames').hidden = which !== 'menu';
+  $('#btnBack').hidden = which !== 'game';
+  if (which === 'menu') { $('#brand').textContent = 'Распад'; renderMenu(); }
+  else requestAnimationFrame(layout);
+}
+
+/* ---------- имя и рекорды ---------- */
+function guessName() {
+  let n = store.get('name', null);
+  if (n != null) return n;
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && /:name$/.test(k) && !k.startsWith(APP + ':')) { const v = JSON.parse(localStorage.getItem(k)); if (v && String(v).trim()) return String(v).trim().slice(0, 16); }
+    }
+  } catch (e) {}
+  return '';
+}
+const myName = () => String(store.get('name', '') || '').trim().slice(0, 16);
+const keyName = s => String(s || '').trim().toLowerCase().replace(/ё/g, 'е');
+$('#inName').value = guessName();
+if ($('#inName').value && store.get('name', null) == null) store.set('name', $('#inName').value);
+$('#inName').addEventListener('input', e => store.set('name', e.target.value.trim().slice(0, 16)));
+
+async function sb(path, opts = {}) {
+  const r = await fetch(SB_URL + '/rest/v1/' + path, Object.assign({}, opts, {
+    headers: Object.assign({ apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' }, opts.headers || {})
+  }));
+  if (!r.ok) throw new Error('http ' + r.status);
+  const t = await r.text();
+  return t ? JSON.parse(t) : null;
+}
+async function submitRec(rec) {
+  await sb('raspad_scores', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(rec) });
+}
+async function flushPending() {
+  const list = store.get('pending', []) || [];
+  if (!list.length) return;
+  const left = [];
+  for (const rec of list) { try { await submitRec(rec); } catch (e) { left.push(rec); } }
+  store.set('pending', left.length ? left : null);
+}
+const cache = {};
+async function fetchTop(kind, day) {
+  const q = kind === 'daily'
+    ? 'raspad_scores?select=player,score,level,best_chain,drops&mode=eq.daily&day=eq.' + day + '&order=score.desc,created_at.asc&limit=300'
+    : 'raspad_scores?select=player,score,level,best_chain,drops&mode=eq.free&order=score.desc,created_at.asc&limit=500';
+  const rows = await sb(q);
+  const seen = new Set(), out = [];
+  for (const r of rows || []) { const k = keyName(r.player); if (!k || seen.has(k)) continue; seen.add(k); out.push(r); }
+  cache[kind + (day || '')] = out;
+  return out;
+}
+
+/* ---------- меню ---------- */
+function bestFree() { return store.get('bestFree', 0) || 0; }
+function bestDaily(day) { const b = store.get('bestDaily', null); return b && b.day === day ? b.score : 0; }
+async function renderMenu() {
+  const day = todayStr();
+  $('#dailyDate').textContent = 'Сегодня, ' + dayHuman(day) + ': у всех одинаковые атомы, честная битва за рекорд дня';
+  const ds = loadSave('daily'), fs = loadSave('free');
+  const bd = bestDaily(day), bf = bestFree();
+  $('#dailyMine').textContent = ds ? '▶ Продолжить: ' + fmt(ds.score) + ' очков, уровень ' + ds.level : (bd ? 'Твой лучший сегодня: ' + fmt(bd) : 'Ты сегодня ещё не играл');
+  $('#freeMine').textContent = fs ? '▶ Продолжить: ' + fmt(fs.score) + ' очков, уровень ' + fs.level : (bf ? 'Твой рекорд: ' + fmt(bf) : 'Рекорда пока нет');
+  $('#btnDailyNew').hidden = !ds;
+  $('#btnFreeNew').hidden = !fs;
+  await flushPending();
+  try {
+    const top = await fetchTop('daily', day);
+    $('#dailyLead').textContent = top.length ? '👑 Лидер дня: ' + top[0].player + ' — ' + fmt(top[0].score) : 'Сегодня ещё никто не играл. Будь первым!';
+  } catch (e) { $('#dailyLead').textContent = 'Таблица не загрузилась, проверь интернет'; }
+  try {
+    const top = await fetchTop('free');
+    $('#freeLead').textContent = top.length ? '👑 Рекорд: ' + top[0].player + ' — ' + fmt(top[0].score) : '';
+  } catch (e) { $('#freeLead').textContent = ''; }
+}
+$('#btnDaily').addEventListener('click', () => { ensureAudio(); startGame('daily', false); });
+$('#btnFree').addEventListener('click', () => { ensureAudio(); startGame('free', false); });
+$('#btnDailyNew').addEventListener('click', () => { if (confirm('Начать задание дня заново? Текущая попытка не пойдёт в таблицу.')) startGame('daily', true); });
+$('#btnFreeNew').addEventListener('click', () => { if (confirm('Начать заново? Текущая игра не пойдёт в таблицу.')) startGame('free', true); });
+$('#btnBack').addEventListener('click', () => { if (busy) return; showScreen('menu'); });
+
+/* ---------- рекорды ---------- */
+let topKind = 'daily';
+function openTop(kind) {
+  topKind = kind || topKind;
+  $('#ovTop').hidden = false;
+  renderTop();
+}
+async function renderTop() {
+  [...$('#topTabs').children].forEach(b => b.classList.toggle('on', b.dataset.t === topKind));
+  const day = todayStr();
+  $('#topNote').textContent = topKind === 'daily' ? 'Сегодня, ' + dayHuman(day) + '. Лучший результат каждого игрока.' : 'За всё время. Лучший результат каждого игрока.';
+  const list = $('#topList');
+  const key = topKind + (topKind === 'daily' ? day : '');
+  const draw = rows => {
+    if (!rows.length) { list.innerHTML = '<div class="empty">Пока пусто. Сыграй первым,<br>и брату будет что побивать.</div>'; return; }
+    const me = keyName(myName());
+    list.innerHTML = rows.slice(0, 50).map((r, i) => '<div class="lr' + (me && keyName(r.player) === me ? ' me' : '') + '"><div class="n">' + (i + 1) + '</div><div class="who"><b>' + esc(r.player) + '</b><span>ур. ' + r.level + ' · цепь ×' + r.best_chain + ' · ' + r.drops + ' ' + plural(r.drops, 'бросок', 'броска', 'бросков') + '</span></div><div class="sc">' + fmt(r.score) + '</div></div>').join('');
+  };
+  if (cache[key]) draw(cache[key]); else list.innerHTML = '<div class="empty">Загружаю…</div>';
+  try { await flushPending(); draw(await fetchTop(topKind, day)); }
+  catch (e) { if (!cache[key]) list.innerHTML = '<div class="empty">Не получилось загрузить таблицу.<br>Проверь интернет и открой ещё раз.</div>'; }
+}
+$('#topTabs').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { topKind = b.dataset.t; renderTop(); } });
+$('#btnTop').addEventListener('click', () => openTop());
+$('#btnTopBar').addEventListener('click', () => openTop(g && !$('#scrGame').hidden ? g.mode : undefined));
+
+/* ---------- помощь ---------- */
+function miniRow(cells) {
+  return cells.map(c => {
+    if (c == null) return '<div class="gap"></div>';
+    const el = atomEl(c.v, c.s || 0); if (c.hot) el.classList.add('hot');
+    return el.outerHTML;
+  }).join('');
+}
+function buildHelp() {
+  $('#exRow').innerHTML = miniRow([{ v: 5 }, { v: 3, hot: true }, { v: 6 }, null, { v: 2 }]);
+  $('#exRow').insertAdjacentHTML('beforeend', '<span class="note" style="align-self:center;margin-left:6px">3 атома подряд → тройка распадётся</span>');
+  const col = '<div class="col">' + miniRow([{ v: 6 }, { v: 5 }, { v: 2 }, { v: 4, hot: true }]) + '</div>';
+  $('#exCol').innerHTML = col + '<span class="note" style="align-self:center;margin-left:8px;text-align:left">в столбце 4 атома → верхняя четвёрка распадётся</span>';
+  $('#exArm').innerHTML = miniRow([{ v: 1, s: 2 }, { v: 1, s: 1 }, { v: 6 }]) + '<span class="note" style="align-self:center;margin-left:8px;text-align:left">целая → треснула → открылась</span>';
+}
+function openHelp() { buildHelp(); $('#ovHelp').hidden = false; }
+$('#btnHelp').addEventListener('click', openHelp);
+$('#btnHelp2').addEventListener('click', openHelp);
+document.querySelectorAll('.overlay').forEach(ov => {
+  ov.addEventListener('click', e => { if (e.target === ov && ov.id !== 'ovOver') ov.hidden = true; if (e.target.closest('[data-close]')) ov.hidden = true; });
+});
+addEventListener('keydown', e => { if (e.key === 'Escape') ['ovTop', 'ovHelp'].forEach(id => { $('#' + id).hidden = true; }); });
+
+/* ---------- конец игры ---------- */
+let lastRec = null;
+async function gameOver() {
+  saveGame();
+  const ov = $('#ovOver');
+  $('#ovKind').textContent = g.overWhy === 'full' ? 'Реактор забит доверху' : 'Броня выдавила атом за край';
+  $('#ovScore').textContent = fmt(g.score);
+  $('#ovLevel').textContent = g.level;
+  $('#ovDrops').textContent = g.drops;
+  $('#ovChain').textContent = g.bestChain ? '×' + g.bestChain : '—';
+  let isBest = false;
+  if (g.mode === 'free') { if (g.score > bestFree()) { store.set('bestFree', g.score); isBest = g.score > 0; } }
+  else if (g.score > bestDaily(g.day)) { store.set('bestDaily', { day: g.day, score: g.score }); isBest = g.score > 0; }
+  $('#ovBest').hidden = !isBest;
+  $('#ovBest').textContent = g.mode === 'daily' ? '🔥 Твой лучший результат дня!' : '🔥 Новый личный рекорд!';
+  $('#ovRank').innerHTML = '';
+  $('#ovNameBox').hidden = true;
+  ov.hidden = false;
+  lastRec = { mode: g.mode, day: g.mode === 'daily' ? g.day : null, score: g.score, drops: g.drops, level: g.level, best_chain: g.bestChain };
+  if (g.score <= 0) { $('#ovRank').innerHTML = '<span class="dim">0 очков в таблицу не идут</span>'; return; }
+  if (!myName()) { $('#ovNameBox').hidden = false; $('#ovName').value = ''; $('#ovRank').innerHTML = '<span class="dim">Впиши имя, чтобы результат попал в таблицу</span>'; return; }
+  sendAndRank();
+}
+async function sendAndRank() {
+  if (!lastRec) return;
+  const rec = Object.assign({ player: myName() }, lastRec);
+  lastRec = null;
+  const box = $('#ovRank');
+  box.innerHTML = '<span class="dim">Отправляю в таблицу…</span>';
+  try { await submitRec(rec); }
+  catch (e) {
+    const p = store.get('pending', []) || []; p.push(rec); store.set('pending', p);
+    box.innerHTML = '<span class="dim">Нет связи: результат сохранён и уйдёт в таблицу, когда появится интернет</span>';
+    return;
+  }
+  try {
+    const rows = await fetchTop(rec.mode, rec.day);
+    const me = keyName(rec.player);
+    const i = rows.findIndex(r => keyName(r.player) === me);
+    const where = rec.mode === 'daily' ? 'в задании дня' : 'за всё время';
+    if (i === 0) {
+      const second = rows[1];
+      box.innerHTML = '<span class="gold">👑 Ты первый ' + where + '!</span>' + (second ? '<br><span class="dim">' + esc(second.player) + ' отстаёт на ' + fmt(rows[0].score - second.score) + '</span>' : '');
+    } else if (i > 0) {
+      const lead = rows[0], mine = rows[i];
+      const note = mine.score > rec.score ? 'Твой лучший: ' + fmt(mine.score) + '. ' : '';
+      box.innerHTML = 'Ты #' + (i + 1) + ' ' + where + '<br><span class="dim">' + note + 'До первого места (' + esc(lead.player) + '): ' + fmt(lead.score - mine.score + 1) + '</span>';
+    } else box.innerHTML = '<span class="dim">Результат в таблице</span>';
+  } catch (e) { box.innerHTML = '<span class="dim">Результат в таблице</span>'; }
+}
+$('#ovNameSave').addEventListener('click', () => {
+  const n = $('#ovName').value.trim().slice(0, 16);
+  if (!n) { $('#ovName').focus(); return; }
+  store.set('name', n); $('#inName').value = n;
+  $('#ovNameBox').hidden = true;
+  sendAndRank();
+});
+$('#ovName').addEventListener('keydown', e => { if (e.key === 'Enter') $('#ovNameSave').click(); });
+$('#ovAgain').addEventListener('click', () => { $('#ovOver').hidden = true; startGame(g.mode, true); });
+$('#ovMenu').addEventListener('click', () => { $('#ovOver').hidden = true; showScreen('menu'); });
+$('#ovTopBtn').addEventListener('click', () => { openTop(g ? g.mode : 'daily'); });
+
+/* ---------- прочее ---------- */
+let toastT = 0;
+function toast(msg) { const el = $('#toast'); el.textContent = msg; el.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), 2400); }
+$('#btnSound').addEventListener('click', () => { soundOn = !soundOn; store.set('sound', soundOn); renderSoundBtn(); if (soundOn) { ensureAudio(); sfxSwap(); } });
+renderSoundBtn();
+$('#heroAtoms').innerHTML = [{ v: 3 }, { v: 7 }, { v: 5 }].map(a => atomEl(a.v, 0).outerHTML).join('');
+document.addEventListener('visibilitychange', () => { if (document.hidden) saveGame(); });
+showScreen('menu');
+
+// Для автотестов: чистый движок без анимаций и доступ к текущей партии.
+window.raspad = {
+  get state() { return g; }, get busy() { return busy; }, drop, swap,
+  engine: { newState, playMove, swapHold, findMarks, snap, fnv, todayStr, W, H },
+};
+})();
+</script>
+</body>
+</html>
