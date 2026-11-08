@@ -1,6 +1,7 @@
 // Схема здания для штурмана (и мини-карта в тренировке). Рисуется в 2D canvas.
 // Как в 2D-версии: мир показан на такт вперёд, бледный охранник — где он сейчас.
 import { LM, guardPos, ray, camCells, laserOn, whoCaught } from "./logic.js";
+import { landmarkSide } from "./world.js";
 
 function emoji(g, ch, x, y, size) {
   g.font = `${Math.round(size)}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
@@ -90,9 +91,25 @@ export function drawPlan(g, CW, CH, o) {
         g.lineTo(X + T - 0.75, Y + T);
       }
       g.stroke();
-      if (lv.deco[c] != null)
-        emoji(g, LM[lv.deco[c]][0], X + T / 2, Y + T / 2, T * 0.72);
     }
+  // ориентиры — поверх стен, прижаты к той стороне, где висят (в другой комнате их нет): светлая черта на стене и значок
+  for (const k in lv.deco) {
+    const c = +k,
+      d = landmarkSide(lv, c);
+    if (d < 0) continue;
+    const [X, Y] = at(c),
+      dx = [0, 1, 0, -1][d],
+      dy = [-1, 0, 1, 0][d],
+      cx = X + T / 2 + dx * T * 0.5,
+      cy = Y + T / 2 + dy * T * 0.5;
+    g.strokeStyle = "#FFE08A";
+    g.lineWidth = Math.max(2, T * 0.09);
+    g.beginPath();
+    g.moveTo(cx - dy * T * 0.42, cy - dx * T * 0.42);
+    g.lineTo(cx + dy * T * 0.42, cy + dx * T * 0.42);
+    g.stroke();
+    emoji(g, LM[lv.deco[c]][0], cx + dx * T * 0.22, cy + dy * T * 0.22, T * 0.62);
+  }
   // маршруты охраны; в тени — оранжевые точки, квадрат в конце и пунктир захода в соседнюю комнату
   g.save();
   const line = (cells) => {
@@ -205,9 +222,13 @@ export function drawPlan(g, CW, CH, o) {
       emoji(g, "🔓", X + T / 2, Y + T / 2, T * 0.45);
     }
   }
+  // лазеры — по текущему такту, как их видит и проверяет вор (шаг вживую проверяется сразу).
+  // «На такт вперёд» мигающий луч был всегда наоборот: на схеме выключен — а у вора горит.
+  // Только «вслепую» шаг сам занимает такт — там показываем следующий
+  const lt = o.blind ? t : sim.t;
   for (const l of lv.lasers) {
     const [X, Y] = at(l.i),
-      on = laserOn(l, t),
+      on = laserOn(l, lt),
       horiz = lv.g[l.i - 1] && lv.g[l.i + 1],
       col = l.m ? "#FF5EDB" : "#FF3B3B";
     g.save();

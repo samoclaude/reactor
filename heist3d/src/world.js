@@ -340,13 +340,36 @@ export function buildShell(lv, R, M) {
 }
 
 /* ---------- куда вешать ориентир: на стену комнаты со стороны клетки-стены ---------- */
+// с какой стороны стены висит ориентир: d — направление от клетки стены в комнату (0 вверх, 1 вправо, 2 вниз, 3 влево).
+// Висит только с одной стороны: иначе копии спиной к спине в двух коридорах, и «справа картина» подходит к обоим.
+// Выбор одинаковый у вора и штурмана; комнату старта берём в первую очередь (в обучении у старта ориентир)
+export function landmarkSide(lv, t) {
+  const x = t % lv.W,
+    y = (t / lv.W) | 0,
+    rooms = [],
+    starts = (lv.starts || []).map((s) => s.s).concat(lv.S);
+  for (let d = 0; d < 4; d++) {
+    const nx = x + [0, 1, 0, -1][d],
+      ny = y + [-1, 0, 1, 0][d];
+    if (nx < 0 || ny < 0 || nx >= lv.W || ny >= lv.H) continue;
+    if (nx % 2 === 0 || ny % 2 === 0 || !lv.g[ny * lv.W + nx]) continue;
+    if (starts.includes(ny * lv.W + nx)) return d;
+    // в комнату с сейфом — только если другой стороны нет: сейф стоит у дальней стены и закрыл бы ориентир
+    if (lv.safe && ny * lv.W + nx === lv.gem) rooms.gem = d;
+    else rooms.push(d);
+  }
+  if (!rooms.length) return rooms.gem != null ? rooms.gem : -1;
+  return rooms[((t * 2654435761) >>> 0) % rooms.length];
+}
 export function landmarkSpots(lv) {
   const out = [];
   for (const k in lv.deco) {
     const t = +k,
       x = t % lv.W,
-      y = (t / lv.W) | 0;
+      y = (t / lv.W) | 0,
+      side = landmarkSide(lv, t);
     for (let d = 0; d < 4; d++) {
+      if (d !== side) continue;
       const DXk = [0, 1, 0, -1][d],
         DYk = [-1, 0, 1, 0][d],
         nx = x + DXk,
