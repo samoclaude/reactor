@@ -15,6 +15,7 @@
     { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
   "shortcuts": [
+    { "name": "КС 5×5", "url": "5x5/" },
     { "name": "КС-тактика", "url": "taktika/" },
     { "name": "Распад", "url": "raspad/" },
     { "name": "КС Угадайка", "url": "ks/" },

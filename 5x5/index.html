@@ -1,0 +1,1453 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>КС 5×5</title>
+<meta name="theme-color" content="#0A0D12">
+<meta name="description" content="Командуй пятёркой на Dust 2: маршруты, гранаты, бомба. Пошаговая CS на двоих.">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="icon" href="../icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&family=Russo+One&display=swap">
+<style>
+:root {
+  --bg: #0A0D12; --bg2: #10151E; --panel: #151B26; --panel2: #1B2230; --line: #263043; --line2: #33405A;
+  --fg: #EAF0F8; --muted: #8A95AB; --dim: #5E6A80;
+  --t: #E9A23B; --ct: #5BAAF2;
+  --money: #8BE28F; --red: #FF5454; --gold: #FFD15C; --ok: #67E3A6;
+  --display: "Russo One", "Arial Black", system-ui, sans-serif;
+  --ui: "Onest", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.4 var(--ui); -webkit-tap-highlight-color: transparent; overflow: hidden; touch-action: manipulation; -webkit-user-select: none; user-select: none; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:disabled { cursor: default; opacity: .45; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+[hidden] { display: none !important; }
+.bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: radial-gradient(90% 40% at 50% -10%, color-mix(in srgb, var(--side, var(--t)) 16%, transparent), transparent 70%); }
+.vign { position: fixed; inset: 0; z-index: 25; pointer-events: none; opacity: 0; box-shadow: inset 0 0 90px 10px rgba(255, 50, 50, .5); }
+body.bomb .vign { animation: vign 1.1s ease-in-out infinite; }
+body.bomb.hurry .vign { animation-duration: .5s; }
+@keyframes vign { 0%, 100% { opacity: .1; } 50% { opacity: .65; } }
+
+.app { position: relative; z-index: 1; height: 100%; max-width: 560px; margin: 0 auto; display: flex; flex-direction: column;
+  padding: max(6px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) 0 max(8px, env(safe-area-inset-left)); }
+.top { display: flex; align-items: center; gap: 8px; height: 38px; flex: none; padding: 0 2px; }
+.ibtn { width: 36px; height: 36px; border-radius: 11px; border: 1px solid var(--line); background: var(--panel); display: grid; place-items: center; flex: none; }
+.ibtn:active { transform: scale(.94); }
+.brand { font-family: var(--display); font-size: 15px; letter-spacing: .06em; margin-right: auto; display: flex; align-items: center; gap: 7px; }
+.brand i { width: 9px; height: 9px; border-radius: 2px; background: var(--side, var(--t)); transform: rotate(45deg); box-shadow: 0 0 10px var(--side, var(--t)); }
+.pill { height: 30px; padding: 0 11px; border-radius: 99px; border: 1px solid var(--line); background: var(--panel); font-size: 12px; font-weight: 700; letter-spacing: .12em; display: inline-flex; align-items: center; gap: 6px; }
+.pill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--dim); }
+.pill .dot.on { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+
+/* HUD */
+.hud { flex: none; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 6px; margin: 4px 0 6px; }
+.tm { --c: var(--t); display: flex; align-items: center; gap: 7px; min-width: 0; padding: 5px 8px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); position: relative; overflow: hidden; }
+.tm::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--c); }
+.tm.r { flex-direction: row-reverse; text-align: right; } .tm.r::before { inset: 0 0 0 auto; }
+.tm.ct { --c: var(--ct); }
+.tm .sd { font: 12px var(--display); padding: 2px 6px; border-radius: 6px; background: var(--c); color: #0b0f15; flex: none; }
+.tm .nm { font-weight: 700; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1; }
+.tm .sc { font: 22px/1 var(--display); flex: none; }
+.tm .al { display: flex; gap: 2px; flex: none; }
+.tm .al i { width: 5px; height: 12px; border-radius: 2px; background: var(--c); }
+.tm .al i.d { background: var(--line2); }
+.clock { text-align: center; min-width: 78px; }
+.clock b { display: block; font: 20px/1 var(--display); letter-spacing: .03em; }
+.clock small { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .1em; color: var(--muted); text-transform: uppercase; margin-top: 2px; }
+.clock.bomb b { color: var(--red); }
+
+/* карта */
+.mapwrap { position: relative; flex: none; border-radius: 14px; overflow: hidden; border: 1px solid var(--line); background: #07090C; }
+#map { display: block; width: 100%; touch-action: none; }
+.feed { position: absolute; right: 6px; top: 6px; display: flex; flex-direction: column; align-items: flex-end; gap: 3px; pointer-events: none; max-width: 70%; }
+.feed div { font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 6px; background: #000b; border: 1px solid #ffffff1a; white-space: nowrap; animation: feedin .25s ease-out; display: flex; align-items: center; gap: 5px; }
+.feed div.mine { border-color: #ff5454aa; }
+.feed .t { color: var(--t); } .feed .ct { color: var(--ct); } .feed .w { color: #cfd6e4; font-weight: 600; }
+@keyframes feedin { from { transform: translateX(20px); opacity: 0; } }
+.mapbtns { position: absolute; left: 6px; bottom: 6px; display: flex; gap: 5px; }
+.mbtn { height: 30px; min-width: 30px; padding: 0 8px; border-radius: 9px; border: 1px solid #ffffff22; background: #000a; font-size: 12px; font-weight: 700; display: grid; place-items: center; }
+.mbtn.on { background: var(--fg); color: var(--bg); }
+.banner { position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%); pointer-events: none; text-align: center; opacity: 0; }
+.banner.go { animation: banner 1.6s ease-out forwards; }
+.banner b { display: block; font: 21px var(--display); letter-spacing: .05em; padding: 6px 14px; border-radius: 10px; background: #000c; border: 2px solid currentColor; white-space: nowrap; }
+@keyframes banner { 0% { opacity: 0; transform: translate(-50%, -50%) scale(1.6); } 15% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 80% { opacity: 1; } 100% { opacity: 0; } }
+
+/* панель под картой */
+.panel { flex: 1; min-height: 0; overflow-y: auto; padding: 8px 2px 10px; -webkit-overflow-scrolling: touch; }
+.hint { font-size: 12.5px; color: var(--muted); line-height: 1.4; text-wrap: pretty; margin: 0 2px 8px; }
+.hint b { color: var(--fg); }
+.ros { display: grid; grid-template-columns: repeat(5, 1fr) 44px; gap: 5px; margin-bottom: 8px; }
+.chip { --c: var(--t); position: relative; padding: 5px 3px 4px; border-radius: 11px; border: 1px solid var(--line); background: var(--panel); display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; }
+.chip.ct { --c: var(--ct); }
+.chip .ri { width: 22px; height: 22px; border-radius: 50%; background: var(--c); color: #0b0f15; font: 12px/22px var(--display); text-align: center; }
+.chip .cn { font-size: 10.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.chip .hp { width: 80%; height: 3px; border-radius: 2px; background: var(--line2); overflow: hidden; }
+.chip .hp i { display: block; height: 100%; background: var(--ok); }
+.chip .hp i.low { background: var(--red); }
+.chip .od { position: absolute; top: 3px; right: 4px; width: 7px; height: 7px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 6px var(--gold); }
+.chip .bm { position: absolute; top: 2px; left: 3px; font-size: 10px; }
+.chip.sel { border-color: var(--c); background: color-mix(in srgb, var(--c) 18%, var(--panel)); box-shadow: 0 0 0 1px var(--c) inset; }
+.chip.dead { opacity: .4; }
+.chip.dead .ri { background: var(--line2); color: var(--muted); }
+.chip.all { justify-content: center; font: 12px var(--display); }
+.card { border-radius: 14px; background: var(--panel); border: 1px solid var(--line); padding: 10px; margin-bottom: 8px; }
+.uhead { display: flex; align-items: center; gap: 8px; }
+.uhead .ri { width: 30px; height: 30px; border-radius: 50%; background: var(--side); color: #0b0f15; font: 15px/30px var(--display); text-align: center; flex: none; }
+.uhead .un { font-weight: 800; font-size: 14px; } .uhead .ur { font-size: 11.5px; color: var(--muted); }
+.uhead .uw { margin-left: auto; text-align: right; font-size: 12px; color: #cfd6e4; }
+.uhead .uw small { display: block; color: var(--muted); font-size: 11px; }
+.ustat { margin-top: 7px; font-size: 13px; padding: 7px 9px; border-radius: 10px; background: var(--bg2); border: 1px solid var(--line); text-wrap: pretty; }
+.ustat b { color: var(--gold); }
+.row { display: flex; gap: 6px; margin-top: 7px; flex-wrap: wrap; }
+.sb { flex: 1 1 0; min-width: 0; height: 40px; border-radius: 11px; border: 1px solid var(--line2); background: var(--panel2); font-weight: 700; font-size: 12.5px; display: flex; align-items: center; justify-content: center; gap: 5px; padding: 0 6px; white-space: nowrap; }
+.sb.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.sb.warn { border-color: var(--red); color: var(--red); }
+.sb.hot { background: color-mix(in srgb, var(--side) 25%, var(--panel2)); border-color: var(--side); }
+.sb i { font-style: normal; font-size: 11px; opacity: .7; }
+.sb:active { transform: scale(.97); }
+.perk { font-size: 11.5px; color: var(--muted); margin-top: 7px; }
+.perk b { color: var(--fg); }
+
+/* закупка */
+.preset { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 8px; }
+.brow { border-radius: 14px; background: var(--panel); border: 1px solid var(--line); margin-bottom: 6px; overflow: hidden; }
+.brow.open { border-color: var(--side); }
+.bhead { width: 100%; display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 0; background: none; text-align: left; }
+.bhead .ri { width: 26px; height: 26px; border-radius: 50%; background: var(--side); color: #0b0f15; font: 13px/26px var(--display); text-align: center; flex: none; }
+.bhead .bn { font-weight: 800; font-size: 13.5px; } .bhead .bg2 { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bhead .bm2 { margin-left: auto; text-align: right; font: 14px var(--display); color: var(--money); flex: none; }
+.bhead .bm2 small { display: block; font: 600 11px var(--ui); color: var(--muted); }
+.shop { padding: 0 10px 10px; }
+.tabs { display: flex; gap: 4px; overflow-x: auto; margin-bottom: 6px; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tab { flex: none; height: 30px; padding: 0 10px; border-radius: 9px; border: 1px solid var(--line); background: var(--bg2); font-size: 12px; font-weight: 700; }
+.tab.on { background: var(--fg); color: var(--bg); }
+.items { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.it { min-height: 46px; border-radius: 10px; border: 1px solid var(--line2); background: var(--panel2); padding: 5px 8px; text-align: left; display: flex; flex-direction: column; justify-content: center; }
+.it b { font-size: 12.5px; } .it span { font-size: 11px; color: var(--money); } .it small { font-size: 10.5px; color: var(--muted); line-height: 1.25; }
+.it.on { border-color: var(--side); background: color-mix(in srgb, var(--side) 22%, var(--panel2)); }
+.it.have { border-style: dashed; }
+.picked { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 7px; }
+.picked button { height: 26px; padding: 0 8px; border-radius: 8px; border: 1px solid var(--side); background: color-mix(in srgb, var(--side) 15%, transparent); font-size: 11.5px; font-weight: 700; }
+.bombsel { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
+
+/* нижняя панель */
+.bar { flex: none; display: flex; align-items: center; gap: 10px; padding: 8px 2px calc(8px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: linear-gradient(transparent, var(--bg) 30%); }
+.sum { flex: 1; min-width: 0; font-size: 12.5px; color: var(--muted); line-height: 1.3; }
+.sum b { color: var(--fg); }
+.gobtn { flex: none; min-width: 120px; height: 48px; border: 0; border-radius: 15px; padding: 0 18px; font: 16px var(--display); letter-spacing: .03em; background: var(--side); color: #0b0f15; box-shadow: 0 10px 26px -12px var(--side); }
+.gobtn:disabled { background: var(--panel2); color: var(--dim); box-shadow: none; opacity: 1; }
+.gobtn:active:not(:disabled) { transform: scale(.97); }
+.ghostbtn { flex: none; height: 48px; padding: 0 14px; border-radius: 15px; border: 1px solid var(--line2); background: var(--panel2); font-weight: 700; }
+.pbar { flex: 1; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.pbar i { display: block; height: 100%; width: 0; background: var(--side); }
+
+/* оверлеи */
+.ov { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 16px; background: rgba(5, 7, 10, .72); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+.ovc { width: min(440px, 100%); max-height: 92vh; overflow-y: auto; border-radius: 20px; background: var(--panel); border: 1px solid var(--line2); padding: 18px 16px 16px; text-align: center; animation: ovin .3s cubic-bezier(.2, 1.3, .4, 1); }
+@keyframes ovin { from { transform: translateY(16px) scale(.96); opacity: 0; } }
+.ovc h2 { margin: 2px 0 6px; font: 30px/1.05 var(--display); letter-spacing: .03em; }
+.ovc h2.t { color: var(--t); } .ovc h2.ct { color: var(--ct); }
+.ovc .eb { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.ovc p { color: #CBD3E1; font-size: 14px; margin: 6px 0; text-wrap: pretty; }
+.ovc .big { font: 44px/1 var(--display); margin: 8px 0; }
+.ovc .big i { font-style: normal; color: var(--dim); font-size: 28px; margin: 0 6px; }
+.ovc .btns { display: flex; gap: 8px; margin-top: 14px; }
+.ovc .btns button { flex: 1; height: 50px; border-radius: 15px; border: 1px solid var(--line2); background: var(--panel2); font: 15px var(--display); }
+.ovc .btns button.main { border: 0; background: var(--fg); color: var(--bg); }
+.stbl { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 8px; }
+.stbl td, .stbl th { padding: 4px 3px; text-align: right; } .stbl td:first-child, .stbl th:first-child { text-align: left; }
+.stbl th { color: var(--muted); font-weight: 600; font-size: 11px; }
+.stbl tr.tt td:first-child { color: var(--t); } .stbl tr.cc td:first-child { color: var(--ct); }
+.stbl tr.mvp td { font-weight: 800; }
+.inc { display: flex; gap: 8px; justify-content: center; margin-top: 8px; }
+.inc div { padding: 6px 10px; border-radius: 10px; background: var(--bg2); border: 1px solid var(--line); font-size: 12px; }
+.inc b { color: var(--money); font: 15px var(--display); display: block; }
+.tut { text-align: left; font-size: 13.5px; color: #CBD3E1; }
+.tut li { margin: 5px 0; } .tut b { color: var(--fg); }
+.log { display: flex; flex-direction: column; gap: 4px; }
+.log div { font-size: 12.5px; padding: 6px 9px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); animation: feedin .25s ease-out; }
+.log div.good { border-color: color-mix(in srgb, var(--ok) 50%, var(--line)); } .log div.bad { border-color: color-mix(in srgb, var(--red) 55%, var(--line)); }
+.log b { font-weight: 800; }
+
+/* меню */
+.sheet { position: fixed; inset: 0; z-index: 40; overflow-y: auto; background: radial-gradient(120% 60% at 50% 0%, #1A2232, var(--bg) 70%); padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
+.sheet-in { max-width: 480px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+.logo { font: clamp(40px, 13vw, 58px)/0.95 var(--display); margin: 18px 0 0; }
+.logo span { color: var(--t); } .logo i { color: var(--ct); font-style: normal; }
+.tag { color: var(--muted); font-size: 14.5px; margin: -2px 0 4px; text-wrap: pretty; }
+.cta { height: 58px; border: 0; border-radius: 17px; font: 17px var(--display); letter-spacing: .04em; background: var(--t); color: #1d1205; box-shadow: 0 14px 32px -14px var(--t); }
+.cta.blue { background: var(--ct); color: #061521; box-shadow: 0 14px 32px -14px var(--ct); }
+.cta.ghost { background: var(--panel); color: var(--fg); border: 1px solid var(--line2); box-shadow: none; }
+.cta:active { transform: scale(.98); }
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.seg button { height: 44px; border-radius: 13px; border: 1px solid var(--line2); background: var(--panel); font-weight: 700; }
+.seg button.on { background: var(--fg); color: var(--bg); }
+.inp { width: 100%; height: 50px; border-radius: 14px; border: 1px solid var(--line2); background: var(--panel); color: var(--fg); padding: 0 14px; font: 600 16px var(--ui); -webkit-user-select: text; user-select: text; }
+.inp::placeholder { color: var(--dim); }
+.join { display: flex; gap: 8px; }
+.join .inp { text-align: center; font: 20px var(--display); letter-spacing: .35em; text-transform: uppercase; }
+.join .cta { height: 50px; padding: 0 18px; font-size: 15px; flex: none; }
+.lbl { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: -6px; }
+.rules { border-radius: 16px; background: var(--panel); border: 1px solid var(--line); padding: 0 14px; }
+.rules summary { list-style: none; cursor: pointer; padding: 14px 0; font-weight: 700; display: flex; justify-content: space-between; }
+.rules summary::-webkit-details-marker { display: none; }
+.rules summary::after { content: "+"; font: 18px var(--display); color: var(--muted); }
+.rules[open] summary::after { content: "–"; }
+.rules .rb { padding-bottom: 14px; font-size: 13.5px; line-height: 1.5; color: #CBD3E1; }
+.rules h4 { margin: 12px 0 4px; font: 13px var(--display); color: var(--fg); }
+.rules ul { margin: 4px 0; padding-left: 18px; } .rules li { margin: 3px 0; } .rules li::marker { color: var(--t); }
+.room-code { font: clamp(46px, 15vw, 64px)/1 var(--display); letter-spacing: .16em; text-align: center; -webkit-user-select: text; user-select: text; }
+.room-link { padding: 11px 12px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; -webkit-user-select: all; user-select: all; }
+.seats { display: flex; flex-direction: column; gap: 6px; }
+.seat { display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); }
+.seat .badge { width: 24px; height: 24px; border-radius: 7px; display: grid; place-items: center; font: 12px var(--display); color: #0b0f15; }
+.seat .st { margin-left: auto; font-size: 12px; color: var(--muted); } .seat .st.on { color: var(--ok); }
+.netnote { font-size: 13px; color: var(--muted); text-align: center; text-wrap: pretty; } .netnote.err { color: var(--red); }
+.foot { font-size: 12px; color: var(--dim); text-align: center; margin-top: 4px; }
+.linkbtn { border: 0; background: none; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; font-size: 13px; padding: 6px; }
+.toast { position: fixed; left: 50%; top: calc(14px + env(safe-area-inset-top)); transform: translate(-50%, -20px); opacity: 0; z-index: 60; padding: 10px 16px; border-radius: 12px; background: #000d; border: 1px solid var(--line2); font-weight: 600; font-size: 14px; pointer-events: none; transition: all .25s; max-width: 90vw; text-align: center; }
+.toast.show { transform: translate(-50%, 0); opacity: 1; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="vign"></div>
+
+<div class="app" id="app">
+  <div class="top">
+    <button class="ibtn" id="btnMenu" aria-label="Меню"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    <div class="brand"><i></i>КС 5×5</div>
+    <button class="pill" id="roomPill" hidden><span class="dot" id="roomDot"></span><span id="roomPillCode"></span></button>
+    <button class="ibtn" id="btnHelp" aria-label="Подсказка">?</button>
+    <button class="ibtn" id="btnSound" aria-label="Звук"></button>
+  </div>
+  <div class="hud" id="hud"></div>
+  <div class="mapwrap" id="mapwrap">
+    <canvas id="map"></canvas>
+    <div class="feed" id="feed"></div>
+    <div class="mapbtns" id="mapbtns"><button class="mbtn" id="btnZoom" aria-label="Приблизить">🔍</button></div>
+    <div class="banner" id="banner"><b></b></div>
+  </div>
+  <div class="panel" id="panel"></div>
+  <div class="bar" id="bar"></div>
+</div>
+
+<div class="ov" id="ov" hidden><div class="ovc" id="ovc"></div></div>
+
+<div class="sheet" id="sheet">
+  <div class="sheet-in" id="vMain">
+    <h1 class="logo">КС <span>5</span>×<i>5</i></h1>
+    <p class="tag">Командуй пятёркой на Dust 2. Раздаёшь приказы каждому бойцу, потом оба смотрите, как ход разыгрывается. Флешки, дым, молотовы, бомба и туман войны.</p>
+    <div class="lbl">Длина матча</div>
+    <div class="seg" id="segWin"><button data-win="5" class="on">До 5 побед</button><button data-win="8">До 8 побед</button></div>
+    <button class="cta" id="btnBot">Играть с ботом</button>
+    <button class="cta ghost" id="btnResume" hidden>Продолжить матч с ботом</button>
+    <div class="lbl">Онлайн с братом</div>
+    <button class="cta blue" id="btnCreate">Создать комнату</button>
+    <div class="join"><input class="inp" id="joinCode" maxlength="4" placeholder="КОД" autocomplete="off" autocapitalize="characters" spellcheck="false"><button class="cta ghost" id="btnJoin">Войти</button></div>
+    <div class="lbl">Твоё имя</div>
+    <input class="inp" id="nameInp" maxlength="12" placeholder="Например, Тимка" autocomplete="off">
+    <details class="rules" id="rules"><summary>Как играть</summary><div class="rb" id="rulesBody"></div></details>
+    <button class="cta ghost" id="btnBack" hidden>Вернуться в игру</button>
+    <div class="foot"><a href="../games/" style="color:inherit">← Все игры</a> · <span id="buildTag"></span></div>
+  </div>
+  <div class="sheet-in" id="vRoom" hidden>
+    <div class="lbl" style="margin-top:18px">Комната</div>
+    <div class="room-code" id="roomCode">····</div>
+    <div class="room-link" id="roomLink"></div>
+    <button class="cta blue" id="btnShare">Поделиться ссылкой</button>
+    <div class="seats" id="seats"></div>
+    <div class="netnote" id="netNote"></div>
+    <button class="cta ghost" id="btnRoomGo" hidden>К игре</button>
+    <button class="linkbtn" id="btnLeave">Выйти из комнаты</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="engine.js?v=1"></script>
+<script>
+'use strict';
+const BUILD = 'k5-1';
+const SOLO_OK = ['k5-1'];
+const APP = 'k5';
+const SB_URL = 'https://ulfqprrjdyycznobirxw.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVsZnFwcnJqZHl5Y3pub2Jpcnh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM3OTg4NTMsImV4cCI6MjEwOTM3NDg1M30.zIjRlMNnqg59jZRprHcCoIkoBiIis45vw5vP4bhF_tc';
+const K = window.K5;
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmt$ = n => '$' + Math.round(n).toLocaleString('ru-RU').replace(/\s/g, ' ');
+const plural = (n, a, b, c) => { n = Math.abs(n) % 100; const d = n % 10; if (n > 10 && n < 20) return c; if (d > 1 && d < 5) return b; if (d === 1) return a; return c; };
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(APP + ':' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(APP + ':' + k, JSON.stringify(v)); } catch (e) {} },
+  del(k) { try { localStorage.removeItem(APP + ':' + k); } catch (e) {} }
+};
+function toast(t) { const el = $('#toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('show'), 2400); }
+const buzz = ms => { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} };
+const ROLE_L = ['К', 'Э', 'Р', 'А', 'Л'];
+const NADE_IC = { fl: '✦', sm: '☁', mo: '🔥', he: '💥' };
+const COL = { T: '#E9A23B', CT: '#5BAAF2' };
+const fmtClock = t => { t = Math.max(0, Math.ceil(t)); return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); };
+
+/* ---------------- звук ---------------- */
+let soundOn = store.get('sound', true), actx = null;
+function ac() { if (!soundOn) return null; if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; } } if (actx.state === 'suspended') actx.resume(); return actx; }
+function tone(f, d, type, v, f2) { const a = ac(); if (!a) return; const o = a.createOscillator(), g = a.createGain(), t = a.currentTime; o.type = type || 'sine'; o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + d); g.gain.setValueAtTime(v || 0.05, t); g.gain.exponentialRampToValueAtTime(0.0001, t + d); o.connect(g).connect(a.destination); o.start(t); o.stop(t + d + 0.02); }
+function noise(d, v, hp) { const a = ac(); if (!a) return; const n = Math.floor(a.sampleRate * d), b = a.createBuffer(1, n, a.sampleRate), ch = b.getChannelData(0); for (let i = 0; i < n; i++) ch[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 3); const s = a.createBufferSource(), g = a.createGain(), f = a.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = hp || 600; s.buffer = b; g.gain.value = v || 0.25; s.connect(f).connect(g).connect(a.destination); s.start(); }
+let lastShotSfx = 0;
+const sfx = {
+  tap() { tone(520, 0.05, 'triangle', 0.03); },
+  ready() { tone(660, 0.07, 'triangle', 0.04); setTimeout(() => tone(880, 0.09, 'triangle', 0.04), 70); },
+  shot(v, awp) { const n = performance.now(); if (n - lastShotSfx < 45) return; lastShotSfx = n; if (awp) { noise(0.35, 0.4 * v, 150); tone(90, 0.3, 'sawtooth', 0.05 * v, 40); } else noise(0.1, 0.22 * v, 500); },
+  hs() { setTimeout(() => tone(1760, 0.2, 'sine', 0.05), 30); },
+  kill() { tone(220, 0.15, 'square', 0.03, 110); },
+  beep() { tone(1900, 0.07, 'square', 0.025); },
+  win() { [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => tone(f, 0.18, 'triangle', 0.05), i * 90)); },
+  lose() { [392, 330, 262].forEach((f, i) => setTimeout(() => tone(f, 0.22, 'triangle', 0.05), i * 110)); },
+  whoosh() { noise(0.35, 0.09, 900); },
+  flash() { tone(3200, 0.5, 'sine', 0.03, 2400); },
+  fire() { noise(0.6, 0.12, 300); },
+  boom() { noise(0.9, 0.5, 60); tone(70, 0.8, 'sine', 0.12, 30); },
+  he() { noise(0.5, 0.4, 90); tone(80, 0.4, 'sine', 0.08, 40); },
+  step() { tone(140, 0.04, 'triangle', 0.02); },
+  plant() { [0, 120, 240].forEach(d => setTimeout(() => tone(1500, 0.05, 'square', 0.02), d)); }
+};
+const ICON_ON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>';
+const ICON_OFF = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="m16 9 5 6"/><path d="m21 9-5 6"/></svg>';
+function renderSound() { $('#btnSound').innerHTML = soundOn ? ICON_ON : ICON_OFF; }
+
+/* ---------------- где находится точка (для подписей) ---------------- */
+const PLACES = [
+  ['плент A', 30, 2, 41, 12], ['плент B', 3, 3, 12, 11], ['пит', 42, 13, 45, 18], ['лонг', 36, 13, 41, 31], ['лонг снаружи', 30, 32, 41, 36],
+  ['выход из туннелей', 4, 12, 6, 16], ['туннели', 3, 17, 13, 34], ['нижние туннели', 9, 13, 16, 19], ['кэтвок', 22, 19, 26, 22], ['шорт', 24, 13, 29, 18],
+  ['окно', 14, 2, 17, 4], ['двери B', 13, 6, 15, 9], ['CT-спавн', 22, 1, 29, 8], ['CT-мид', 16, 5, 21, 9], ['мид', 17, 10, 21, 28], ['верх мида', 17, 29, 21, 35], ['T-спавн', 12, 34, 30, 44]
+];
+function placeName(x, y) { const cx = Math.floor(x), cy = Math.floor(y); for (const [n, a, b, c, d] of PLACES) if (cx >= a && cx <= c && cy >= b && cy <= d) return n; return 'карта'; }
+
+/* ---------------- матч ---------------- */
+// M: { mode, seed, win, picks: [[p0,p1],...] }, S — состояние движка, me — моё место.
+let M = null, S = null, me = 0, applied = 0, D = {}, playQ = [], PB = null;
+let winPref = store.get('win', 5) === 8 ? 8 : 5;
+const opp = () => 1 - me;
+const sides = () => PB && PB.film.sideOf ? PB.film.sideOf : (S ? S.sideOf : ['T', 'CT']);
+const mySide = () => sides()[me];
+const myName = () => String(store.get('name', '') || '').trim().slice(0, 12);
+function names() {
+  if (!M) return ['Ты', 'Соперник'];
+  if (M.mode === 'bot') return [myName() || 'Ты', 'Бот'];
+  const r = net.room; return [0, 1].map(k => (r && r.names[k]) || (k === 0 ? 'Игрок 1' : 'Игрок 2'));
+}
+const myUnits = () => S ? S.units.slice(me * 5, me * 5 + 5) : [];
+
+function rebuild() {
+  if (!M) { S = null; return; }
+  S = K.create(M.seed, { win: M.win }); applied = 0; playQ = []; PB = null;
+  advance(true);
+  D = { n: -1 };
+}
+function advance(quiet) {
+  if (!M || !S) return;
+  let progressed = false;
+  for (let guard = 0; guard < 4000; guard++) {
+    if (S.over) break;
+    if (M.mode === 'bot') botFill();
+    const row = M.picks[applied];
+    if (!row || row[0] == null || row[1] == null) break;
+    if (!K.valid(S, 0, row[0]) || !K.valid(S, 1, row[1])) {
+      console.warn('k5: bad pick', applied, row);
+      if (!K.valid(S, me, row[me])) row[me] = null;
+      if (!K.valid(S, opp(), row[opp()]) && M.mode === 'online') { row[opp()] = null; hello(); }
+      break;
+    }
+    const before = { round: S.round, step: S.step };
+    const res = K.apply(S, row, { film: !quiet });
+    applied++; progressed = true;
+    if (!quiet && res.film) playQ.push({ film: res.film, ev: res.ev, seat: me, side: before.step === 'turn' ? null : null, tS: res.film ? null : null });
+    if (!quiet && before.step === 'buy') { flashBanner(`РАУНД ${before.round}`, 'var(--fg)'); }
+  }
+  if (M.mode === 'bot') saveSolo();
+  if (progressed && !quiet && playQ.length && !PB) nextPlayback();
+  render();
+}
+function botFill() {
+  if (S.over) return;
+  const b = opp();
+  const row = M.picks[applied] || (M.picks[applied] = [null, null]);
+  if (row[b] == null) row[b] = K.bot(S, b);
+}
+function myPickNeeded() { if (!S || S.over) return false; return !(M.picks[applied] && M.picks[applied][me] != null); }
+function submit(p) {
+  if (!myPickNeeded()) return;
+  if (!K.valid(S, me, p)) { toast('Так нельзя: проверь приказы'); return; }
+  if (M.mode === 'online' && net.status !== 'ok') { toast('Нет связи. Подожди пару секунд'); return; }
+  const row = M.picks[applied] || (M.picks[applied] = [null, null]);
+  row[me] = p;
+  sfx.ready(); buzz(15);
+  if (M.mode === 'online') { send('pick', { g: net.room.game, i: applied, k: me, p }); saveRoom(); }
+  advance();
+}
+function saveSolo() { if (M && M.mode === 'bot') store.set('solo', { seed: M.seed, win: M.win, picks: M.picks, v: BUILD }); }
+function startBot(resume) {
+  if (net.on) leaveRoom();
+  const snap = store.get('solo', null);
+  if (resume && snap && snap.seed && SOLO_OK.includes(snap.v)) M = { mode: 'bot', seed: snap.seed, win: snap.win === 8 ? 8 : 5, picks: snap.picks || [] };
+  else M = { mode: 'bot', seed: 'solo-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), win: winPref, picks: [] };
+  me = 0; rebuild(); closeSheet(); render();
+  if (!resume) showIntro();
+}
+
+/* ---------------- черновик хода ---------------- */
+function draft() {
+  if (!S) return D;
+  if (D.n !== S.n) {
+    const prevSel = (D.sel || []).filter(sl => S.units[me * 5 + sl] && S.units[me * 5 + sl].alive);
+    D = { n: S.n, orders: [null, null, null, null, null], sel: [], mode: 'move', nadeT: null, nadeE: 0, append: false, multi: false };
+    if (S.step === 'buy') D.buy = { items: [[], [], [], [], []], open: -1, tab: 'rifle', bomb: 4 };
+    const alive = myUnits().filter(u => u.alive);
+    if (S.step === 'turn' && alive.length) D.sel = prevSel.length ? prevSel : [alive[0].slot];
+  }
+  return D;
+}
+const orderOf = slot => D.orders[slot];
+function ensureOrder(slot) { if (!D.orders[slot]) D.orders[slot] = {}; return D.orders[slot]; }
+function setOrder(slot, fn) {
+  const u = S.units[me * 5 + slot], prev = D.orders[slot] ? JSON.parse(JSON.stringify(D.orders[slot])) : null;
+  const o = ensureOrder(slot); fn(o);
+  for (const k of Object.keys(o)) if (o[k] === undefined) delete o[k];
+  if (!Object.keys(o).length) D.orders[slot] = null;
+  if (D.orders[slot] && !K.validOrder(S, u, D.orders[slot])) { D.orders[slot] = prev; return false; }
+  return true;
+}
+
+/* ---------------- карта: отрисовка ---------------- */
+const cv = $('#map'), cx = cv.getContext('2d');
+let CS = 7.6, DPR = 1, base = null, fogC = null, VW = 0, VH = 0;
+const view = { z: 1, x: K.GW / 2, y: K.GH / 2 };
+function layout() {
+  const wrap = $('#mapwrap'), w = wrap.clientWidth || 360;
+  const maxH = Math.max(220, window.innerHeight * 0.47);
+  CS = Math.min(w / K.GW, maxH / K.GH);
+  const cw = w, ch = Math.round(K.GH * CS);
+  DPR = Math.min(2.5, window.devicePixelRatio || 1);
+  VW = cw; VH = ch;
+  cv.style.height = ch + 'px';
+  cv.width = Math.round(cw * DPR); cv.height = Math.round(ch * DPR);
+  buildBase();
+  fogC = document.createElement('canvas'); fogC.width = cv.width; fogC.height = cv.height;
+  draw();
+}
+function buildBase() {
+  const k = CS * DPR * 2;
+  base = document.createElement('canvas'); base.width = Math.ceil(K.GW * k); base.height = Math.ceil(K.GH * k);
+  const g = base.getContext('2d');
+  g.setTransform(k, 0, 0, k, 0, 0);
+  g.fillStyle = '#07090C'; g.fillRect(0, 0, K.GW, K.GH);
+  // пол
+  for (let y = 0; y < K.GH; y++) for (let x = 0; x < K.GW; x++) {
+    const c = K.cell(x, y);
+    if (c === 1 || c === 3) {
+      const z = K.zoneAt(x + 0.5, y + 0.5);
+      g.fillStyle = ((x + y) % 2) ? '#4A3E2B' : '#4E422E';
+      g.fillRect(x, y, 1.02, 1.02);
+      if (z) { g.fillStyle = 'rgba(255,84,64,.13)'; g.fillRect(x, y, 1.02, 1.02); }
+      if (y >= 34 && x >= 12 && x <= 30) { g.fillStyle = 'rgba(233,162,59,.07)'; g.fillRect(x, y, 1.02, 1.02); }
+      if (y <= 8 && x >= 22 && x <= 28) { g.fillStyle = 'rgba(91,170,242,.08)'; g.fillRect(x, y, 1.02, 1.02); }
+    }
+  }
+  // кромка стен
+  g.strokeStyle = '#6B583B'; g.lineWidth = 0.09;
+  for (let y = 0; y < K.GH; y++) for (let x = 0; x < K.GW; x++) {
+    const c = K.cell(x, y); if (c !== 1 && c !== 3) continue;
+    const wall = (a, b) => { const d = K.cell(a, b); return d === 0; };
+    g.beginPath();
+    if (wall(x, y - 1)) { g.moveTo(x, y); g.lineTo(x + 1, y); }
+    if (wall(x, y + 1)) { g.moveTo(x, y + 1); g.lineTo(x + 1, y + 1); }
+    if (wall(x - 1, y)) { g.moveTo(x, y); g.lineTo(x, y + 1); }
+    if (wall(x + 1, y)) { g.moveTo(x + 1, y); g.lineTo(x + 1, y + 1); }
+    g.stroke();
+  }
+  // ящики и стекло
+  for (const [x0, y0, x1, y1] of K.MAP.boxes) {
+    const w = x1 - x0 + 1, h = y1 - y0 + 1;
+    g.fillStyle = '#5A4630'; g.fillRect(x0 + 0.06, y0 + 0.06, w - 0.12, h - 0.12);
+    g.strokeStyle = '#8A6E48'; g.lineWidth = 0.1; g.strokeRect(x0 + 0.1, y0 + 0.1, w - 0.2, h - 0.2);
+    g.beginPath(); g.moveTo(x0 + 0.1, y0 + 0.1); g.lineTo(x1 + 0.9, y1 + 0.9); g.moveTo(x1 + 0.9, y0 + 0.1); g.lineTo(x0 + 0.1, y1 + 0.9); g.strokeStyle = 'rgba(0,0,0,.25)'; g.stroke();
+  }
+  for (const [x0, y0, x1, y1] of K.MAP.glass) { g.fillStyle = 'rgba(130,200,240,.55)'; g.fillRect(x0 + 0.3, y0, x1 - x0 + 0.4, y1 - y0 + 1); }
+  // подписи
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  for (const [t, x, y, kind] of K.MAP.labels) {
+    if (kind === 'site') { g.font = '700 5px "Russo One", sans-serif'; g.fillStyle = 'rgba(255,90,70,.28)'; }
+    else if (kind === 'spawn') { g.font = '700 1.6px "Russo One", sans-serif'; g.fillStyle = t === 'T' ? 'rgba(233,162,59,.55)' : 'rgba(91,170,242,.6)'; }
+    else { g.font = '700 0.95px Onest, sans-serif'; g.fillStyle = 'rgba(232,214,168,.42)'; }
+    g.fillText(t, x, y);
+  }
+}
+// преобразование: клетки → пиксели экрана
+function vk() { return CS * view.z; }
+function clampView() {
+  if (view.z === 1) { view.x = K.GW / 2; view.y = K.GH / 2; return; }
+  const hw = VW / vk() / 2, hh = VH / vk() / 2;
+  view.x = K.GW > hw * 2 ? Math.min(Math.max(view.x, hw), K.GW - hw) : K.GW / 2;
+  view.y = K.GH > hh * 2 ? Math.min(Math.max(view.y, hh), K.GH - hh) : K.GH / 2;
+}
+function toCell(px, py) { const k = vk(); return [(px - VW / 2) / k + view.x, (py - VH / 2) / k + view.y]; }
+function setT(g) { const k = vk() * DPR; g.setTransform(k, 0, 0, k, (VW / 2 - view.x * vk()) * DPR, (VH / 2 - view.y * vk()) * DPR); }
+const P = v => v / vk(); // css-пиксели → клетки
+
+// Луч обзора для тумана (только для картинки, на игру не влияет)
+function castRay(x, y, dx, dy, max, smokes, inSmoke) {
+  const step = 0.2;
+  let px = x, py = y;
+  for (let d = 0; d < max; d += step) {
+    px = x + dx * d; py = y + dy * d;
+    if (K.opaque(Math.floor(px), Math.floor(py))) return [px, py];
+    if (d > 0.9) for (const m of smokes) { const r = m[2]; if (r > 0.3 && (px - m[0]) * (px - m[0]) + (py - m[1]) * (py - m[1]) < r * r) return [px, py]; }
+  }
+  return [px, py];
+}
+function visPolys(units, smokes) {
+  const polys = [];
+  for (const u of units) {
+    const a0 = Math.atan2(u.fy, u.fx), half = 0.96, N = 34, pts = [[u.x, u.y]];
+    for (let i = 0; i <= N; i++) { const a = a0 - half + 2 * half * i / N; pts.push(castRay(u.x, u.y, Math.cos(a), Math.sin(a), 46, smokes)); }
+    polys.push(pts);
+    const ring = []; for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2; ring.push(castRay(u.x, u.y, Math.cos(a), Math.sin(a), K.AWARE, smokes)); }
+    polys.push(ring);
+  }
+  return polys;
+}
+
+// Снимок того, что рисуем: из состояния (планирование) или из кадра фильма (проигрыш хода).
+function snapFromState() {
+  const u = S.units.map(x => ({ id: x.id, seat: x.seat, slot: x.slot, x: x.x, y: x.y, fx: x.fx, fy: x.fy, hp: x.hp, alive: x.alive, blind: x.blind > 0.6, bomb: S.bomb && S.bomb.st === 'carry' && S.bomb.carrier === x.id, busy: x.busy }));
+  return { u, vis: S.vis ? S.vis[me] : 0, sm: S.smokes.map(m => [m.x, m.y, m.r]), fi: S.fires.map(f => [f.x, f.y, f.r]), fl: [], bomb: S.bomb, dr: S.drops.map(d => [d.x, d.y, d.w]), clock: S.clock, time: S.time };
+}
+function snapFromFilm(F, t) {
+  const n = F.frames.length - 1, i = Math.max(0, Math.min(n, Math.floor(t))), j = Math.min(n, i + 1), a = Math.min(1, Math.max(0, t - i));
+  const A = F.frames[i], B = F.frames[j];
+  const u = A.u.map((p, k) => {
+    const q = B.u[k], al = (p[5] & 1) !== 0;
+    return { id: k, seat: k < 5 ? 0 : 1, slot: k % 5, x: p[0] + (q[0] - p[0]) * a, y: p[1] + (q[1] - p[1]) * a, fx: p[2] + (q[2] - p[2]) * a, fy: p[3] + (q[3] - p[3]) * a, hp: p[4], alive: al, blind: (p[5] & 2) !== 0, bomb: (p[5] & 32) !== 0, busy: (p[5] & 8) ? 'plant' : (p[5] & 16) ? 'defuse' : null };
+  });
+  return { u, vis: A.vis[me], sm: A.sm, fi: A.fi, fl: A.fl, bomb: A.bomb, dr: A.dr, clock: A.clock, time: A.time, F, t };
+}
+
+let FX = []; // эффекты проигрыша: трассеры, урон, вспышки
+let animOn = false;
+function draw() {
+  if (!S || !base) { cx.setTransform(1, 0, 0, 1, 0, 0); cx.fillStyle = '#07090C'; cx.fillRect(0, 0, cv.width, cv.height); return; }
+  clampView();
+  const sn = PB ? snapFromFilm(PB.film, PB.t) : snapFromState();
+  const side = mySide(), eside = side === 'T' ? 'CT' : 'T';
+  const now = performance.now();
+  cx.setTransform(1, 0, 0, 1, 0, 0); cx.clearRect(0, 0, cv.width, cv.height);
+  setT(cx);
+  cx.drawImage(base, 0, 0, base.width, base.height, 0, 0, K.GW, K.GH);
+  // оружие на земле
+  for (const [x, y, w] of sn.dr || []) { cx.fillStyle = '#C9D2E0'; cx.fillRect(x - 0.45, y - 0.12, 0.9, 0.24); }
+  // огонь (виден всем)
+  for (const [x, y, r] of sn.fi || []) {
+    const gr = cx.createRadialGradient(x, y, 0.2, x, y, r);
+    const fl = 0.75 + 0.25 * Math.sin(now / 90 + x);
+    gr.addColorStop(0, `rgba(255,190,60,${0.85 * fl})`); gr.addColorStop(0.6, `rgba(255,90,20,${0.55 * fl})`); gr.addColorStop(1, 'rgba(255,60,0,0)');
+    cx.fillStyle = gr; cx.beginPath(); cx.arc(x, y, r, 0, 7); cx.fill();
+  }
+  // туман войны
+  const mine = sn.u.filter(u => u.seat === me && u.alive);
+  const g = fogC.getContext('2d');
+  g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, fogC.width, fogC.height);
+  g.fillStyle = 'rgba(5,7,11,.7)'; g.fillRect(0, 0, fogC.width, fogC.height);
+  setT(g); g.globalCompositeOperation = 'destination-out'; g.fillStyle = '#fff';
+  for (const poly of visPolys(mine, sn.sm || [])) { g.beginPath(); g.moveTo(poly[0][0], poly[0][1]); for (let i = 1; i < poly.length; i++) g.lineTo(poly[i][0], poly[i][1]); g.closePath(); g.fill(); }
+  g.globalCompositeOperation = 'source-over';
+  cx.setTransform(1, 0, 0, 1, 0, 0); cx.drawImage(fogC, 0, 0); setT(cx);
+  // дым (виден всем)
+  for (const [x, y, r] of sn.sm || []) {
+    if (r <= 0.05) continue;
+    const gr = cx.createRadialGradient(x, y, r * 0.2, x, y, r * 1.05);
+    gr.addColorStop(0, 'rgba(205,210,218,.92)'); gr.addColorStop(0.75, 'rgba(180,186,196,.85)'); gr.addColorStop(1, 'rgba(160,166,176,0)');
+    cx.fillStyle = gr; cx.beginPath(); cx.arc(x, y, r * 1.05, 0, 7); cx.fill();
+  }
+  // гранаты в полёте
+  for (const [t, x0, y0, x1, y1, t0, tl] of sn.fl || []) {
+    const k = Math.min(1, Math.max(0, (sn.time - t0) / Math.max(0.1, tl - t0)));
+    const x = x0 + (x1 - x0) * k, y = y0 + (y1 - y0) * k - Math.sin(k * Math.PI) * 1.2;
+    cx.fillStyle = t === 'fl' ? '#fff' : t === 'sm' ? '#cfd6e4' : t === 'mo' ? '#ff8a2a' : '#7ee07e';
+    cx.beginPath(); cx.arc(x, y, 0.32, 0, 7); cx.fill();
+  }
+  // бомба
+  const b = sn.bomb;
+  if (b && (b.st === 'plant' || b.st === 'done' || b.st === 'boom' || (b.st === 'drop' && side === 'T'))) {
+    const pulse = b.st === 'plant' ? 0.5 + 0.5 * Math.sin(now / (b.t < 6 ? 90 : 220)) : 0;
+    cx.fillStyle = `rgba(255,70,70,${0.25 + 0.35 * pulse})`; cx.beginPath(); cx.arc(b.x, b.y, 1.3, 0, 7); cx.fill();
+    cx.fillStyle = '#ff4d4d'; cx.fillRect(b.x - 0.45, b.y - 0.32, 0.9, 0.64);
+    cx.fillStyle = '#111'; cx.font = `700 ${P(7)}px Onest, sans-serif`; cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.fillText('C4', b.x, b.y + 0.02);
+    if (b.st === 'plant' && (b.dp || defProg()) > 0) { const dp = b.dp != null ? b.dp : defProg(); cx.strokeStyle = '#5BAAF2'; cx.lineWidth = P(3); cx.beginPath(); cx.arc(b.x, b.y, 1.1, -Math.PI / 2, -Math.PI / 2 + dp * Math.PI * 2); cx.stroke(); }
+  }
+  // приказы (только на планировании)
+  if (!PB && S.step === 'turn' && !S.over) drawOrders();
+  // что слышали и где видели врага
+  drawIntel(sn, eside);
+  // враги в зоне видимости
+  for (const u of sn.u) {
+    if (u.seat === me || !u.alive) continue;
+    if (!(sn.vis & (1 << u.id))) continue;
+    drawUnit(u, eside, false, sn);
+  }
+  // мёртвые
+  for (const u of sn.u) if (!u.alive) drawDead(u, u.seat === me ? side : eside);
+  // свои
+  for (const u of sn.u) if (u.seat === me && u.alive) drawUnit(u, side, true, sn);
+  // эффекты
+  drawFX(sn);
+}
+let deadSeen = {};
+function defProg() { for (const u of S.units) if (u.busy === 'defuse') return u.defT / (u.kit ? K.DEF_KIT : K.DEF_T); return 0; }
+function drawUnit(u, side, mine, sn) {
+  const sel = mine && !PB && D.sel && D.sel.includes(u.slot);
+  const r = 0.78, col = COL[side];
+  // направление взгляда
+  cx.fillStyle = col; cx.globalAlpha = 0.9;
+  cx.beginPath(); cx.moveTo(u.x + u.fx * (r + 0.7), u.y + u.fy * (r + 0.7)); cx.lineTo(u.x - u.fy * 0.45 + u.fx * r * 0.6, u.y + u.fx * 0.45 + u.fy * r * 0.6); cx.lineTo(u.x + u.fy * 0.45 + u.fx * r * 0.6, u.y - u.fx * 0.45 + u.fy * r * 0.6); cx.closePath(); cx.fill();
+  cx.globalAlpha = 1;
+  if (sel) { cx.strokeStyle = '#fff'; cx.lineWidth = P(2.2); cx.beginPath(); cx.arc(u.x, u.y, r + P(4), 0, 7); cx.stroke(); }
+  cx.fillStyle = u.blind ? '#ffffff' : col; cx.beginPath(); cx.arc(u.x, u.y, r, 0, 7); cx.fill();
+  cx.strokeStyle = 'rgba(0,0,0,.6)'; cx.lineWidth = P(1.2); cx.stroke();
+  // здоровье дугой
+  if (u.hp < 100) { cx.strokeStyle = u.hp <= 30 ? '#FF5454' : '#67E3A6'; cx.lineWidth = P(2); cx.beginPath(); cx.arc(u.x, u.y, r + P(2.2), -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * u.hp / 100); cx.stroke(); }
+  cx.fillStyle = '#0b0f15'; cx.font = `700 ${P(9.5)}px "Russo One", sans-serif`; cx.textAlign = 'center'; cx.textBaseline = 'middle';
+  cx.fillText(ROLE_L[u.slot], u.x, u.y + P(0.6));
+  if (u.bomb) { cx.fillStyle = '#ff4d4d'; cx.fillRect(u.x + r * 0.45, u.y - r * 1.15, 0.55, 0.38); }
+  if (u.busy) { cx.strokeStyle = u.busy === 'plant' ? '#ff4d4d' : '#5BAAF2'; cx.lineWidth = P(2.5); cx.setLineDash([P(3), P(3)]); cx.beginPath(); cx.arc(u.x, u.y, r + P(6), 0, 7); cx.stroke(); cx.setLineDash([]); }
+}
+function drawDead(u, side) {
+  cx.strokeStyle = COL[side]; cx.globalAlpha = 0.55; cx.lineWidth = P(2.5);
+  cx.beginPath(); cx.moveTo(u.x - 0.5, u.y - 0.5); cx.lineTo(u.x + 0.5, u.y + 0.5); cx.moveTo(u.x + 0.5, u.y - 0.5); cx.lineTo(u.x - 0.5, u.y + 0.5); cx.stroke();
+  cx.globalAlpha = 1;
+}
+function drawIntel(sn, eside) {
+  const intel = S.intel[me];
+  const time = sn.time;
+  // последнее место, где видели врага
+  if (!PB) for (const id in intel.seen) {
+    const e = intel.seen[id]; if (sn.vis & (1 << id)) continue;
+    const age = time - e.t; if (age > 25) continue;
+    cx.globalAlpha = Math.max(0.25, 0.75 - age / 40);
+    cx.strokeStyle = COL[eside]; cx.lineWidth = P(1.5); cx.setLineDash([P(2), P(2)]);
+    cx.beginPath(); cx.arc(e.x, e.y, 0.75, 0, 7); cx.stroke(); cx.setLineDash([]);
+    cx.fillStyle = COL[eside]; cx.font = `700 ${P(8)}px Onest, sans-serif`; cx.textAlign = 'center'; cx.textBaseline = 'middle';
+    cx.fillText('?', e.x, e.y + P(0.5));
+    cx.font = `600 ${P(7)}px Onest, sans-serif`; cx.fillText(Math.round(age) + 'с', e.x, e.y + 1.35);
+    cx.globalAlpha = 1;
+  }
+  // услышанные шаги и выстрелы за прошлый ход
+  if (!PB) for (const h of intel.heard) {
+    const age = time - h.t; if (age > 5.2 || age < 0) continue;
+    cx.strokeStyle = h.kind === 'step' ? COL[eside] : '#FF5454';
+    cx.globalAlpha = 0.35 + 0.4 * (1 - age / 5.2); cx.lineWidth = P(1.3);
+    cx.beginPath(); cx.arc(h.x, h.y, 0.6, 0, 7); cx.stroke();
+    cx.beginPath(); cx.arc(h.x, h.y, 1.1, 0, 7); cx.stroke();
+    cx.globalAlpha = 1;
+  }
+}
+function drawOrders() {
+  const side = mySide(), col = COL[side];
+  for (const u of myUnits()) {
+    if (!u.alive) continue;
+    const o = orderOf(u.slot), pv = K.preview(S, u, o);
+    const sel = D.sel.includes(u.slot);
+    if (pv.route.length) {
+      cx.lineCap = 'round'; cx.lineJoin = 'round';
+      cx.strokeStyle = col; cx.globalAlpha = sel ? 0.95 : 0.55; cx.lineWidth = P(sel ? 2.4 : 1.6);
+      cx.beginPath(); cx.moveTo(pv.done[0][0], pv.done[0][1]); for (const p of pv.done) cx.lineTo(p[0], p[1]); cx.stroke();
+      cx.setLineDash([P(3), P(4)]); cx.globalAlpha = sel ? 0.6 : 0.3;
+      cx.beginPath(); cx.moveTo(pv.rest[0][0], pv.rest[0][1]); for (const p of pv.rest) cx.lineTo(p[0], p[1]); cx.stroke(); cx.setLineDash([]);
+      // куда дойдёт к концу хода
+      cx.globalAlpha = sel ? 0.9 : 0.5; cx.strokeStyle = col; cx.lineWidth = P(1.5);
+      cx.beginPath(); cx.arc(pv.end[0], pv.end[1], 0.62, 0, 7); cx.stroke();
+      const last = pv.route[pv.route.length - 1];
+      cx.fillStyle = col; cx.beginPath(); cx.arc(last[0], last[1], 0.28, 0, 7); cx.fill();
+      cx.globalAlpha = 1;
+    }
+    const look = o && o.l !== undefined ? (o.l || null) : u.look;
+    if (look && sel) {
+      const from = pv.route.length ? pv.route[pv.route.length - 1] : [u.x, u.y];
+      cx.strokeStyle = '#fff'; cx.globalAlpha = 0.55; cx.lineWidth = P(1.2); cx.setLineDash([P(1.5), P(3)]);
+      cx.beginPath(); cx.moveTo(from[0], from[1]); cx.lineTo(look[0], look[1]); cx.stroke(); cx.setLineDash([]);
+      cx.globalAlpha = 0.9; cx.font = `${P(11)}px sans-serif`; cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.fillText('👁', look[0], look[1]);
+      cx.globalAlpha = 1;
+    }
+    if (o && o.n) {
+      const n = o.n, from = n.e && pv.route.length ? pv.route[pv.route.length - 1] : [u.x, u.y];
+      cx.strokeStyle = '#fff'; cx.globalAlpha = 0.7; cx.lineWidth = P(1.3); cx.setLineDash([P(2), P(2)]);
+      cx.beginPath(); cx.moveTo(from[0], from[1]); cx.quadraticCurveTo((from[0] + n.x) / 2, (from[1] + n.y) / 2 - 2, n.x, n.y); cx.stroke(); cx.setLineDash([]);
+      const R = n.t === 'sm' ? K.SMOKE_R : n.t === 'mo' ? K.FIRE_R : n.t === 'he' ? K.HE_R : 1;
+      cx.fillStyle = n.t === 'sm' ? 'rgba(200,205,215,.35)' : n.t === 'mo' ? 'rgba(255,120,40,.3)' : n.t === 'he' ? 'rgba(126,224,126,.25)' : 'rgba(255,255,255,.3)';
+      cx.beginPath(); cx.arc(n.x, n.y, R, 0, 7); cx.fill();
+      cx.globalAlpha = 1; cx.font = `${P(12)}px sans-serif`; cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.fillText(NADE_IC[n.t], n.x, n.y);
+    }
+  }
+  // радиус броска выбранной гранаты
+  if (D.mode === 'nade' && D.sel.length === 1) {
+    const u = S.units[me * 5 + D.sel[0]], o = orderOf(u.slot), pv = K.preview(S, u, o);
+    const from = D.nadeE && pv.route.length ? pv.route[pv.route.length - 1] : [u.x, u.y];
+    cx.strokeStyle = '#fff'; cx.globalAlpha = 0.5; cx.lineWidth = P(1.5); cx.setLineDash([P(4), P(4)]);
+    cx.beginPath(); cx.arc(from[0], from[1], K.NADES[D.nadeT].rng, 0, 7); cx.stroke(); cx.setLineDash([]); cx.globalAlpha = 1;
+  }
+}
+function drawFX(sn) {
+  if (!PB) return;
+  const t = PB.t;
+  FX = FX.filter(f => t - f.t < f.dur);
+  for (const f of FX) {
+    const k = (t - f.t) / f.dur;
+    if (f.k === 'tracer') {
+      cx.strokeStyle = f.hit ? 'rgba(255,230,140,' + (1 - k) + ')' : 'rgba(255,255,255,' + (0.6 * (1 - k)) + ')'; cx.lineWidth = P(f.awp ? 2.2 : 1.2);
+      cx.beginPath(); cx.moveTo(f.x0, f.y0); cx.lineTo(f.x1, f.y1); cx.stroke();
+    } else if (f.k === 'dmg') {
+      cx.globalAlpha = 1 - k; cx.fillStyle = f.hs ? '#FFD15C' : '#FF7070'; cx.font = `800 ${P(f.hs ? 11 : 9)}px Onest, sans-serif`; cx.textAlign = 'center';
+      cx.fillText((f.hs ? '⌖ ' : '−') + f.v, f.x, f.y - 1.2 - k * 1.5); cx.globalAlpha = 1;
+    } else if (f.k === 'pop') {
+      const R = f.t2 === 'fl' ? 3.5 : f.t2 === 'he' ? K.HE_R : 2;
+      cx.fillStyle = f.t2 === 'fl' ? `rgba(255,255,255,${0.85 * (1 - k)})` : f.t2 === 'he' ? `rgba(255,170,60,${0.8 * (1 - k)})` : `rgba(255,120,40,${0.5 * (1 - k)})`;
+      cx.beginPath(); cx.arc(f.x, f.y, R * (0.4 + 0.6 * k), 0, 7); cx.fill();
+    } else if (f.k === 'ring') {
+      cx.strokeStyle = f.c; cx.globalAlpha = 1 - k; cx.lineWidth = P(1.5);
+      cx.beginPath(); cx.arc(f.x, f.y, 0.4 + k * 1.6, 0, 7); cx.stroke(); cx.globalAlpha = 1;
+    } else if (f.k === 'boom') {
+      cx.fillStyle = `rgba(255,120,40,${0.8 * (1 - k)})`; cx.beginPath(); cx.arc(f.x, f.y, 2 + k * 9, 0, 7); cx.fill();
+    }
+  }
+}
+
+/* ---------------- проигрыш хода ---------------- */
+function nextPlayback() {
+  const it = playQ.shift(); if (!it) { PB = null; render(); return; }
+  PB = { film: it.film, ev: it.ev, t: 0, idx: 0, speed: store.get('speed', 1), last: performance.now(), done: false, hold: 0 };
+  FX = []; deadSeen = {};
+  for (const u of S.units) if (!u.alive && u.seat !== me) deadSeen[u.id] = false;
+  $('#feed').innerHTML = '';
+  render();
+  if (!animOn) { animOn = true; requestAnimationFrame(loop); }
+}
+function loop(ts) {
+  if (!PB) { animOn = false; draw(); return; }
+  const dt = Math.max(0, Math.min(0.1, (ts - PB.last) / 1000)); PB.last = ts;
+  const end = PB.film.frames.length - 1;
+  if (!PB.done) {
+    PB.t = Math.min(end, PB.t + dt * 10 * PB.speed);
+    while (PB.idx < PB.ev.length && PB.ev[PB.idx].i <= PB.t) { onEvent(PB.ev[PB.idx]); PB.idx++; }
+    if (PB.t >= end) { PB.done = true; PB.hold = 0; }
+  } else {
+    PB.hold += dt;
+    while (PB.idx < PB.ev.length) { onEvent(PB.ev[PB.idx]); PB.idx++; }
+    if (PB.hold > 0.7) { finishPlayback(); }
+  }
+  updateBarProgress();
+  draw();
+  requestAnimationFrame(loop);
+}
+function finishPlayback() {
+  const it = PB; PB = null; FX = [];
+  const end = it.ev.find(e => e.k === 'end');
+  if (end) { showRoundEnd(end, it.ev.find(e => e.k === 'over')); return; }
+  if (playQ.length) nextPlayback(); else render();
+  fadeFeed();
+}
+function fadeFeed() { clearTimeout(fadeFeed.t); fadeFeed.t = setTimeout(() => { if (!PB) $('#feed').innerHTML = ''; }, 4000); }
+function skipPlayback() { if (!PB) return; PB.t = PB.film.frames.length - 1; PB.done = true; while (PB.idx < PB.ev.length) { onEvent(PB.ev[PB.idx]); PB.idx++; } finishPlayback(); }
+function unitVisibleNow(id) { if (!PB) return true; const fr = PB.film.frames[Math.max(0, Math.min(PB.film.frames.length - 1, Math.floor(PB.t)))]; return id < 5 ? (me === 0 || (fr.vis[me] & (1 << id))) : (me === 1 || (fr.vis[me] & (1 << id))); }
+const isMine = id => Math.floor(id / 5) === me;
+function posAt(id) { const fr = PB.film.frames[Math.max(0, Math.min(PB.film.frames.length - 1, Math.floor(PB.t)))]; return [fr.u[id][0], fr.u[id][1]]; }
+function onEvent(e) {
+  const t = PB ? PB.t : 0;
+  const sideOfId = id => S.sideOf[Math.floor(id / 5)] || 'T';
+  switch (e.k) {
+    case 'shot': {
+      const aVis = isMine(e.a) || unitVisibleNow(e.a), bVis = isMine(e.b) || unitVisibleNow(e.b);
+      const pa = posAt(e.a), pb = posAt(e.b);
+      if (aVis) FX.push({ k: 'tracer', x0: pa[0], y0: pa[1], x1: pb[0], y1: pb[1], hit: e.hit, t, dur: e.w === 'awp' || e.w === 'ssg' ? 3 : 1.2, awp: e.w === 'awp' || e.w === 'ssg' });
+      if (e.hit && bVis) FX.push({ k: 'dmg', x: pb[0], y: pb[1], v: e.dmg, hs: e.part === 'head', t, dur: 7 });
+      if (aVis || bVis) sfx.shot(isMine(e.a) || isMine(e.b) ? 1 : 0.6, e.w === 'awp' || e.w === 'ssg');
+      break;
+    }
+    case 'kill': {
+      deadSeen[e.b] = true;
+      addFeed(e);
+      { const wn = K.W[e.w] ? K.W[e.w].name : e.w === 'he' ? 'HE' : e.w === 'mo' ? 'огнём' : ''; logLine(`💀 ${e.a != null ? uname(e.a) + ' убил ' : ''}${uname(e.b)}${wn ? ' · ' + esc(wn) : ''}${e.hs ? ' · <b>в голову</b>' : ''}`, isMine(e.b) ? 'bad' : (e.a != null && isMine(e.a) ? 'good' : '')); }
+      if (isMine(e.b) || isMine(e.a)) { sfx.kill(); if (e.hs) sfx.hs(); buzz(isMine(e.b) ? [40, 30, 40] : 20); }
+      break;
+    }
+    case 'throw': { if (isMine(e.u)) sfx.whoosh(); break; }
+    case 'pop': {
+      FX.push({ k: 'pop', t2: e.t, x: e.x, y: e.y, t, dur: e.t === 'fl' ? 6 : 8 });
+      if (e.t === 'fl') { sfx.flash(); if (e.hit && e.hit.some(([id]) => isMine(id))) buzz(60); const en = (e.hit || []).filter(([id, d]) => d >= 0.8); if (en.length) logLine(`✦ Флешка ослепила: ${en.map(([id, d]) => uname(id) + ' ' + d + ' с').join(', ')}`, en.some(([id]) => isMine(id)) ? 'bad' : 'good'); }
+      if (e.t === 'he' && e.hit && e.hit.length) logLine(`💥 HE: ${e.hit.map(([id, d]) => uname(id) + ' −' + d).join(', ')}`);
+      else if (e.t === 'sm') sfx.whoosh(); else if (e.t === 'mo') sfx.fire(); else if (e.t === 'he') sfx.he();
+      break;
+    }
+    case 'heard': if (e.by[me]) FX.push({ k: 'ring', x: e.x, y: e.y, c: e.kind === 'step' ? COL[mySide() === 'T' ? 'CT' : 'T'] : '#FF5454', t, dur: 9 }); break;
+    case 'plant': sfx.plant(); flashBanner('БОМБА ЗАЛОЖЕНА', 'var(--red)'); logLine(`💣 ${uname(e.u)} поставил бомбу на ${e.site}`); break;
+    case 'defstart': if (isMine(e.u) || mySide() === 'T') sfx.beep(); logLine(`🔧 ${uname(e.u)} начал дефьюз${e.kit ? ' с китом' : ''}`); break;
+    case 'defused': flashBanner('РАЗМИНИРОВАНО', 'var(--ct)'); break;
+    case 'boom': FX.push({ k: 'boom', x: e.x, y: e.y, t, dur: 10 }); sfx.boom(); buzz([60, 40, 120]); break;
+    case 'bombdrop': if (mySide() === 'T') toast('Бомба упала! Подбери её'); break;
+    case 'pick': if (isMine(e.u)) logLine(`🔫 ${uname(e.u)} подобрал ${esc(K.W[e.w].name)}`, 'good'); break;
+    case 'douse': logLine('☁ Дым потушил огонь'); break;
+  }
+}
+function logLine(html, tone) { if (!PB) return; const l = { html, tone }; (PB.log = PB.log || []).push(l); appendLog(l); }
+function appendLog(l, quiet) { const box = $('#log'); if (!box) return; const d = document.createElement('div'); d.className = l.tone || ''; d.innerHTML = l.html; if (quiet) d.style.animation = 'none'; box.prepend(d); while (box.children.length > 8) box.lastChild.remove(); }
+const uname = id => { const u = S.units[id]; return `<b style="color:${COL[sides()[u.seat]]}">${esc(u.name)}</b>`; };
+function addFeed(e) {
+  const box = $('#feed'), d = document.createElement('div');
+  const a = e.a != null ? S.units[e.a] : null, b = S.units[e.b];
+  const sa = a ? sides()[a.seat] : '', sb = sides()[b.seat];
+  const wname = K.W[e.w] ? K.W[e.w].name : e.w === 'he' ? 'HE' : e.w === 'mo' ? 'огонь' : '💥';
+  d.className = isMine(e.b) || (a && isMine(a.id)) ? 'mine' : '';
+  d.innerHTML = (a ? `<span class="${sa.toLowerCase()}">${esc(a.name)}</span>` : '') + `<span class="w">${esc(wname)}${e.hs ? ' ⌖' : ''}</span><span class="${sb.toLowerCase()}">${esc(b.name)}</span>`;
+  box.appendChild(d);
+  while (box.children.length > 5) box.firstChild.remove();
+}
+function flashBanner(txt, color) { const el = $('#banner'); el.querySelector('b').textContent = txt; el.style.color = color; el.classList.remove('go'); void el.offsetWidth; el.classList.add('go'); }
+
+/* ---------------- ввод на карте ---------------- */
+let ptr = null;
+cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); ptr = { x: e.offsetX, y: e.offsetY, vx: view.x, vy: view.y, moved: false }; });
+cv.addEventListener('pointermove', e => {
+  if (!ptr) return;
+  const dx = e.offsetX - ptr.x, dy = e.offsetY - ptr.y;
+  if (Math.abs(dx) + Math.abs(dy) > 8) ptr.moved = true;
+  if (ptr.moved && view.z > 1) { view.x = ptr.vx - dx / vk(); view.y = ptr.vy - dy / vk(); draw(); }
+});
+cv.addEventListener('pointerup', e => { const p = ptr; ptr = null; if (!p || p.moved) return; onMapTap(e.offsetX, e.offsetY); });
+cv.addEventListener('pointercancel', () => { ptr = null; });
+$('#btnZoom').onclick = () => {
+  view.z = view.z > 1 ? 1 : 1.9;
+  if (view.z > 1 && S) { const u = D.sel && D.sel.length ? S.units[me * 5 + D.sel[0]] : myUnits().find(x => x.alive); if (u) { view.x = u.x; view.y = u.y; } }
+  $('#btnZoom').classList.toggle('on', view.z > 1); draw();
+};
+function snapWalk(x, y) {
+  const cx0 = Math.floor(x), cy0 = Math.floor(y);
+  if (K.walk(cx0, cy0)) return [cx0, cy0];
+  let best = null, bd = 9;
+  for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) { const a = cx0 + dx, b = cy0 + dy; if (!K.walk(a, b)) continue; const d = (a + 0.5 - x) ** 2 + (b + 0.5 - y) ** 2; if (d < bd) { bd = d; best = [a, b]; } }
+  return best;
+}
+function formation(c, n) {
+  const out = [], seen = new Set([c.join(',')]), q = [c];
+  while (q.length && out.length < n) {
+    const [x, y] = q.shift();
+    if (out.every(([a, b]) => Math.abs(a - x) + Math.abs(b - y) >= 2)) out.push([x, y]);
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const k = (x + dx) + ',' + (y + dy); if (!seen.has(k) && K.walk(x + dx, y + dy)) { seen.add(k); q.push([x + dx, y + dy]); } }
+  }
+  return out;
+}
+function onMapTap(px, py) {
+  if (!S || S.over || PB) return;
+  if (S.step !== 'turn' || !myPickNeeded()) return;
+  draft();
+  const [x, y] = toCell(px, py);
+  // тап по своему бойцу — выбрать его
+  let hit = null, hd = 1.6 * 1.6;
+  for (const u of myUnits()) { if (!u.alive) continue; const d = (u.x - x) ** 2 + (u.y - y) ** 2; if (d < hd) { hd = d; hit = u; } }
+  if (hit && D.mode === 'move' && !D.append) {
+    if (D.multi) { const i = D.sel.indexOf(hit.slot); if (i >= 0) D.sel.splice(i, 1); else D.sel.push(hit.slot); }
+    else D.sel = [hit.slot];
+    sfx.tap(); render(); return;
+  }
+  if (!D.sel.length) { toast('Сначала выбери бойца'); return; }
+  if (D.mode === 'look') {
+    for (const slot of D.sel) setOrder(slot, o => { o.l = [Math.round(x * 4) / 4, Math.round(y * 4) / 4]; });
+    D.mode = 'move'; sfx.tap(); render(); return;
+  }
+  if (D.mode === 'nade') {
+    const c = snapWalk(x, y); if (!c) { toast('Сюда не кинуть'); return; }
+    const slot = D.sel[0], t = D.nadeT;
+    const ok = setOrder(slot, o => { o.n = { t, x: c[0] + 0.5, y: c[1] + 0.5, e: D.nadeE }; });
+    if (!ok) { toast('Слишком далеко: граната летит до ' + K.NADES[t].rng + ' клеток'); return; }
+    D.mode = 'move'; sfx.tap(); render(); return;
+  }
+  // идти
+  const c = snapWalk(x, y); if (!c) { toast('Туда не пройти'); return; }
+  if (D.sel.length === 1) {
+    const slot = D.sel[0];
+    const ok = setOrder(slot, o => { if (D.append && o.p && o.p.length) o.p = o.p.concat([c]); else o.p = [c]; });
+    if (!ok) { toast('Туда не пройти'); return; }
+  } else {
+    const units = D.sel.map(s => S.units[me * 5 + s]).filter(u => u.alive);
+    const spots = formation(c, units.length), left = units.slice();
+    for (const sp of spots) {
+      left.sort((a, b) => ((a.x - sp[0]) ** 2 + (a.y - sp[1]) ** 2) - ((b.x - sp[0]) ** 2 + (b.y - sp[1]) ** 2));
+      const u = left.shift(); if (!u) break;
+      setOrder(u.slot, o => { o.p = [sp]; });
+    }
+  }
+  D.append = false;
+  sfx.tap(); render();
+}
+
+/* ---------------- рендер интерфейса ---------------- */
+function render() {
+  renderSound();
+  if (!S) { $('#hud').innerHTML = ''; $('#panel').innerHTML = ''; $('#bar').innerHTML = ''; draw(); return; }
+  draft();
+  const side = mySide();
+  document.documentElement.style.setProperty('--side', side === 'CT' ? 'var(--ct)' : 'var(--t)');
+  const planted = S.bomb && S.bomb.st === 'plant' && S.step === 'turn';
+  document.body.classList.toggle('bomb', !!planted && !S.over);
+  document.body.classList.toggle('hurry', !!planted && S.bomb.t <= 5);
+  renderHud();
+  if (PB) renderPlayPanel();
+  else if (S.over) renderOverPanel();
+  else if (S.step === 'buy') renderBuy();
+  else renderPlan();
+  draw();
+}
+function renderHud() {
+  const N = names(), sd = sides().slice(), score = PB && PB.film.score ? PB.film.score : S.score;
+  const sn = PB ? snapFromFilm(PB.film, PB.t) : null;
+  const alive = k => (sn ? sn.u : S.units).filter(u => u.seat === k && u.alive).length;
+  const team = (k, right) => `<div class="tm ${sd[k] === 'CT' ? 'ct' : ''}${right ? ' r' : ''}"><span class="sd">${sd[k]}</span><span class="nm">${esc(k === me ? (N[k] || 'Ты') : N[k])}</span><span class="al">${[0, 1, 2, 3, 4].map(i => `<i class="${i < alive(k) ? '' : 'd'}"></i>`).join('')}</span><span class="sc">${score[k]}</span></div>`;
+  let clock = '';
+  const bomb = sn ? sn.bomb : S.bomb;
+  if (S.over && !PB) clock = `<div class="clock"><b>${S.score[me]}:${S.score[opp()]}</b><small>матч окончен</small></div>`;
+  else if (S.step === 'buy' && !PB) clock = `<div class="clock"><b>$</b><small>раунд ${S.round}</small></div>`;
+  else if (bomb && bomb.st === 'plant') clock = `<div class="clock bomb"><b>💣 ${fmtClock(bomb.t)}</b><small>${Math.ceil(bomb.t / K.TURN)} ${plural(Math.ceil(bomb.t / K.TURN), 'ход', 'хода', 'ходов')} до взрыва</small></div>`;
+  else { const c = sn ? sn.clock : S.clock, turn = PB ? PB.film.turn + 1 : S.turn + 1, total = K.ROUND_T / K.TURN; clock = `<div class="clock"><b>${fmtClock(c)}</b><small>ход ${Math.min(turn, total)} из ${total}</small></div>`; }
+  $('#hud').innerHTML = team(me, false) + clock + team(opp(), true);
+}
+function unitWeapon(u) { return K.W[K.curW(u)].name; }
+function nadesStr(u) { let s = ''; for (const n of K.NADE_KEYS) for (let i = 0; i < u.nades[n]; i++) s += NADE_IC[n]; return s; }
+function orderSummary(u) {
+  const o = orderOf(u.slot), pv = K.preview(S, u, o);
+  const parts = [];
+  if (pv.route.length) {
+    const last = pv.route[pv.route.length - 1];
+    const w = o ? !!o.w : u.walk;
+    parts.push(`${o && o.p ? 'Идёт' : 'Продолжает идти'}: <b>${esc(placeName(last[0], last[1]))}</b> · ${pv.turns <= 1 ? 'дойдёт за этот ход' : 'ещё ' + pv.turns + ' ' + plural(pv.turns, 'ход', 'хода', 'ходов')} · ${w ? 'шагом, тихо' : 'бегом'}`);
+  } else parts.push(`Стоит: <b>${esc(placeName(u.x, u.y))}</b>`);
+  const look = o && o.l !== undefined ? o.l : u.look;
+  if (look) parts.push(`смотрит на ${esc(placeName(look[0], look[1]))}`);
+  if (o && o.d) parts.push(`старт через ${o.d} с`);
+  if (o && o.n) parts.push(`${NADE_IC[o.n.t]} ${K.nadeName(o.n.t, mySide()).toLowerCase()} ${o.n.e ? 'дойдя' : 'сразу'} → ${esc(placeName(o.n.x, o.n.y))}`);
+  const act = o && o.a !== undefined ? o.a : u.act;
+  if (act === 'plant') parts.push('💣 <b>поставит бомбу</b>, когда дойдёт до точки');
+  if (act === 'defuse') parts.push('🔧 <b>разминирует</b>, когда дойдёт');
+  return parts.join(' · ');
+}
+function renderPlan() {
+  const side = mySide(), mine = myUnits(), need = myPickNeeded();
+  let h = '';
+  if (!need) {
+    h += `<p class="hint">Приказы отданы. <b>Ждём ${M.mode === 'bot' ? 'бота' : esc(names()[opp()])}</b>, потом ход разыграется у обоих.</p>`;
+  } else if (!D.sel.length) h += `<p class="hint">Нажми на бойца (на карте или ниже), потом на карту — куда идти.</p>`;
+  else if (D.mode === 'look') h += `<p class="hint"><b>👁 Нажми на карту</b> — туда боец будет держать прицел. Кто смотрит на угол заранее, стреляет первым.</p>`;
+  else if (D.mode === 'nade') h += `<p class="hint"><b>${NADE_IC[D.nadeT]} Нажми, куда кинуть.</b> Пунктир — дальность броска. ${D.nadeE ? 'Кинет, когда дойдёт до конца пути.' : 'Кинет в начале хода.'}</p>`;
+  else if (D.append) h += `<p class="hint"><b>＋ Нажми следующую точку</b> маршрута.</p>`;
+  else h += `<p class="hint">Нажми на карту — туда пойдёт ${D.sel.length > 1 ? 'группа' : 'боец'}. Сплошная линия — пройдёт за этот ход, пунктир — дальше. Без нового приказа боец продолжает старый.</p>`;
+  // ростер
+  h += `<div class="ros">` + mine.map(u => {
+    const hpw = u.hp, sel = D.sel.includes(u.slot), has = !!orderOf(u.slot);
+    const bomb = S.bomb && S.bomb.st === 'carry' && S.bomb.carrier === u.id;
+    return `<button class="chip ${side === 'CT' ? 'ct' : ''}${sel ? ' sel' : ''}${u.alive ? '' : ' dead'}" data-sel="${u.slot}" ${u.alive ? '' : 'disabled'}>${has ? '<span class="od"></span>' : ''}${bomb ? '<span class="bm">💣</span>' : ''}<span class="ri">${ROLE_L[u.slot]}</span><span class="cn">${esc(u.name)}</span><span class="hp"><i class="${hpw <= 30 ? 'low' : ''}" style="width:${hpw}%"></i></span></button>`;
+  }).join('') + `<button class="chip all${D.sel.length > 1 ? ' sel' : ''} ${side === 'CT' ? 'ct' : ''}" data-all="1">ВСЕ</button></div>`;
+  if (D.sel.length === 1) {
+    const u = S.units[me * 5 + D.sel[0]], R = K.ROLES[u.slot], o = orderOf(u.slot) || {};
+    const walkOn = o.w !== undefined ? !!o.w : u.walk;
+    h += `<div class="card"><div class="uhead"><span class="ri">${ROLE_L[u.slot]}</span><div><div class="un">${esc(u.name)}</div><div class="ur">${R.name} · ${u.hp} HP${u.armor ? (u.armor > 1 ? ' · броня+шлем' : ' · броня') : ''}${u.kit ? ' · кит' : ''}</div></div><div class="uw">${esc(unitWeapon(u))}<small>${nadesStr(u) || 'без гранат'}</small></div></div>`;
+    h += `<div class="ustat">${orderSummary(u)}</div>`;
+    if (need) {
+      h += `<div class="row"><button class="sb ${D.mode === 'move' && !D.append ? 'on' : ''}" data-m="move">🚶 Идти</button><button class="sb ${D.append ? 'on' : ''}" data-m="append">＋ Точка</button><button class="sb ${D.mode === 'look' ? 'on' : ''}" data-m="look">👁 Смотреть</button><button class="sb" data-m="stop">✋ Стоп</button></div>`;
+      const d = o.d | 0;
+      h += `<div class="row"><button class="sb ${walkOn ? 'on' : ''}" data-m="walk">${walkOn ? '🤫 Шагом' : '🏃 Бегом'}</button><button class="sb ${d ? 'hot' : ''}" data-m="delay">⏱ Старт ${d ? 'через ' + d + ' с' : 'сразу'}</button>`;
+      if (side === 'T') { const on = (o.a !== undefined ? o.a : u.act) === 'plant'; h += `<button class="sb ${on ? 'hot' : ''}" data-m="plant">💣 ${on ? 'Ставит' : 'Ставить'}</button>`; }
+      else if (S.bomb && S.bomb.st === 'plant') { const on = (o.a !== undefined ? o.a : u.act) === 'defuse'; h += `<button class="sb ${on ? 'hot' : ''}" data-m="defuse">🔧 ${on ? 'Дефьюзит' : 'Дефьюз'}</button>`; }
+      h += `</div>`;
+      const ns = K.NADE_KEYS.filter(n => u.nades[n] > 0);
+      if (ns.length) {
+        h += `<div class="row">` + ns.map(n => `<button class="sb ${D.mode === 'nade' && D.nadeT === n ? 'on' : o.n && o.n.t === n ? 'hot' : ''}" data-nade="${n}">${NADE_IC[n]} ${K.nadeName(n, side)}${u.nades[n] > 1 ? ' <i>×' + u.nades[n] + '</i>' : ''}</button>`).join('') + `</div>`;
+        if (D.mode === 'nade' || o.n) h += `<div class="row"><button class="sb ${!D.nadeE ? 'on' : ''}" data-ne="0">Кинуть сразу</button><button class="sb ${D.nadeE ? 'on' : ''}" data-ne="1">Кинуть, дойдя</button>${o.n ? '<button class="sb warn" data-m="nonade">Убрать гранату</button>' : ''}</div>`;
+      }
+      if (orderOf(u.slot)) h += `<div class="row"><button class="sb" data-m="reset">↺ Отменить приказ</button></div>`;
+    }
+    h += `<div class="perk"><b>${R.name}:</b> ${R.perk}.</div></div>`;
+  } else if (D.sel.length > 1 && need) {
+    h += `<div class="card"><div class="un" style="font-weight:800">Группа: ${D.sel.length} ${plural(D.sel.length, 'боец', 'бойца', 'бойцов')}</div><div class="hint" style="margin:4px 0 0">Нажми на карту — все пойдут туда и встанут рядом.</div>`;
+    h += `<div class="row"><button class="sb ${D.mode === 'look' ? 'on' : ''}" data-m="look">👁 Все смотрят</button><button class="sb" data-m="walk">🤫 Шагом / бегом</button><button class="sb" data-m="stop">✋ Все стоп</button></div>`;
+    h += `<div class="row"><button class="sb" data-m="delay">⏱ Старт +1 с</button><button class="sb" data-m="reset">↺ Отменить</button></div></div>`;
+  }
+  const b = S.bomb;
+  if (b && b.st === 'plant') h += `<p class="hint">💣 Бомба на <b>${b.site}</b>, до взрыва ${fmtClock(b.t)}. ${side === 'CT' ? 'Подведи бойца к бомбе и включи «Дефьюз»: 5 с, с китом 2,5 с. Дефьюзящий не стреляет.' : 'Держи углы вокруг бомбы, CT придут её разминировать.'}</p>`;
+  else if (side === 'T' && b && b.st === 'drop') h += `<p class="hint">💣 Бомба лежит на земле: пройди по ней любым бойцом, чтобы подобрать.</p>`;
+  else if (side === 'T' && S.turn === 0) h += `<p class="hint">💣 Бомбу несёт <b>${esc(S.units[b ? b.carrier : 0].name)}</b>. Доведи его до точки A или B и включи «Ставить».</p>`;
+  $('#panel').innerHTML = h;
+  // нижняя панель
+  const cnt = D.orders.filter(Boolean).length;
+  let bar;
+  if (need) bar = `<div class="sum">Новых приказов: <b>${cnt}</b> из ${mine.filter(u => u.alive).length}<br><span id="waitLbl">${waitText('Остальные продолжат старое')}</span></div><button class="gobtn" id="btnGo">Готово</button>`;
+  else bar = `<div class="sum">Ждём соперника…</div><button class="gobtn" disabled>Готово ✓</button>`;
+  $('#bar').innerHTML = bar;
+  const go = $('#btnGo'); if (go) go.onclick = () => submit({ o: D.orders.map(o => o ? JSON.parse(JSON.stringify(o)) : null) });
+}
+function renderPlayPanel() {
+  const F = PB.film;
+  $('#panel').innerHTML = `<p class="hint">Ход ${F.turn + 1}: смотрите, что получилось. Врагов видно, только когда их видят твои бойцы. Круги — услышанные шаги.</p><div class="log" id="log"></div>`;
+  if (PB.log) for (const l of PB.log) appendLog(l, true);
+  const sp = PB.speed;
+  $('#bar').innerHTML = `<div class="pbar"><i id="pbi"></i></div><button class="ghostbtn" id="btnSpeed">${sp}×</button><button class="ghostbtn" id="btnSkip">Пропустить</button>`;
+  $('#btnSpeed').onclick = () => { PB.speed = PB.speed === 1 ? 2 : PB.speed === 2 ? 0.5 : 1; store.set('speed', PB.speed); $('#btnSpeed').textContent = PB.speed + '×'; };
+  $('#btnSkip').onclick = skipPlayback;
+  updateBarProgress();
+}
+function updateBarProgress() { const el = $('#pbi'); if (el && PB) el.style.width = Math.round(100 * PB.t / (PB.film.frames.length - 1)) + '%'; if (PB) renderHudThrottled(); }
+let hudT = 0; function renderHudThrottled() { const n = performance.now(); if (n - hudT > 200) { hudT = n; renderHud(); } }
+function renderOverPanel() {
+  $('#panel').innerHTML = `<p class="hint">Матч окончен: <b>${S.score[me]}:${S.score[opp()]}</b>.</p>`;
+  $('#bar').innerHTML = `<div class="sum">${S.winner === me ? 'Победа!' : 'Поражение'}</div><button class="gobtn" id="btnAgain">${M.mode === 'online' ? 'Реванш' : 'Новый матч'}</button>`;
+  $('#btnAgain').onclick = rematch;
+}
+
+/* ---------------- закупка ---------------- */
+const TABS = [['pistol', 'Пистолеты'], ['smg', 'ПП'], ['rifle', 'Винтовки'], ['sniper', 'Снайперки'], ['gear', 'Снаряжение'], ['nade', 'Гранаты']];
+function itemLabel(id, side) { return K.W[id] ? K.W[id].name : K.GEAR[id] ? K.GEAR[id].name : K.NADES[id] ? K.nadeName(id, side) : id; }
+function renderBuy() {
+  const side = mySide(), mine = myUnits(), B = D.buy, need = myPickNeeded();
+  const pistol = S.round === 1 || S.round === S.half + 1;
+  const om = K.teamOf(S, opp()).reduce((a, u) => a + u.money, 0), mm = mine.reduce((a, u) => a + u.money, 0);
+  let h = `<p class="hint"><b>Закупка · раунд ${S.round}${pistol ? ' · пистолетка' : S.phase === 3 ? ' · решающий' : ''}.</b> Ты за <b style="color:var(--side)">${side}</b>. Деньги у каждого бойца свои. У команды ${fmt$(mm)}, у соперника <b style="color:var(--money)">${fmt$(om)}</b>.</p>`;
+  if (!need) { h += `<p class="hint">Закупился. Ждём соперника…</p>`; $('#panel').innerHTML = h; $('#bar').innerHTML = `<div class="sum">Ждём соперника…</div><button class="gobtn" disabled>Готово ✓</button>`; return; }
+  h += `<div class="preset"><button class="sb" data-pre="full">Фулл бай</button><button class="sb" data-pre="force">Форс</button><button class="sb" data-pre="eco">Эко</button><button class="sb" data-pre="clear">Сбросить</button></div>`;
+  let total = 0;
+  for (const u of mine) {
+    const items = B.items[u.slot], r = K.priceItems(S, u, items);
+    const cost = r.err ? 0 : r.cost; total += cost;
+    const inv = r.inv || u;
+    const gear = [K.W[inv.prim || inv.pist].name, inv.armor ? (inv.armor > 1 ? 'шлем' : 'броня') : null, inv.kit ? 'кит' : null, nadesStr(inv) || null].filter(Boolean).join(' · ');
+    const open = B.open === u.slot;
+    h += `<div class="brow${open ? ' open' : ''}"><button class="bhead" data-open="${u.slot}"><span class="ri">${ROLE_L[u.slot]}</span><div style="min-width:0"><div class="bn">${esc(u.name)} <span style="color:var(--muted);font-weight:600;font-size:11.5px">${K.ROLES[u.slot].name}</span></div><div class="bg2">${esc(gear)}</div></div><div class="bm2">${fmt$(u.money - cost)}<small>${cost ? '−' + fmt$(cost) : 'не тратит'}</small></div></button>`;
+    if (open) {
+      h += `<div class="shop"><div class="tabs">` + TABS.map(([k, n]) => `<button class="tab${B.tab === k ? ' on' : ''}" data-tab="${k}">${n}</button>`).join('') + `</div><div class="items">`;
+      let list = [];
+      if (B.tab === 'gear') list = ['kev', 'helm'].concat(side === 'CT' ? ['kit'] : []);
+      else if (B.tab === 'nade') list = K.NADE_KEYS.slice();
+      else list = Object.keys(K.W).filter(id => K.W[id].cat === B.tab && (K.W[id].side === '*' || K.W[id].side === side) && id !== K.DEFAULT_PISTOL[side]);
+      for (const id of list) {
+        const pr = K.itemPrice(S, u, id), on = items.includes(id);
+        const have = (K.W[id] && (u.prim === id || u.pist === id)) || (id === 'kev' && u.armor >= 1) || (id === 'helm' && u.armor >= 2) || (id === 'kit' && u.kit);
+        const note = K.W[id] ? (K.W[id].note || '') : K.NADES[id] ? K.NADES[id].short + (inv.nades[id] ? ` · есть ${inv.nades[id]}` : '') : id === 'kit' ? 'дефьюз 2,5 с вместо 5' : id === 'helm' ? 'спасает от хэдшотов' : 'меньше урона в тело';
+        h += `<button class="it${on ? ' on' : ''}${have ? ' have' : ''}" data-buy="${id}" data-u="${u.slot}" ${have && !K.NADES[id] ? 'disabled' : ''}><b>${esc(itemLabel(id, side))}</b><span>${have && !K.NADES[id] ? 'уже есть' : fmt$(pr)}</span>${note ? `<small>${esc(note)}</small>` : ''}</button>`;
+      }
+      h += `</div>`;
+      if (items.length) h += `<div class="picked">` + items.map((id, i) => `<button data-unbuy="${i}" data-u="${u.slot}">✕ ${esc(itemLabel(id, side))}</button>`).join('') + `</div>`;
+      h += `</div>`;
+    }
+    h += `</div>`;
+  }
+  if (side === 'T') h += `<div class="card"><div style="font-weight:800;margin-bottom:6px">💣 Кто несёт бомбу</div><div class="bombsel">` + mine.map(u => `<button class="sb ${B.bomb === u.slot ? 'on' : ''}" data-bomb="${u.slot}">${ROLE_L[u.slot]} ${esc(u.name)}</button>`).join('') + `</div></div>`;
+  $('#panel').innerHTML = h;
+  $('#bar').innerHTML = `<div class="sum">Потратишь <b>${fmt$(total)}</b><br><span id="waitLbl">${waitText('Купленное останется, если боец выживет')}</span></div><button class="gobtn" id="btnGo">Готово</button>`;
+  $('#btnGo').onclick = () => submit({ b: B.items.map(a => a.slice()), bomb: side === 'T' ? B.bomb : undefined });
+}
+function buyAdd(slot, id) {
+  const u = S.units[me * 5 + slot], items = D.buy.items[slot];
+  let next = items.slice();
+  if (K.W[id]) { const isP = K.W[id].cat === 'pistol'; next = next.filter(x => !(K.W[x] && (K.W[x].cat === 'pistol') === isP)); if (!items.includes(id)) next.push(id); }
+  else if (id === 'kev' || id === 'helm') { const had = next.includes(id); next = next.filter(x => x !== 'kev' && x !== 'helm'); if (!had) next.push(id); }
+  else if (id === 'kit') { next = next.includes('kit') ? next.filter(x => x !== 'kit') : next.concat(['kit']); }
+  else next.push(id);
+  const r = K.priceItems(S, u, next);
+  if (r.err) { toast(r.err === 'money' ? 'Не хватает денег' : r.err === 'nades' ? 'Больше гранат не унести' : 'Нельзя'); return; }
+  D.buy.items[slot] = next;
+}
+function preset(kind) {
+  const side = mySide();
+  for (const u of myUnits()) {
+    const it = []; D.buy.items[u.slot] = it;
+    const add = id => { const r = K.priceItems(S, u, it.concat([id])); if (!r.err) it.push(id); return !r.err; };
+    if (kind === 'clear' || kind === 'eco') { if (kind === 'eco' && u.money >= 3000 && !u.armor) add('kev'); continue; }
+    const pistolRound = S.round === 1 || S.round === S.half + 1;
+    if (pistolRound) { if (kind === 'full') { if (u.slot % 2 === 0) add('kev'); else { add(side === 'T' ? 'tec9' : 'five'); } add('fl'); } else { add('p250'); add('fl'); } continue; }
+    const hasPrim = u.prim && K.W[u.prim].cat !== 'pistol';
+    if (kind === 'full') {
+      if (!hasPrim) {
+        if (u.slot === 3 && u.money >= 4250 + 1000) add('awp');
+        else if (!add(side === 'T' ? 'ak' : 'm4a1')) { if (!add(side === 'T' ? 'galil' : 'famas')) add(side === 'T' ? 'mac10' : 'mp9'); }
+      }
+      if (!add('helm')) add('kev');
+      if (side === 'CT' && (u.slot <= 1)) add('kit');
+      const util = [['sm', 'fl', 'fl', 'mo', 'he'], ['fl', 'fl', 'he'], ['sm', 'fl', 'he'], ['fl', 'sm'], ['sm', 'fl', 'mo']][u.slot];
+      for (const n of util) add(n);
+    } else if (kind === 'force') {
+      if (!hasPrim) { if (!add(side === 'T' ? 'galil' : 'famas')) if (!add(side === 'T' ? 'mac10' : 'mp9')) add('p250'); }
+      add('kev'); add('fl');
+    }
+  }
+}
+
+/* ---------------- клики по панели ---------------- */
+$('#panel').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b || b.disabled || !S) return;
+  const d = b.dataset; draft();
+  if (S.step === 'buy' && D.buy) {
+    if (d.pre) preset(d.pre);
+    else if (d.open !== undefined) { D.buy.open = D.buy.open === +d.open ? -1 : +d.open; }
+    else if (d.tab) D.buy.tab = d.tab;
+    else if (d.buy) buyAdd(+d.u, d.buy);
+    else if (d.unbuy !== undefined) D.buy.items[+d.u].splice(+d.unbuy, 1);
+    else if (d.bomb !== undefined) D.buy.bomb = +d.bomb;
+    else return;
+    sfx.tap(); render(); return;
+  }
+  if (d.sel !== undefined) { const s = +d.sel; if (D.multi) { const i = D.sel.indexOf(s); if (i >= 0) D.sel.splice(i, 1); else D.sel.push(s); } else D.sel = D.sel.length === 1 && D.sel[0] === s ? [] : [s]; D.mode = 'move'; D.append = false; }
+  else if (d.all) { const alive = myUnits().filter(u => u.alive).map(u => u.slot); D.sel = D.sel.length > 1 ? (alive.length ? [alive[0]] : []) : alive; D.mode = 'move'; }
+  else if (d.m) {
+    const m = d.m;
+    if (m === 'move') { D.mode = 'move'; D.append = false; }
+    else if (m === 'append') { D.append = !D.append; D.mode = 'move'; }
+    else if (m === 'look') D.mode = D.mode === 'look' ? 'move' : 'look';
+    else if (m === 'stop') { for (const s of D.sel) setOrder(s, o => { o.p = []; }); }
+    else if (m === 'walk') { for (const s of D.sel) { const u = S.units[me * 5 + s]; setOrder(s, o => { const cur = o.w !== undefined ? !!o.w : u.walk; o.w = cur ? 0 : 1; }); } }
+    else if (m === 'delay') { for (const s of D.sel) setOrder(s, o => { o.d = ((o.d | 0) + 1) % 5 || undefined; }); }
+    else if (m === 'plant') { const s = D.sel[0], u = S.units[me * 5 + s]; setOrder(s, o => { const cur = o.a !== undefined ? o.a : u.act; o.a = cur === 'plant' ? null : 'plant'; }); }
+    else if (m === 'defuse') { const s = D.sel[0], u = S.units[me * 5 + s]; setOrder(s, o => { const cur = o.a !== undefined ? o.a : u.act; o.a = cur === 'defuse' ? null : 'defuse'; }); }
+    else if (m === 'nonade') { setOrder(D.sel[0], o => { delete o.n; }); D.mode = 'move'; }
+    else if (m === 'reset') { for (const s of D.sel) D.orders[s] = null; D.mode = 'move'; }
+  }
+  else if (d.nade) { if (D.mode === 'nade' && D.nadeT === d.nade) D.mode = 'move'; else { D.mode = 'nade'; D.nadeT = d.nade; } }
+  else if (d.ne !== undefined) { D.nadeE = +d.ne; const o = orderOf(D.sel[0]); if (o && o.n) { const ok = setOrder(D.sel[0], q => { q.n.e = D.nadeE; }); if (!ok) toast('Оттуда не докинуть'); } }
+  else return;
+  sfx.tap(); render();
+});
+
+/* ---------------- оверлеи ---------------- */
+function showOv(html, buttons) {
+  $('#ovc').innerHTML = html + `<div class="btns">${buttons.map((b, i) => `<button class="${b.main ? 'main' : ''}" data-ob="${i}">${esc(b.t)}</button>`).join('')}</div>`;
+  $('#ov').hidden = false;
+  $('#ovc').querySelectorAll('[data-ob]').forEach(el => el.onclick = () => { $('#ov').hidden = true; const f = buttons[+el.dataset.ob].f; if (f) f(); });
+}
+function showIntro() {
+  const side = mySide();
+  showOv(`<div class="eb">Матч до ${S.win} побед · Dust 2</div><h2 class="${side === 'CT' ? 'ct' : 't'}">ТЫ ЗА ${side}</h2><p>${side === 'T' ? 'Атака: доведи бойца с бомбой до точки A или B и поставь её. Или убей всех CT.' : 'Защита: не дай поставить бомбу, а если поставили — разминируй. Или убей всех T.'}</p>
+  <ol class="tut"><li><b>Закупка:</b> купи оружие каждому из пятерых (кнопка «Фулл бай» купит за тебя).</li><li><b>Приказы:</b> нажми на бойца, потом на карту — туда он пойдёт. «Смотреть» — куда держать прицел.</li><li><b>Готово:</b> соперник тоже отдаёт приказы тайно. Потом 5 секунд боя разыгрываются у обоих.</li><li>Стреляют бойцы сами. Кто стоит и заранее смотрит на угол, тот стреляет первым.</li><li>В раунде 12 ходов. Бомба взрывается через 4 хода.</li></ol>`, [{ t: 'Поехали', main: true }]);
+}
+function showRoundEnd(e, over) {
+  const N = names(), w = e.w, mineWin = w === me;
+  const wside = e.tS === w ? 'T' : 'CT';
+  if (mineWin) sfx.win(); else sfx.lose();
+  const mvp = e.mvp != null ? S.units[e.mvp] : null;
+  let rows = '';
+  const order = [me, opp()];
+  for (const k of order) for (let i = 0; i < 5; i++) {
+    const id = k * 5 + i, u = S.units[id], rs = e.rst[id];
+    rows += `<tr class="${(e.tS === k ? 'T' : 'CT') === 'T' ? 'tt' : 'cc'}${id === e.mvp ? ' mvp' : ''}"><td>${ROLE_L[i]} ${esc(u.name)}${id === e.mvp ? ' ★' : ''}</td><td>${rs[0]}</td><td>${rs[1]}</td><td>${e.alive[id] ? '✓' : '✝'}</td></tr>`;
+  }
+  const html = `<div class="eb">Раунд ${e.round} · ${esc(e.howText)}</div><h2 class="${wside === 'CT' ? 'ct' : 't'}">ПОБЕДА ${wside}</h2>
+    <div class="big">${e.score[me]}<i>:</i>${e.score[opp()]}</div>
+    ${mvp ? `<p>Лучший в раунде: <b>${esc(mvp.name)}</b> (${K.ROLES[mvp.slot].name})</p>` : ''}
+    <div class="inc"><div>Тебе каждому<b>+${fmt$(e.inc[me])}</b></div><div>Сопернику<b>+${fmt$(e.inc[opp()])}</b></div></div>
+    <table class="stbl"><tr><th>Боец</th><th>Убийства</th><th>Урон</th><th></th></tr>${rows}</table>
+    ${e.swap ? '<p><b>Смена сторон!</b> Деньги снова по $800, вторая пистолетка.</p>' : ''}${e.decider ? '<p><b>Решающий раунд.</b> Стороны по жребию, всем по $10 000.</p>' : ''}`;
+  if (over) {
+    showOv(html, [{ t: 'Итоги матча', main: true, f: showMatchOver }]);
+  } else showOv(html, [{ t: 'Дальше', main: true, f: () => { if (playQ.length) nextPlayback(); else render(); } }]);
+}
+function showMatchOver() {
+  const N = names(), win = S.winner === me;
+  let rows = '';
+  for (const k of [me, opp()]) for (let i = 0; i < 5; i++) { const u = S.units[k * 5 + i]; rows += `<tr class="${k === me ? 'tt' : 'cc'}"><td>${ROLE_L[i]} ${esc(u.name)}</td><td>${u.st.k}</td><td>${u.st.d}</td><td>${u.st.dmg}</td></tr>`; }
+  showOv(`<div class="eb">Матч окончен</div><h2 class="${win ? 't' : 'ct'}">${win ? 'ПОБЕДА!' : 'ПОРАЖЕНИЕ'}</h2><div class="big">${S.score[me]}<i>:</i>${S.score[opp()]}</div><p>${esc(N[me])} против ${esc(N[opp()])}</p>
+    <table class="stbl"><tr><th>Боец</th><th>Убил</th><th>Умер</th><th>Урон</th></tr>${rows}</table>`,
+    [{ t: 'В меню', f: openSheet }, { t: M.mode === 'online' ? 'Реванш' : 'Ещё матч', main: true, f: rematch }]);
+}
+function rematch() { if (M && M.mode === 'online') onlineRematch(); else startBot(false); }
+$('#btnHelp').onclick = () => { if (S) showIntro(); else openSheet(); };
+
+/* ---------------- ожидание соперника (онлайн) ---------------- */
+let waitTimer = null, waitStart = 0;
+function oppReady() { return M && M.picks[applied] && M.picks[applied][opp()] != null && myPickNeeded(); }
+function waitLeft() { if (!waitStart) return 0; return Math.max(0, 60 - Math.floor((Date.now() - waitStart) / 1000)); }
+function waitText(def) { if (!oppReady() || M.mode === 'bot') return def; const l = M.mode === 'online' && waitStart ? waitLeft() : 0; return `<b style="color:var(--gold)">Соперник уже готов${l ? ' · осталось ' + l + ' с' : ''}</b>`; }
+setInterval(() => {
+  if (!M || M.mode !== 'online' || !S || PB) { waitStart = 0; return; }
+  if (oppReady()) {
+    if (!waitStart) waitStart = Date.now();
+    const left = waitLeft();
+    const el = $('#waitLbl'); if (el) el.innerHTML = waitText('');
+    if (left <= 0) { // время вышло: отправляем то, что есть
+      if (S.step === 'buy') submit({ b: D.buy.items.map(a => a.slice()), bomb: mySide() === 'T' ? D.buy.bomb : undefined });
+      else submit({ o: D.orders.map(o => o ? JSON.parse(JSON.stringify(o)) : null) });
+      waitStart = 0;
+    }
+  } else waitStart = 0;
+}, 1000);
+
+/* ---------------- меню ---------------- */
+const sheet = $('#sheet');
+function openSheet() { sheet.hidden = false; $('#vMain').hidden = false; $('#vRoom').hidden = true; $('#btnBack').hidden = !S; const sn = store.get('solo', null); $('#btnResume').hidden = !(sn && SOLO_OK.includes(sn.v) && (!M || M.mode !== 'bot')); renderWinSeg(); }
+function closeSheet() { sheet.hidden = true; requestAnimationFrame(layout); }
+function renderWinSeg() { document.querySelectorAll('#segWin button').forEach(b => b.classList.toggle('on', +b.dataset.win === winPref)); }
+$('#segWin').onclick = e => { const b = e.target.closest('button'); if (!b) return; winPref = +b.dataset.win === 8 ? 8 : 5; store.set('win', winPref); renderWinSeg(); };
+$('#btnMenu').onclick = () => { if (net.on) showRoomPanel(); else openSheet(); };
+$('#btnBack').onclick = closeSheet;
+$('#btnBot').onclick = () => { const snap = store.get('solo', null); if (snap && snap.picks && snap.picks.length > 3 && !confirm('Начать новый матч с ботом? Старый пропадёт.')) return; startBot(false); };
+$('#btnResume').onclick = () => startBot(true);
+$('#btnSound').onclick = () => { soundOn = !soundOn; store.set('sound', soundOn); renderSound(); if (soundOn) sfx.tap(); };
+$('#nameInp').value = myName();
+$('#nameInp').addEventListener('input', e => { store.set('name', e.target.value.trim().slice(0, 12)); if (net.on && net.ch) send('name', { name: myName() || null }); });
+$('#btnCreate').onclick = () => createRoom();
+$('#btnJoin').onclick = () => joinRoom($('#joinCode').value);
+$('#joinCode').addEventListener('keydown', e => { if (e.key === 'Enter') joinRoom(e.target.value); });
+$('#roomPill').onclick = showRoomPanel;
+$('#buildTag').textContent = BUILD;
+$('#rulesBody').innerHTML = `
+<h4>Цель</h4><ul><li>5 на 5 на Dust 2, до 5 или 8 побед. После половины смена сторон, при ничьей решающий раунд.</li><li><b>T</b> побеждают, если бомба взорвалась или все CT убиты. <b>CT</b> — если разминировали, убили всех T до установки или вышло время.</li></ul>
+<h4>Ход</h4><ul><li>Ход — это 5 секунд боя. Оба тайно отдают приказы, жмут «Готово», и ход разыгрывается у обоих одинаково.</li><li>В раунде <b>12 ходов</b> (минута). Бомба взрывается через <b>4 хода</b>. Установка 1,6 с, дефьюз 5 с, с китом 2,5 с.</li><li>Без нового приказа боец продолжает старый: идёт дальше по маршруту или стоит.</li></ul>
+<h4>Приказы</h4><ul><li>Нажми на бойца → нажми на карту: туда он пойдёт. «＋ Точка» — маршрут через несколько точек. «ВСЕ» — отправить группу.</li><li><b>👁 Смотреть</b> — куда держать прицел, даже на ходу. <b>Шагом</b> — тихо, но медленно. <b>Старт через N с</b> — чтобы флешка успела взорваться до выхода.</li><li>Гранату выбери кнопкой и нажми цель. Кинуть можно сразу или дойдя до конца пути.</li></ul>
+<h4>Стрельба</h4><ul><li>Бойцы стреляют сами. Кто первым увидел и прицелился, тот и выстрелил. Стоишь и смотришь на угол заранее — реагируешь быстрее и точнее.</li><li>Бегущий останавливается стрелять, только если враг на дистанции его оружия. Издалека пистолетом не попасть, AWP бьёт через всю карту.</li><li>Видишь только то, что видят твои (туман). Бег слышно: на карте появляются круги шагов. Выстрелы тоже слышно.</li></ul>
+<h4>Гранаты</h4><ul><li><b>Флешка</b> слепит всех, кто на неё смотрит, свои отворачиваются. <b>Дым</b> закрывает обзор на 3 хода и тушит огонь. <b>Молотов</b> горит 7 секунд, стоять в нём нельзя. <b>HE</b> до 98 урона рядом.</li></ul>
+<h4>Роли</h4><ul>${K.ROLES.map(r => `<li><b>${r.name}</b> — ${r.perk}.</li>`).join('')}</ul>
+<h4>Деньги</h4><ul><li>Как в CS2: победа $3250 ($3500 за взрыв или дефьюз), поражения подряд $1400 → $3400, за установку бомбы T получают +$800 даже при проигрыше.</li><li>За убийство: винтовка и пистолет $300, ПП $600, AWP $100, граната $300. Выжил — оружие остаётся. С убитого можно подобрать оружие, пробежав по нему.</li></ul>`;
+
+/* ---------------- онлайн ----------------
+   Комната: { code, host, seats, names, v, win, game, sv, picks: [[p0,p1],...] }. Каждый пишет только свой слот,
+   слияние — простое объединение. Движок у обоих одинаковый, seed = код + номер игры. */
+const net = { on: false, code: null, room: null, ch: null, status: 'off', online: new Set(), lastSeen: {}, everOk: false, errorMsg: '', lastHello: 0, timers: {}, wasStarted: false };
+let sb = null, myId = null;
+function rid(n) { const a = 'abcdefghijkmnpqrstuvwxyz23456789', b = new Uint8Array(n); try { crypto.getRandomValues(b); } catch (e) { for (let i = 0; i < n; i++) b[i] = Math.random() * 256; } let s = ''; for (const x of b) s += a[x % a.length]; return s; }
+const CODE_ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function newCode() { const b = new Uint8Array(4); try { crypto.getRandomValues(b); } catch (e) { for (let i = 0; i < 4; i++) b[i] = Math.random() * 256; } let s = ''; for (const x of b) s += CODE_ABC[x % CODE_ABC.length]; return s; }
+const CYR = { 'А': 'A', 'В': 'B', 'Е': 'E', 'К': 'K', 'М': 'M', 'Н': 'H', 'О': 'O', 'Р': 'P', 'С': 'C', 'Т': 'T', 'У': 'Y', 'Х': 'X' };
+const normCode = s => String(s || '').toUpperCase().replace(/[А-ЯЁ]/g, ch => CYR[ch] || '').replace(/[^A-Z0-9]/g, '').slice(0, 4);
+function codeFromHash() { const c = normCode(decodeURIComponent(location.hash.slice(1))); return c.length === 4 ? c : null; }
+function getId() { if (!myId) { myId = store.get('cid', null) || rid(10); store.set('cid', myId); } return myId; }
+const filledSeats = r => r.seats.filter(Boolean).length;
+const started = r => !!r && r.seats.every(Boolean);
+const mySeatOnline = () => (net.room && myId) ? net.room.seats.indexOf(myId) : -1;
+const slots = r => r.picks.reduce((a, row) => a + (row ? (row[0] != null) + (row[1] != null) : 0), 0);
+const roomKey = r => [r.game, slots(r), filledSeats(r), r.sv | 0];
+function cmpKey(a, b) { for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return a[i] - b[i]; return 0; }
+const inviteUrl = () => location.origin + location.pathname + '#' + (net.code || '');
+function cleanPick(p) { if (p == null || typeof p !== 'object') return null; try { const s = JSON.stringify(p); if (s.length > 4000) return null; return JSON.parse(s); } catch (e) { return null; } }
+function sanitize(s) {
+  const fit = (a, f) => [0, 1].map(i => (Array.isArray(a) && a[i] != null) ? f(a[i]) : null);
+  return {
+    code: String(s.code || ''), host: s.host || null, v: String(s.v || '').slice(0, 16), win: s.win === 8 ? 8 : 5,
+    seats: fit(s.seats, x => String(x).slice(0, 24)), names: fit(s.names, x => String(x).slice(0, 12)),
+    game: Math.max(0, s.game | 0), sv: Math.max(0, s.sv | 0),
+    picks: (Array.isArray(s.picks) ? s.picks : []).slice(0, 3000).map(row => Array.isArray(row) ? [cleanPick(row[0]), cleanPick(row[1])] : [null, null])
+  };
+}
+function saveRoom() { if (net.room) store.set('room:' + net.code, net.room); }
+function getClient() { if (sb) return sb; if (!window.supabase || !window.supabase.createClient) throw new Error('nolib'); sb = window.supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }, realtime: { params: { eventsPerSecond: 20 } } }); return sb; }
+function send(t, data) { if (!net.ch) return; try { const p = net.ch.send({ type: 'broadcast', event: 'm', payload: Object.assign({ t, from: myId, v: BUILD }, data || {}) }); if (p && p.catch) p.catch(() => {}); } catch (e) {} }
+function hello() { clearTimeout(net.timers.hello); const wait = Math.max(120, 1500 - (Date.now() - net.lastHello)); net.timers.hello = setTimeout(() => { net.lastHello = Date.now(); send('hello', { name: myName() || null }); }, wait); }
+function ping() { if (!net.ch) return; const r = net.room; if (net.status === 'ok') send('ping', { k: r ? roomKey(r) : null }); recomputeOnline(); }
+function recomputeOnline() {
+  if (!net.ch) return;
+  let stt = {}; try { stt = net.ch.presenceState() || {}; } catch (e) {}
+  const now = Date.now(), on = new Set(Object.keys(stt));
+  for (const id in net.lastSeen) if (now - net.lastSeen[id] < 13000) on.add(id);
+  const r = net.room;
+  if (r && net.wasStarted) r.seats.forEach((id, k) => { if (!id || id === myId) return; const was = net.online.has(id), is = on.has(id); if (was && !is) toast(`${r.names[k] || 'Соперник'}: нет связи`); if (!was && is) toast(`${r.names[k] || 'Соперник'} снова в игре`); });
+  const changed = on.size !== net.online.size || [...on].some(x => !net.online.has(x));
+  net.online = on; if (changed) refreshOnline();
+}
+function amHost() { const r = net.room; if (!r) return false; for (const id of r.seats) if (id && (id === myId || net.online.has(id))) return id === myId; return true; }
+function joinRoom(code, room) {
+  code = normCode(code);
+  if (code.length !== 4) { toast('Код комнаты: 4 символа'); return; }
+  if (net.on && net.code === code) { showRoomPanel(); return; }
+  if (net.on) leaveRoom();
+  getId();
+  Object.assign(net, { on: true, code, room: null, ch: null, status: 'connecting', online: new Set(), lastSeen: {}, everOk: false, errorMsg: '', lastHello: 0, wasStarted: false });
+  if (room) { room.code = code; room.host = myId; room.seats[0] = myId; room.names[0] = myName() || null; room.v = BUILD; net.room = room; }
+  else { const snap = store.get('room:' + code, null); if (snap && snap.code === code) net.room = sanitize(snap); }
+  if (codeFromHash() !== code) { try { history.replaceState(null, '', '#' + code); } catch (e) {} }
+  if (net.room) { saveRoom(); bindOnline(); }
+  showRoomPanel(); connect();
+}
+function createRoom() { joinRoom(newCode(), { code: '', host: null, seats: [null, null], names: [null, null], win: winPref, game: 0, sv: 0, picks: [], v: BUILD }); }
+const NET_ERR = 'Не получается подключиться к серверу. Проверь интернет. В превью внутри Claude онлайн не работает, только на сайте.';
+function connect() {
+  let client; try { client = getClient(); } catch (e) { net.status = 'error'; net.errorMsg = 'Не загрузился модуль связи. Обнови страницу.'; refreshOnline(); return; }
+  const ch = client.channel(APP + '-' + net.code, { config: { broadcast: { self: false, ack: false }, presence: { key: myId } } });
+  net.ch = ch;
+  ch.on('broadcast', { event: 'm' }, msg => { if (net.ch === ch) onMsg((msg && msg.payload) || {}); });
+  ch.on('presence', { event: 'sync' }, () => { if (net.ch === ch) { recomputeOnline(); const r = net.room; if (!r || !r.seats.includes(myId)) hello(); refreshOnline(); } });
+  ch.subscribe(status => {
+    if (net.ch !== ch) return;
+    if (status === 'SUBSCRIBED') {
+      net.status = 'ok'; net.everOk = true; net.errorMsg = '';
+      try { const p = ch.track({ on: 1 }); if (p && p.catch) p.catch(() => {}); } catch (e) {}
+      hello(); ping();
+      clearTimeout(net.timers.find);
+      net.timers.find = setTimeout(() => { if (net.on && !net.room) { net.errorMsg = 'Комната не найдена. Возможно, её создатель вышел. Попроси новый код.'; refreshOnline(); } }, 7000);
+    } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') { net.status = 'lost'; if (!net.everOk) net.errorMsg = NET_ERR; }
+    refreshOnline();
+  });
+  clearInterval(net.timers.ping); net.timers.ping = setInterval(ping, 5000);
+  clearTimeout(net.timers.conn); net.timers.conn = setTimeout(() => { if (net.ch === ch && !net.everOk) { net.errorMsg = NET_ERR; refreshOnline(); } }, 9000);
+}
+function leaveRoom() {
+  const ch = net.ch; net.ch = null;
+  if (ch) { try { ch.untrack(); } catch (e) {} try { sb && sb.removeChannel(ch); } catch (e) {} }
+  Object.values(net.timers).forEach(t => { clearTimeout(t); clearInterval(t); });
+  Object.assign(net, { on: false, code: null, room: null, status: 'off', online: new Set(), lastSeen: {}, everOk: false, errorMsg: '', wasStarted: false });
+  if (M && M.mode === 'online') { M = null; S = null; PB = null; playQ = []; }
+  try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+  $('#roomPill').hidden = true; render();
+}
+function onMsg(m) {
+  if (!m || !m.t || !m.from || m.from === myId) return;
+  net.lastSeen[m.from] = Date.now();
+  if (!net.online.has(m.from)) recomputeOnline();
+  if (m.v && m.v !== BUILD && !net.warned) { net.warned = true; toast('У вас разные версии игры. Обновите страницу оба'); }
+  switch (m.t) {
+    case 'ping': { const r = net.room; if (Array.isArray(m.k)) { if (!r || cmpKey(m.k.map(x => x | 0), roomKey(r)) > 0) hello(); else if (r && cmpKey(m.k.map(x => x | 0), roomKey(r)) < 0 && r.seats.includes(myId)) send('state', { room: r }); } break; }
+    case 'hello': onHello(m); break;
+    case 'state': adoptState(m.room); break;
+    case 'pick': onPick(m); break;
+    case 'rematch': applyRematch(m.g | 0, m.from); break;
+    case 'name': { const r = net.room; if (!r) break; const k = r.seats.indexOf(m.from); if (k >= 0) { r.names[k] = m.name ? String(m.name).slice(0, 12) : null; saveRoom(); refreshOnline(); render(); } break; }
+    case 'full': if (m.to === myId && mySeatOnline() < 0) { net.errorMsg = 'Комната уже заполнена.'; refreshOnline(); } break;
+  }
+}
+function onHello(m) {
+  const r = net.room; if (!r) return;
+  const id = String(m.from); let seat = r.seats.indexOf(id), changed = false;
+  const host = amHost();
+  if (seat < 0 && host) {
+    let k = started(r) ? -1 : r.seats.indexOf(null);
+    if (k < 0) k = r.seats.findIndex(s => s && s !== myId && s !== id && !net.online.has(s));
+    if (k < 0) { send('full', { to: id }); send('state', { room: r }); return; }
+    if (r.seats[k]) r.sv = (r.sv | 0) + 1;
+    r.seats[k] = id; seat = k; changed = true;
+    r.names[k] = m.name ? String(m.name).slice(0, 12) : (r.names[k] || null);
+  } else if (seat >= 0 && host && m.name && r.names[seat] !== m.name) { r.names[seat] = String(m.name).slice(0, 12); changed = true; }
+  if (changed) { saveRoom(); refreshOnline(); }
+  if (host || r.seats.includes(myId)) send('state', { room: r });
+}
+function mergePicks(dst, src) {
+  let ch = false;
+  for (let i = 0; i < src.length; i++) {
+    if (!dst[i]) { dst[i] = [null, null]; ch = true; }
+    for (const k of [0, 1]) if (dst[i][k] == null && src[i][k] != null) { dst[i][k] = src[i][k]; ch = true; }
+  }
+  return ch;
+}
+function adoptState(s0) {
+  if (!s0 || s0.code !== net.code || !Array.isArray(s0.seats)) return;
+  const s = sanitize(s0), r = net.room, before = mySeatOnline();
+  if (!r) { net.room = s; saveRoom(); bindOnline(); refreshOnline(); return; }
+  if (s.game > r.game) { net.room = s; saveRoom(); bindOnline(); refreshOnline(); return; }
+  if (s.game < r.game) { send('state', { room: r }); return; }
+  let ch = false;
+  if ((s.sv | 0) > (r.sv | 0) || (filledSeats(s) > filledSeats(r) && (s.sv | 0) >= (r.sv | 0))) { r.seats = s.seats; r.sv = s.sv; ch = true; }
+  s.names.forEach((x, i) => { if (x && r.names[i] !== x && r.seats[i] !== myId) { r.names[i] = x; ch = true; } });
+  if (mergePicks(r.picks, s.picks)) ch = true;
+  if (ch) { saveRoom(); bindOnline(true); }
+  if (before >= 0 && mySeatOnline() < 0) toast('Твоё место заняли с другого окна или телефона');
+  refreshOnline();
+}
+function onPick(m) {
+  const r = net.room; if (!r) { hello(); return; }
+  const g = m.g | 0, i = m.i | 0, k = m.k | 0;
+  if (g !== r.game) { if (g > r.game) hello(); return; }
+  if (k !== 0 && k !== 1 || r.seats[k] !== m.from) return;
+  if (i > r.picks.length) { hello(); return; }
+  if (!r.picks[i]) r.picks[i] = [null, null];
+  if (r.picks[i][k] == null) { r.picks[i][k] = cleanPick(m.p); saveRoom(); if (M && M.mode === 'online') advance(); }
+}
+function bindOnline(keep) {
+  const r = net.room; if (!r) return;
+  const seed = r.code + ':' + r.game;
+  const seat = r.seats.indexOf(myId);
+  if (keep && M && M.mode === 'online' && M.seed === seed && S) { M.picks = r.picks; me = seat >= 0 ? seat : 0; advance(); return; }
+  M = { mode: 'online', seed, win: r.win === 8 ? 8 : 5, picks: r.picks }; me = seat >= 0 ? seat : 0;
+  rebuild();
+  render();
+}
+function onlineRematch() { const r = net.room; if (!r) return; const g = r.game + 1; applyRematch(g, null); send('rematch', { g }); send('state', { room: net.room }); }
+function applyRematch(g, from) {
+  const r = net.room; if (!r) return;
+  if (g <= r.game) return; if (g > r.game + 1) { hello(); return; }
+  r.game = g; r.picks = []; saveRoom(); bindOnline();
+  if (from) toast('Соперник начал реванш');
+  refreshOnline();
+}
+function refreshOnline() {
+  if (!net.on) return;
+  const r = net.room;
+  if (r && started(r) && !net.wasStarted) {
+    net.wasStarted = true;
+    if (slots(r) === 0 && net.everOk) { toast('Оба в комнате. Поехали!'); sfx.ready(); }
+    closeSheet();
+    if (slots(r) === 0 && S) setTimeout(showIntro, 300);
+  }
+  if (r && M && M.mode === 'online') { const seat = r.seats.indexOf(myId); if (seat >= 0 && seat !== me) { me = seat; render(); } }
+  $('#roomPill').hidden = false; $('#roomPillCode').textContent = net.code || '';
+  $('#roomDot').className = 'dot' + (net.status === 'ok' && r && r.seats.every(id => id && (id === myId || net.online.has(id))) ? ' on' : '');
+  renderRoomPanel();
+}
+function showRoomPanel() { sheet.hidden = false; $('#vMain').hidden = true; $('#vRoom').hidden = false; renderRoomPanel(); }
+function renderRoomPanel() {
+  if (!net.on) return;
+  const r = net.room;
+  $('#roomCode').textContent = net.code || '····';
+  $('#roomLink').textContent = inviteUrl();
+  $('#btnShare').textContent = navigator.share ? 'Поделиться ссылкой' : 'Скопировать ссылку';
+  const box = $('#seats'); box.innerHTML = '';
+  if (r) r.seats.forEach((id, k) => {
+    const d = document.createElement('div'); d.className = 'seat';
+    let st = 'ждём…', on = false;
+    if (id === myId) { st = 'ты'; on = net.status === 'ok'; } else if (id && net.online.has(id)) { st = 'в сети'; on = true; } else if (id) st = 'не в сети';
+    d.innerHTML = `<span class="badge" style="background:${k === 0 ? 'var(--t)' : 'var(--ct)'}">${k + 1}</span><span class="pl-name"></span><span class="st${on ? ' on' : ''}">${st}</span>`;
+    d.querySelector('.pl-name').textContent = id ? (r.names[k] || ('Игрок ' + (k + 1))) : 'Свободно';
+    box.appendChild(d);
+  });
+  const note = $('#netNote'); let txt, err = false;
+  if (net.errorMsg) { txt = net.errorMsg; err = true; }
+  else if (net.status === 'connecting') txt = 'Подключаюсь…';
+  else if (net.status === 'lost') txt = 'Связь пропала, переподключаюсь…';
+  else if (!r) txt = 'Ищу комнату…';
+  else if (!started(r)) txt = `Матч до ${r.win} побед. Отправь брату ссылку или код. Игра начнётся, когда он зайдёт.`;
+  else txt = 'Оба на месте.';
+  note.textContent = txt; note.className = 'netnote' + (err ? ' err' : '');
+  $('#btnRoomGo').hidden = !(r && started(r));
+}
+$('#btnShare').onclick = async () => {
+  const url = inviteUrl();
+  if (navigator.share) { try { await navigator.share({ title: 'КС 5×5', text: 'Заходи в КС 5×5, код ' + net.code, url }); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
+  try { await navigator.clipboard.writeText(url); toast('Ссылка скопирована'); } catch (e) { toast('Скопируй ссылку вручную'); }
+};
+$('#btnLeave').onclick = () => { leaveRoom(); openSheet(); };
+$('#btnRoomGo').onclick = closeSheet;
+document.addEventListener('visibilitychange', () => { if (!document.hidden && net.on) { hello(); ping(); } });
+window.addEventListener('hashchange', () => { const c = codeFromHash(); if (c && (!net.on || net.code !== c)) joinRoom(c); });
+window.addEventListener('resize', () => { clearTimeout(layout.t); layout.t = setTimeout(layout, 120); });
+
+/* ---------------- старт ---------------- */
+(function boot() {
+  renderSound();
+  layout();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { buildBase(); draw(); });
+  const c = codeFromHash();
+  if (c) { joinRoom(c); return; }
+  openSheet();
+  render();
+})();
+</script>
+</body>
+</html>
