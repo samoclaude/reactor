@@ -36,7 +36,11 @@ export function drawPlan(g, CW, CH, o) {
   }
   g.stroke();
   const over = sim.caught || sim.won,
-    t = over ? sim.t : sim.t + 1;
+    t = over ? sim.t : sim.t + 1,
+    // лазеры и камеры — по текущему такту, как их видит и проверяет вор (шаг вживую проверяется сразу).
+    // «На такт вперёд» мигающий луч был всегда наоборот, а камера на такте поворота — «чисто», хотя ещё смотрит.
+    // Только «вслепую» шаг сам занимает такт — там показываем следующий
+    lt = o.blind ? t : sim.t;
   const at = (c) => [ox + (c % W) * T, oy + ((c / W) | 0) * T];
   const zone = (cells, col) => {
     g.fillStyle = col;
@@ -45,10 +49,10 @@ export function drawPlan(g, CW, CH, o) {
       g.fillRect(X + 1, Y + 1, T - 2, T - 2);
     }
   };
-  // обзор камер (на такт вперёд): ярко-оранжевый, с рамкой — чтобы на синей схеме не терялся;
+  // обзор камер (как сейчас, lt): ярко-оранжевый, с рамкой — чтобы на синей схеме не терялся;
   // после взлома щитка видеонаблюдения камер нет
   for (const c of lv.cams) {
-    const cells = camCells(lv, c, t, sim);
+    const cells = camCells(lv, c, lt, sim);
     zone(cells, "rgba(255,150,30,.42)");
     g.strokeStyle = "rgba(255,190,90,.75)";
     g.lineWidth = Math.max(1, T * 0.04);
@@ -222,10 +226,6 @@ export function drawPlan(g, CW, CH, o) {
       emoji(g, "🔓", X + T / 2, Y + T / 2, T * 0.45);
     }
   }
-  // лазеры — по текущему такту, как их видит и проверяет вор (шаг вживую проверяется сразу).
-  // «На такт вперёд» мигающий луч был всегда наоборот: на схеме выключен — а у вора горит.
-  // Только «вслепую» шаг сам занимает такт — там показываем следующий
-  const lt = o.blind ? t : sim.t;
   for (const l of lv.lasers) {
     const [X, Y] = at(l.i),
       on = laserOn(l, lt),
