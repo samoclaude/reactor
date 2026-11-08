@@ -1,0 +1,1204 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>КС-тактика</title>
+<meta name="theme-color" content="#0B0E13">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="icon" href="../icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&family=Russo+One&display=swap">
+<style>
+:root {
+  --bg: #0A0D12; --bg2: #10151E; --panel: #151B26; --panel2: #1B2230; --line: #263043; --line2: #33405A;
+  --fg: #EAF0F8; --muted: #8A95AB; --dim: #5E6A80;
+  --t: #E9A23B; --t-d: #4A3313; --ct: #5BAAF2; --ct-d: #14304C;
+  --money: #8BE28F; --red: #FF5454; --gold: #FFD15C; --ok: #67E3A6;
+  --display: "Russo One", "Arial Black", system-ui, sans-serif;
+  --ui: "Onest", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.4 var(--ui);
+  -webkit-tap-highlight-color: transparent; overflow: hidden; touch-action: manipulation;
+  -webkit-user-select: none; user-select: none;
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+button:disabled { cursor: default; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+[hidden] { display: none !important; }
+.bg {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(90% 40% at 50% -10%, color-mix(in srgb, var(--side, var(--t)) 16%, transparent), transparent 70%),
+    linear-gradient(transparent 0 calc(100% - 1px), rgba(255,255,255,.025) 0) 0 0 / 100% 28px,
+    linear-gradient(90deg, transparent 0 calc(100% - 1px), rgba(255,255,255,.025) 0) 0 0 / 28px 100%;
+}
+.app {
+  position: relative; z-index: 1; height: 100%; max-width: 560px; margin: 0 auto;
+  display: flex; flex-direction: column;
+  padding: max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 0 max(12px, env(safe-area-inset-left));
+}
+
+/* ---------- top row ---------- */
+.top { display: flex; align-items: center; gap: 8px; height: 40px; flex: none; }
+.ibtn { width: 38px; height: 38px; border-radius: 11px; border: 1px solid var(--line); background: var(--panel); display: grid; place-items: center; flex: none; }
+.ibtn:active { transform: scale(.94); }
+.brand { font-family: var(--display); font-size: 15px; letter-spacing: .06em; margin-right: auto; display: flex; align-items: center; gap: 7px; }
+.brand i { width: 9px; height: 9px; border-radius: 2px; background: var(--t); transform: rotate(45deg); box-shadow: 0 0 10px var(--t); }
+.pill { height: 30px; padding: 0 11px; border-radius: 99px; border: 1px solid var(--line); background: var(--panel); font-size: 12px; font-weight: 700; letter-spacing: .12em; display: inline-flex; align-items: center; gap: 6px; }
+.pill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--dim); }
+.pill .dot.on { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+
+/* ---------- scoreboard ---------- */
+.board { flex: none; display: grid; grid-template-columns: 1fr auto 1fr; align-items: stretch; gap: 8px; margin-top: 6px; }
+.pl { --c: var(--t); min-width: 0; padding: 8px 10px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 5px; position: relative; overflow: hidden; }
+.pl::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--c); }
+.pl.op { text-align: right; }
+.pl.op::before { inset: 0 0 0 auto; }
+.pl.ct { --c: var(--ct); }
+.pl-row { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.pl.op .pl-row { flex-direction: row-reverse; }
+.badge { flex: none; height: 20px; min-width: 26px; padding: 0 5px; border-radius: 6px; display: grid; place-items: center; font: 12px var(--display); background: var(--c); color: #0A0D12; }
+.pl-name { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.money { font: 15px var(--display); color: var(--money); white-space: nowrap; }
+.hpbar { height: 6px; border-radius: 99px; background: #0007; overflow: hidden; display: flex; }
+.pl.op .hpbar { flex-direction: row-reverse; }
+.hpbar span { display: block; background: linear-gradient(90deg, var(--ok), #b6f0c9); border-radius: 99px; transition: width .5s ease; }
+.hpbar.low span { background: linear-gradient(90deg, var(--red), #ff9a7a); }
+.gear { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.score { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 2px; }
+.score .nums { font: 26px/1 var(--display); display: flex; gap: 6px; align-items: baseline; }
+.score .nums i { color: var(--dim); font-style: normal; font-size: 18px; }
+.score .ri { font-size: 11px; color: var(--muted); margin-top: 4px; white-space: nowrap; }
+
+/* ---------- map strip ---------- */
+.mapbox { flex: none; position: relative; margin-top: 8px; border-radius: 16px; background: var(--bg2); border: 1px solid var(--line); overflow: hidden; }
+.mapbox svg { display: block; width: 100%; height: auto; max-height: 128px; }
+.clock { position: absolute; top: 7px; right: 9px; font: 13px var(--display); padding: 3px 8px; border-radius: 8px; background: #000a; display: flex; align-items: center; gap: 6px; }
+.clock.bomb { color: var(--red); }
+.mapname { position: absolute; top: 7px; left: 9px; font: 11px var(--display); letter-spacing: .12em; color: var(--muted); padding: 3px 8px; border-radius: 8px; background: #000a; }
+.zone { fill: #1A2131; stroke: #2C3850; stroke-width: 1.5; }
+.zone.hot { fill: #3A1D1D; stroke: var(--red); }
+.zone.pick { stroke: var(--fg); stroke-dasharray: 4 3; }
+.lane { stroke: #222B3D; stroke-width: 9; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.zl { font: 13px var(--display); fill: #9AA5BC; text-anchor: middle; dominant-baseline: middle; }
+.spawn { font: 10px var(--display); text-anchor: middle; dominant-baseline: middle; }
+.mk { stroke: #0A0D12; stroke-width: 2.5; }
+.spark { fill: var(--gold); }
+@keyframes pulse { 50% { opacity: .35; } }
+.pulse { animation: pulse 1s ease-in-out infinite; }
+
+/* ---------- panel ---------- */
+.panel { flex: 1; min-height: 0; overflow-y: auto; margin-top: 10px; padding-bottom: 12px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.panel::-webkit-scrollbar { display: none; }
+.h { font: 16px var(--display); margin: 0 0 4px; letter-spacing: .02em; }
+.sub { color: var(--muted); font-size: 13px; margin: 0 0 12px; text-wrap: pretty; }
+.sec { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin: 14px 0 7px; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.sec b { color: var(--fg); letter-spacing: 0; text-transform: none; font-size: 12px; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.tile {
+  --c: var(--fg); position: relative; text-align: left; min-width: 0;
+  padding: 10px 11px; border-radius: 13px; background: var(--panel); border: 1.5px solid var(--line);
+  display: flex; flex-direction: column; gap: 3px; transition: border-color .15s, background .15s, transform .1s;
+}
+.tile:active:not(:disabled) { transform: scale(.98); }
+.tile.on { border-color: var(--c); background: color-mix(in srgb, var(--c) 13%, var(--panel)); box-shadow: 0 0 0 1px var(--c) inset; }
+.tile:disabled { opacity: .38; }
+.tile .tt { font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 6px; justify-content: space-between; }
+.tile .tt span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile .ts { font-size: 12px; color: var(--muted); line-height: 1.35; }
+.tile .pr { font: 13px var(--display); color: var(--money); flex: none; }
+.tile .have { position: absolute; top: -7px; right: 8px; font-size: 10px; font-weight: 800; letter-spacing: .1em; padding: 1px 6px; border-radius: 6px; background: var(--ok); color: #062615; }
+.chip { display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 7px; border-radius: 6px; font-size: 11px; font-weight: 700; background: #ffffff10; color: var(--fg); white-space: nowrap; }
+.chip.d0 { background: #FF545422; color: #ff9d9d; }
+.chip.d1 { background: #FFD15C22; color: var(--gold); }
+.chip.d2 { background: #5BAAF222; color: #9fd0ff; }
+.chip.plus { background: #67E3A622; color: var(--ok); }
+.pow { display: inline-flex; gap: 3px; align-items: flex-end; }
+.pow i { display: flex; flex-direction: column; align-items: center; gap: 1px; font-style: normal; font-size: 9px; color: var(--dim); }
+.pow i b { font: 12px var(--display); color: var(--fg); min-width: 14px; text-align: center; padding: 1px 3px; border-radius: 4px; background: #ffffff0d; }
+.pow i.hi b { background: color-mix(in srgb, var(--c, var(--t)) 35%, transparent); }
+.row { display: flex; gap: 8px; align-items: center; }
+.cnt { display: inline-flex; align-items: center; gap: 6px; }
+.cnt button { width: 30px; height: 30px; border-radius: 9px; border: 1px solid var(--line2); background: var(--panel2); font-weight: 800; font-size: 16px; }
+.cnt b { font: 14px var(--display); min-width: 14px; text-align: center; }
+.note { font-size: 12px; color: var(--muted); padding: 9px 11px; border-radius: 11px; background: #ffffff08; border: 1px dashed var(--line); margin-top: 10px; text-wrap: pretty; }
+.note b { color: var(--fg); }
+.ctx { padding: 10px 12px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px; }
+.ctx-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.ctx-title { font: 15px var(--display); }
+.vs { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center; font-size: 12px; }
+.vs .r { text-align: right; }
+.vs b { font-size: 14px; display: block; }
+.vs em { font-style: normal; font: 13px var(--display); color: var(--dim); }
+
+/* actions */
+.acts { display: grid; grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr)); gap: 8px; }
+.act { --c: var(--fg); padding: 12px 8px 10px; border-radius: 14px; background: var(--panel); border: 1.5px solid var(--line); display: flex; flex-direction: column; align-items: center; gap: 5px; text-align: center; min-width: 0; }
+.act svg { width: 26px; height: 26px; }
+.act b { font-size: 13px; line-height: 1.15; }
+.act small { font-size: 10.5px; color: var(--muted); line-height: 1.25; }
+.act.on { border-color: var(--c); background: color-mix(in srgb, var(--c) 15%, var(--panel)); box-shadow: 0 0 0 1px var(--c) inset; }
+.nades { display: flex; gap: 6px; flex-wrap: wrap; }
+.nade { height: 36px; padding: 0 12px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--panel); font-weight: 700; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
+.nade.on { border-color: var(--gold); background: #FFD15C1c; }
+.nade i { font-style: normal; font-size: 11px; color: var(--muted); }
+
+/* aim cards */
+.hand { display: grid; grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr)); gap: 8px; }
+.card {
+  --cc: #8BB4FF; position: relative; aspect-ratio: 5 / 6.4; padding: 8px 8px 9px; border-radius: 13px;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--cc) 22%, #1A2130), #121823 70%);
+  border: 1.5px solid color-mix(in srgb, var(--cc) 45%, var(--line)); display: flex; flex-direction: column; align-items: flex-start; text-align: left; min-width: 0;
+  transition: transform .15s, box-shadow .15s;
+}
+.card.on { transform: translateY(-5px); border-color: var(--cc); box-shadow: 0 10px 24px -10px var(--cc), 0 0 0 1px var(--cc) inset; }
+.card .cv { font: 30px/1 var(--display); color: var(--cc); }
+.card .cn { font-weight: 800; font-size: 12.5px; margin-top: auto; line-height: 1.15; }
+.card .cx { font-size: 10.5px; color: var(--muted); line-height: 1.25; margin-top: 3px; }
+.card .now { position: absolute; top: 8px; right: 8px; font: 12px var(--display); padding: 2px 6px; border-radius: 6px; background: #0008; }
+.card.pos { --cc: var(--ok); } .card.neg { --cc: var(--red); } .card.hs { --cc: var(--gold); } .card.cond { --cc: #8BB4FF; }
+.card.mini { aspect-ratio: auto; padding: 6px 8px; flex-direction: row; align-items: center; gap: 8px; border-radius: 10px; }
+.card.mini .cv { font-size: 18px; }
+.card.mini .cn { margin: 0; }
+
+/* bottom bar */
+.bar { flex: none; display: flex; align-items: center; gap: 10px; padding: 10px 0 calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: linear-gradient(transparent, var(--bg) 30%); }
+.bar .sum { flex: 1; min-width: 0; font-size: 13px; color: var(--muted); line-height: 1.3; }
+.bar .sum b { color: var(--fg); }
+.go { flex: none; height: 50px; min-width: 132px; padding: 0 20px; border: 0; border-radius: 15px; background: var(--side, var(--t)); color: #0A0D12; font: 16px var(--display); letter-spacing: .04em; box-shadow: 0 10px 26px -12px var(--side, var(--t)); }
+.go:disabled { background: var(--panel2); color: var(--dim); box-shadow: none; }
+.go:not(:disabled):active { transform: scale(.97); }
+.wait { display: flex; align-items: center; gap: 9px; }
+.spin { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--line2); border-top-color: var(--fg); animation: spin .8s linear infinite; flex: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------- reveal overlay ---------- */
+.overlay { position: fixed; inset: 0; z-index: 30; display: flex; align-items: flex-end; justify-content: center; background: color-mix(in srgb, var(--bg) 70%, transparent); -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); padding: 12px max(12px, env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); }
+.rv { width: 100%; max-width: 520px; max-height: 100%; overflow-y: auto; border-radius: 24px; background: var(--panel); border: 1px solid var(--line2); padding: 16px 14px 14px; box-shadow: 0 -20px 60px -20px #000; animation: rise .35s cubic-bezier(.2,.8,.2,1); scrollbar-width: none; }
+@keyframes rise { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+.rv-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+.rv-title { font: 22px/1.15 var(--display); margin: 4px 0 10px; text-wrap: balance; }
+.rv-title.win { color: var(--ok); } .rv-title.lose { color: var(--red); }
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.col { --c: var(--t); border-radius: 14px; background: var(--bg2); border: 1px solid var(--line); padding: 9px 10px; min-width: 0; }
+.col.ct { --c: var(--ct); }
+.col-h { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; min-width: 0; }
+.col-h .pl-name { font-size: 13px; }
+.col-act { font-weight: 700; font-size: 13px; margin-bottom: 6px; color: var(--c); }
+.parts { display: flex; flex-direction: column; gap: 2px; font-size: 12px; }
+.parts div { display: flex; justify-content: space-between; gap: 6px; color: var(--muted); }
+.parts div b { color: var(--fg); font-family: var(--display); font-weight: 400; }
+.parts div.neg b { color: var(--red); }
+.parts .tot { border-top: 1px solid var(--line); margin-top: 4px; padding-top: 5px; color: var(--fg); font-weight: 700; }
+.parts .tot b { font-size: 18px; color: var(--c); }
+.outcome { margin-top: 10px; padding: 11px 12px; border-radius: 14px; background: #ffffff08; border: 1px solid var(--line); font-size: 14px; line-height: 1.45; }
+.outcome b { color: var(--fg); }
+.outcome .big { font: 18px var(--display); display: block; margin-bottom: 3px; }
+.outcome .big.red { color: var(--red); } .outcome .big.green { color: var(--ok); } .outcome .big.gold { color: var(--gold); }
+.rv-btns { display: flex; gap: 8px; margin-top: 12px; }
+.btn { flex: 1; height: 50px; border-radius: 15px; border: 1px solid var(--line2); background: var(--panel2); font: 15px var(--display); letter-spacing: .03em; }
+.btn.main { border: 0; background: var(--fg); color: var(--bg); }
+.btn:active { transform: scale(.98); }
+.money-list { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; font-size: 13px; }
+.money-list div { display: flex; justify-content: space-between; color: var(--muted); }
+.money-list b { color: var(--money); font-family: var(--display); font-weight: 400; }
+.roul { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 6px 0 4px; }
+.roul div { padding: 14px 10px; border-radius: 13px; border: 1.5px solid var(--line); background: var(--bg2); text-align: center; font: 15px var(--display); transition: all .12s; }
+.roul div.lit { border-color: var(--gold); background: #FFD15C22; color: var(--gold); transform: scale(1.03); }
+.roul div small { display: block; font: 11px var(--ui); color: var(--muted); margin-top: 2px; }
+.knife { display: flex; justify-content: center; gap: 16px; margin: 8px 0; }
+.knife div { width: 92px; aspect-ratio: 5/7; border-radius: 14px; border: 1.5px solid var(--line2); background: var(--bg2); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+.knife div b { font: 40px var(--display); }
+.knife div span { font-size: 12px; color: var(--muted); max-width: 84px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.knife div.win { border-color: var(--gold); box-shadow: 0 0 30px -8px var(--gold); }
+.knife div.win b { color: var(--gold); }
+.flip { animation: flip .5s ease both; }
+@keyframes flip { from { transform: rotateY(90deg); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* ---------- menu sheet ---------- */
+.sheet { position: fixed; inset: 0; z-index: 40; overflow-y: auto; background: radial-gradient(120% 60% at 50% 0%, #1A2232, var(--bg) 70%); padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
+.sheet-in { max-width: 480px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+.logo { font: clamp(38px, 12vw, 54px)/0.95 var(--display); letter-spacing: .01em; margin: 18px 0 0; }
+.logo span { color: var(--t); display: block; }
+.logo span i { color: var(--ct); font-style: normal; }
+.tag { color: var(--muted); font-size: 14.5px; margin: -2px 0 4px; text-wrap: pretty; }
+.cta { height: 58px; border: 0; border-radius: 17px; font: 17px var(--display); letter-spacing: .04em; background: var(--t); color: #1d1205; box-shadow: 0 14px 32px -14px var(--t); }
+.cta.blue { background: var(--ct); color: #061521; box-shadow: 0 14px 32px -14px var(--ct); }
+.cta.ghost { background: var(--panel); color: var(--fg); border: 1px solid var(--line2); box-shadow: none; }
+.cta:active { transform: scale(.98); }
+.inp { width: 100%; height: 50px; border-radius: 14px; border: 1px solid var(--line2); background: var(--panel); color: var(--fg); padding: 0 14px; font: 600 16px var(--ui); -webkit-user-select: text; user-select: text; }
+.inp::placeholder { color: var(--dim); }
+.join { display: flex; gap: 8px; }
+.join .inp { text-align: center; font: 20px var(--display); letter-spacing: .35em; text-transform: uppercase; }
+.join .cta { height: 50px; padding: 0 18px; font-size: 15px; flex: none; }
+.lbl { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: -6px; }
+.rules { border-radius: 16px; background: var(--panel); border: 1px solid var(--line); padding: 0 14px; }
+.rules summary { list-style: none; cursor: pointer; padding: 14px 0; font-weight: 700; display: flex; justify-content: space-between; }
+.rules summary::-webkit-details-marker { display: none; }
+.rules summary::after { content: "+"; font: 18px var(--display); color: var(--muted); }
+.rules[open] summary::after { content: "–"; }
+.rules .rb { padding-bottom: 14px; font-size: 13.5px; line-height: 1.5; color: #CBD3E1; }
+.rules h4 { margin: 12px 0 4px; font: 13px var(--display); color: var(--fg); letter-spacing: .03em; }
+.rules ul { margin: 4px 0; padding-left: 18px; }
+.rules li { margin: 3px 0; }
+.rules li::marker { color: var(--t); }
+.room-code { font: clamp(46px, 15vw, 64px)/1 var(--display); letter-spacing: .16em; text-align: center; -webkit-user-select: text; user-select: text; }
+.room-link { padding: 11px 12px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; -webkit-user-select: all; user-select: all; }
+.seats { display: flex; flex-direction: column; gap: 6px; }
+.seat { display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); }
+.seat .st { margin-left: auto; font-size: 12px; color: var(--muted); }
+.seat .st.on { color: var(--ok); }
+.netnote { font-size: 13px; color: var(--muted); text-align: center; text-wrap: pretty; }
+.netnote.err { color: var(--red); }
+.foot { font-size: 12px; color: var(--dim); text-align: center; margin-top: 4px; }
+.linkbtn { border: 0; background: none; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; font-size: 13px; padding: 6px; }
+
+.toast { position: fixed; left: 50%; top: calc(14px + env(safe-area-inset-top)); transform: translate(-50%, -20px); opacity: 0; z-index: 60; padding: 10px 16px; border-radius: 12px; background: #000d; border: 1px solid var(--line2); font-weight: 600; font-size: 14px; pointer-events: none; transition: all .25s; max-width: 90vw; text-align: center; }
+.toast.show { transform: translate(-50%, 0); opacity: 1; }
+
+@media (min-width: 700px) { .app { padding-top: 18px; } .panel { padding-bottom: 20px; } }
+@media (max-height: 760px) { .mapbox svg { max-height: 100px; } }
+</style>
+</head>
+<body>
+<div class="bg" id="bgfx"></div>
+
+<div class="app" id="app">
+  <div class="top">
+    <button class="ibtn" id="btnMenu" aria-label="Меню"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    <div class="brand"><i></i>КС-ТАКТИКА</div>
+    <button class="pill" id="roomPill" hidden><span class="dot" id="roomDot"></span><span id="roomPillCode"></span></button>
+    <button class="ibtn" id="btnSound" aria-label="Звук"></button>
+  </div>
+  <div class="board">
+    <div class="pl me" id="plMe"></div>
+    <div class="score"><div class="nums"><span id="scMe">0</span><i>:</i><span id="scOp">0</span></div><div class="ri" id="rInfo">до 8 побед</div></div>
+    <div class="pl op" id="plOp"></div>
+  </div>
+  <div class="mapbox" id="mapbox"><svg id="mapSvg" viewBox="0 0 340 140" aria-hidden="true"></svg><div class="mapname" id="mapName"></div><div class="clock" id="clock" hidden></div></div>
+  <div class="panel" id="panel"></div>
+  <div class="bar" id="bar"><div class="sum" id="sum"></div><button class="go" id="btnGo" disabled>Готово</button></div>
+</div>
+
+<div class="overlay" id="reveal" hidden><div class="rv" id="rv"></div></div>
+
+<div class="sheet" id="sheet">
+  <div class="sheet-in" id="vMain">
+    <h1 class="logo">КС-<span>ТАК<i>ТИКА</i></span></h1>
+    <p class="tag">Карточная дуэль по механике CS2. Закупка, позиции, флешки, бомба и блеф. Один на один до 8 побед.</p>
+    <button class="cta" id="btnBot">Играть с ботом</button>
+    <button class="cta ghost" id="btnResume" hidden>Продолжить матч с ботом</button>
+    <div class="lbl">Онлайн с братом</div>
+    <button class="cta blue" id="btnCreate">Создать комнату</button>
+    <div class="join"><input class="inp" id="joinCode" maxlength="4" placeholder="КОД" autocomplete="off" autocapitalize="characters" spellcheck="false"><button class="cta ghost" id="btnJoin">Войти</button></div>
+    <div class="lbl">Твоё имя</div>
+    <input class="inp" id="nameInp" maxlength="12" placeholder="Например, Тимка" autocomplete="off">
+    <details class="rules" id="rules"><summary>Как играть</summary><div class="rb" id="rulesBody"></div></details>
+    <button class="cta ghost" id="btnBack" hidden>Вернуться в игру</button>
+    <div class="foot"><a href="../games/" style="color:inherit">← Все игры</a> · <span id="buildTag"></span></div>
+  </div>
+  <div class="sheet-in" id="vRoom" hidden>
+    <div class="lbl" style="margin-top:18px">Комната</div>
+    <div class="room-code" id="roomCode">····</div>
+    <div class="room-link" id="roomLink"></div>
+    <button class="cta blue" id="btnShare">Поделиться ссылкой</button>
+    <div class="seats" id="seats"></div>
+    <div class="netnote" id="netNote"></div>
+    <button class="cta ghost" id="btnRoomGo" hidden>К игре</button>
+    <button class="linkbtn" id="btnLeave">Выйти из комнаты</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="engine.js?v=1"></script>
+<script>
+'use strict';
+const BUILD = 'kst-1';
+const APP = 'kst';
+const SB_URL = 'https://ulfqprrjdyycznobirxw.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVsZnFwcnJqZHl5Y3pub2Jpcnh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM3OTg4NTMsImV4cCI6MjEwOTM3NDg1M30.zIjRlMNnqg59jZRprHcCoIkoBiIis45vw5vP4bhF_tc';
+const K = window.KST;
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmt$ = n => '$' + Math.round(n).toLocaleString('ru-RU').replace(/ /g, ' ');
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(APP + ':' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(APP + ':' + k, JSON.stringify(v)); } catch (e) {} },
+  del(k) { try { localStorage.removeItem(APP + ':' + k); } catch (e) {} }
+};
+function toast(t) { const el = $('#toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('show'), 2400); }
+const buzz = ms => { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} };
+
+/* ---------------- звук ---------------- */
+let soundOn = store.get('sound', true), actx = null;
+function ac() { if (!soundOn) return null; if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; } } if (actx.state === 'suspended') actx.resume(); return actx; }
+function tone(f, d, type, v, f2) { const a = ac(); if (!a) return; const o = a.createOscillator(), g = a.createGain(), t = a.currentTime; o.type = type || 'sine'; o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + d); g.gain.setValueAtTime(v || 0.05, t); g.gain.exponentialRampToValueAtTime(0.0001, t + d); o.connect(g).connect(a.destination); o.start(t); o.stop(t + d + 0.02); }
+function noise(d, v, hp) { const a = ac(); if (!a) return; const n = Math.floor(a.sampleRate * d), b = a.createBuffer(1, n, a.sampleRate), ch = b.getChannelData(0); for (let i = 0; i < n; i++) ch[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 3); const s = a.createBufferSource(), g = a.createGain(), f = a.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = hp || 600; s.buffer = b; g.gain.value = v || 0.25; s.connect(f).connect(g).connect(a.destination); s.start(); }
+const sfx = {
+  tap() { tone(520, 0.05, 'triangle', 0.03); },
+  ready() { tone(660, 0.07, 'triangle', 0.04); setTimeout(() => tone(880, 0.09, 'triangle', 0.04), 70); },
+  shot() { noise(0.18, 0.32, 400); tone(140, 0.12, 'sawtooth', 0.04, 60); },
+  hs() { noise(0.16, 0.3, 500); setTimeout(() => tone(1760, 0.25, 'sine', 0.06), 60); },
+  beep() { tone(1900, 0.08, 'square', 0.025); },
+  win() { [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => tone(f, 0.18, 'triangle', 0.05), i * 90)); },
+  lose() { [392, 330, 262].forEach((f, i) => setTimeout(() => tone(f, 0.22, 'triangle', 0.05), i * 110)); },
+  flip() { tone(300, 0.06, 'triangle', 0.035, 600); },
+  boom() { noise(0.9, 0.5, 60); tone(70, 0.8, 'sine', 0.12, 30); }
+};
+const ICON_ON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>';
+const ICON_OFF = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="m16 9 5 6"/><path d="m21 9-5 6"/></svg>';
+function renderSound() { $('#btnSound').innerHTML = soundOn ? ICON_ON : ICON_OFF; }
+
+/* ---------------- матч ---------------- */
+// M: { mode: 'bot'|'online', seed, picks: [[p0,p1],...] }. S: состояние движка. me: моё место.
+let M = null, S = null, me = 0, applied = 0, D = {}, rq = [], rvOpen = false;
+const opp = () => 1 - me;
+function names() {
+  if (!M) return ['Ты', 'Соперник'];
+  if (M.mode === 'bot') return [myName() || 'Ты', 'Бот'];
+  const r = net.room; const n = [0, 1].map(k => (r && r.names[k]) || (k === 0 ? 'Игрок 1' : 'Игрок 2'));
+  return n;
+}
+const myName = () => String(store.get('name', '') || '').trim().slice(0, 12);
+const nm = k => k === me ? 'Ты' : names()[k];
+const sideOf = k => S ? S.sideOf[k] : (k === 0 ? 'T' : 'CT');
+
+function rebuild(showLast) {
+  if (!M) { S = null; return; }
+  S = K.create(M.seed); applied = 0; rq = [];
+  advance(!showLast);
+  D = { n: -1 };
+}
+// Применяет все шаги, где уже есть выборы обоих. quiet — не показывать вскрытия.
+function advance(quiet) {
+  if (!M || !S) return;
+  let progressed = false;
+  for (let guard = 0; guard < 2000; guard++) {
+    if (S.over) break;
+    const pd = K.pending(S), row = M.picks[applied];
+    if (M.mode === 'bot') botFill();
+    const r2 = M.picks[applied];
+    if (!r2) break;
+    if (![0, 1].every(k => !pd.seats[k] || r2[k] != null)) break;
+    const pk = [pd.seats[0] ? r2[0] : null, pd.seats[1] ? r2[1] : null];
+    if (!K.valid(S, 0, pk[0]) || !K.valid(S, 1, pk[1])) {
+      console.warn('kst: bad pick', applied, pk);
+      // свой кривой выбор сбрасываем, чужой ждём заново
+      if (!K.valid(S, me, pk[me])) r2[me] = null;
+      if (!K.valid(S, opp(), pk[opp()]) && M.mode === 'online') { r2[opp()] = null; hello(); }
+      break;
+    }
+    const batch = K.apply(S, pk); applied++; progressed = true;
+    if (!quiet) rq.push(batch);
+  }
+  if (M.mode === 'bot') saveSolo();
+  if (progressed && !quiet) showReveal();
+  render();
+}
+function botFill() {
+  if (S.over) return;
+  const pd = K.pending(S), b = opp();
+  if (!pd.seats[b]) { if (!M.picks[applied]) { /* шаг только для меня */ } return; }
+  const row = M.picks[applied] || (M.picks[applied] = [null, null]);
+  if (row[b] == null) row[b] = K.bot(S, b);
+}
+function myPickNeeded() { if (!S || S.over) return false; const pd = K.pending(S); return pd.seats[me] && !(M.picks[applied] && M.picks[applied][me] != null); }
+function submit(p) {
+  if (!myPickNeeded()) return;
+  if (!K.valid(S, me, p)) { toast('Так нельзя'); return; }
+  if (M.mode === 'online' && net.status !== 'ok') { toast('Нет связи. Подожди пару секунд'); return; }
+  const row = M.picks[applied] || (M.picks[applied] = [null, null]);
+  row[me] = p;
+  sfx.ready(); buzz(15);
+  if (M.mode === 'online') { send('pick', { g: net.room.game, i: applied, k: me, p }); saveRoom(); }
+  advance();
+}
+
+/* соло */
+function saveSolo() { if (M && M.mode === 'bot') store.set('solo', { seed: M.seed, picks: M.picks, v: BUILD }); }
+function startBot(resume) {
+  if (net.on) leaveRoom();
+  const snap = store.get('solo', null);
+  if (resume && snap && snap.seed && snap.v === BUILD) M = { mode: 'bot', seed: snap.seed, picks: snap.picks || [] };
+  else { M = { mode: 'bot', seed: 'solo-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), picks: [] }; }
+  me = 0; rebuild(false); closeSheet(); render();
+  if (!resume) setTimeout(() => toast('Выбери 2 карты из 7'), 300);
+}
+
+/* ---------------- рендер ---------------- */
+function render() {
+  renderSound();
+  if (!S) { $('#panel').innerHTML = ''; $('#sum').textContent = ''; $('#btnGo').disabled = true; return; }
+  if (D.n !== S.n) D = { n: S.n };
+  const mySide = sideOf(me);
+  document.documentElement.style.setProperty('--side', mySide === 'CT' ? 'var(--ct)' : 'var(--t)');
+  renderBoard(); renderMap();
+  const pd = K.pending(S);
+  const waiting = pd.seats[me] && !myPickNeeded() && !S.over;
+  const myTurn = myPickNeeded();
+  const panel = $('#panel');
+  const bar = { sum: '', go: null, label: 'Готово' };
+  if (S.over) panel.innerHTML = viewOver(bar);
+  else if (!myTurn) panel.innerHTML = viewWait(pd, waiting, bar);
+  else switch (S.step) {
+    case 'maps': panel.innerHTML = viewMaps(bar); break;
+    case 'side': panel.innerHTML = viewSide(bar); break;
+    case 'buy': panel.innerHTML = viewBuy(bar); break;
+    case 'plan': case 'plan2': panel.innerHTML = viewPlan(bar); break;
+    case 'plant': panel.innerHTML = viewPlant(bar); break;
+    case 'fight': panel.innerHTML = viewFight(bar); break;
+  }
+  $('#sum').innerHTML = bar.sum || '';
+  const go = $('#btnGo');
+  go.textContent = bar.label; go.disabled = !bar.go; go.onclick = bar.go || null;
+  go.hidden = !!bar.hideGo;
+}
+
+function renderBoard() {
+  const N = names();
+  for (const [el, k] of [[$('#plMe'), me], [$('#plOp'), opp()]]) {
+    const pre = S.step === 'maps' || S.step === 'side';
+    const side = sideOf(k), inv = S.inv[k], hp = S.hp[k], isMe = k === me;
+    el.className = 'pl ' + (isMe ? 'me' : 'op') + (side === 'CT' ? ' ct' : '');
+    if (pre) el.style.setProperty('--c', 'var(--line2)'); else el.style.removeProperty('--c');
+    let gear;
+    const seen = isMe || (S.R && S.R.seen[k]);
+    if (S.step === 'maps' || S.step === 'side') gear = '';
+    else if (seen) gear = esc(K.W[K.weaponOf(S, k)].name) + (inv.armor === 2 ? ' · 🪖' : inv.armor === 1 ? ' · броня' : '') + (inv.kit ? ' · кит' : '');
+    else gear = 'оружие скрыто';
+    el.innerHTML = `<div class="pl-row"><span class="badge"${pre ? ' style="color:var(--fg)"' : ''}>${pre ? '?' : side}</span><span class="pl-name">${esc(isMe ? (myName() || 'Ты') : N[k])}</span></div>
+      <div class="money">${fmt$(S.money[k])}</div>
+      <div class="hpbar${hp <= 40 ? ' low' : ''}" title="HP ${hp}"><span style="width:${Math.max(0, hp)}%"></span></div>
+      <div class="gear">${gear || '&nbsp;'}</div>`;
+  }
+  $('#scMe').textContent = S.score[me]; $('#scOp').textContent = S.score[opp()];
+  let ri = 'до 8 побед';
+  if (S.round) ri = `Раунд ${S.round}` + (S.half === 3 ? ' · решающий' : (S.round === 1 || S.round === K.HALF + 1) ? ' · пистолетка' : '');
+  $('#rInfo').textContent = ri;
+}
+
+function renderMap() {
+  const svg = $('#mapSvg'), m = S.map ? K.MAPS[S.map] : null;
+  $('#mapName').textContent = m ? m.name.toUpperCase() : 'ВЫБОР КАРТЫ';
+  const R = S.R, t = K.tSeat(S), ct = 1 - t;
+  const clock = $('#clock');
+  if (R && S.step !== 'buy' && !S.over) {
+    clock.hidden = false;
+    if (R.bomb) { clock.className = 'clock bomb'; clock.textContent = '💣 0:' + String(R.bomb.left * 10).padStart(2, '0'); }
+    else { clock.className = 'clock'; const sec = Math.max(0, 115 - R.moment * 23); clock.textContent = Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0'); }
+  } else clock.hidden = true;
+  const Z = { A: [14, 28, 92, 46], M: [134, 58, 72, 36], B: [234, 28, 92, 46] };
+  const hot = R && R.contact ? R.contact.site : null;
+  let pickZone = null;
+  if (myPickNeeded() && (S.step === 'plan' || S.step === 'plan2')) {
+    if (sideOf(me) === 'T' && D.r) pickZone = D.r;
+    if (sideOf(me) === 'CT' && D.p) { const p = K.ctPos(S, D.p); if (p) pickZone = p.site; }
+  }
+  const zone = (k, label) => { const [x, y, w, h] = Z[k]; return `<rect class="zone${hot === k ? ' hot' : ''}${pickZone === k ? ' pick' : ''}" x="${x}" y="${y}" width="${w}" height="${h}" rx="10"/><text class="zl" x="${x + w / 2}" y="${y + h / 2}">${label}</text>`; };
+  let h = `<path class="lane" d="M150 128 H60 V74"/><path class="lane" d="M190 128 H280 V74"/><path class="lane" d="M170 119 V94"/><path class="lane" d="M134 76 H106"/><path class="lane" d="M206 76 H234"/><path class="lane" d="M146 13 H60 V28"/><path class="lane" d="M194 13 H280 V28"/><path class="lane" d="M170 21 V58"/>`;
+  h += zone('A', 'A') + zone('M', 'МИД') + zone('B', 'B');
+  h += `<rect x="146" y="4" width="48" height="17" rx="5" fill="#14304C"/><text class="spawn" x="170" y="13" fill="#5BAAF2">CT</text>`;
+  h += `<rect x="146" y="119" width="48" height="17" rx="5" fill="#4A3313"/><text class="spawn" x="170" y="128" fill="#E9A23B">T</text>`;
+  // маркеры
+  const P = { tSpawn: [170, 108], ctSpawn: [170, 38], A: [46, 64], M: [170, 88], B: [266, 64], Ae: [60, 100], Be: [280, 100], Me: [170, 106], Atop: [104, 13], Btop: [236, 13], Mtop: [170, 44] };
+  let tAt = 'tSpawn', ctAt = 'ctSpawn', showT = true, showCT = true;
+  if (R && S.step !== 'buy' && S.map) {
+    const c = R.contact, iAmT = me === t;
+    if (R.bomb) { tAt = R.bomb.site; ctAt = R.bomb.site + 'top'; }
+    else if (c) { if (c.type === 'mid') { tAt = 'Me'; ctAt = 'Mtop'; } else { tAt = c.site + 'e'; ctAt = c.site; } }
+    else {
+      // план: соперника не видно, кроме T на миде (CT его слышит)
+      if (R.ctrlMid) tAt = 'M';
+      if (iAmT) showCT = false; else showT = !!R.ctrlMid;
+    }
+  }
+  const mk = (at, col) => { const [x, y] = P[at]; return `<circle class="mk" cx="${x}" cy="${y}" r="7" fill="${col}"/>`; };
+  if (R && R.contact && S.step === 'fight') { const [x1, y1] = P[tAt], [x2, y2] = P[ctAt]; h += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#FFD15C" stroke-width="2" stroke-dasharray="3 4" class="pulse"/>`; }
+  if (R && R.bomb) { const [x, y] = P[R.bomb.site]; h += `<g class="pulse"><circle cx="${x + 24}" cy="${y}" r="8" fill="#FF5454"/><text x="${x + 24}" y="${y + 1}" font-size="9" text-anchor="middle" dominant-baseline="middle">💣</text></g>`; }
+  if (showT && S.map && S.alive[t]) h += mk(tAt, '#E9A23B');
+  if (showCT && S.map && S.alive[ct]) h += mk(ctAt, '#5BAAF2');
+  svg.innerHTML = h;
+}
+
+/* --- вспомогательные куски --- */
+const distChip = d => `<span class="chip d${d}">${K.DIST[d]}</span>`;
+function powHTML(w, hiD) { return `<span class="pow">${w.pow.map((v, d) => `<i class="${d === hiD ? 'hi' : ''}"><b>${v}</b>${['вп', 'ср', 'дал'][d]}</i>`).join('')}</span>`; }
+function cardHTML(c, opts) {
+  const C = K.CARDS[c];
+  const cls = C.kind === 'num' ? (C.val > 0 ? 'pos' : C.val < 0 ? 'neg' : 'cond') : C.kind === 'hs' ? 'hs' : 'cond';
+  const bigTxt = C.kind === 'num' ? (C.val > 0 ? '+' + C.val : C.val < 0 ? '−' + (-C.val) : '0') : C.kind === 'hs' ? '+1' : C.kind === 'pre' ? '+3' : C.kind === 'cs' ? '+2' : (c === 'tap' ? 'ТАП' : 'СПРЕЙ');
+  const now = opts && opts.now != null ? `<span class="now">${opts.now > 0 ? '+' + opts.now : opts.now < 0 ? '−' + (-opts.now) : '0'}</span>` : '';
+  return `<span class="cv"${C.kind === 'dist' ? ' style="font-size:20px"' : ''}>${bigTxt}</span>${now}<span class="cn">${esc(C.name)}</span><span class="cx">${esc(C.kind === 'num' ? 'Сила прицела' : C.text)}</span>`;
+}
+function cardCls(c) { const C = K.CARDS[c]; return C.kind === 'num' ? (C.val > 0 ? 'pos' : C.val < 0 ? 'neg' : 'cond') : C.kind === 'hs' ? 'hs' : 'cond'; }
+const ACT = {
+  hold: { n: 'Держать угол', ic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>' },
+  peek: { n: 'Выйти', ic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h12"/><path d="m13 6 6 6-6 6"/><path d="M3 5v14"/></svg>' },
+  back: { n: 'Отойти', ic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H7"/><path d="m11 6-6 6 6 6"/></svg>' },
+  defuse: { n: 'Дефьюз', ic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="11" rx="2"/><path d="M8 8V6a4 4 0 0 1 8 0v2"/><path d="M12 12v3"/></svg>' }
+};
+function actName(a, side, ctype) { if (a === 'back' && ctype === 'retake') return 'Сейв'; if (a === 'back' && side === 'T') return 'Отойти'; return ACT[a].n; }
+
+/* --- карты --- */
+function viewMaps(bar) {
+  D.m = D.m || [];
+  let h = `<h2 class="h">Выбор карты</h2><p class="sub">Выбери 2 карты. Соперник тоже выбирает 2, потом рулетка крутит одну из четырёх.</p><div class="grid2">`;
+  for (const k of K.MAP_KEYS) {
+    const m = K.MAPS[k], on = D.m.includes(k);
+    h += `<button class="tile${on ? ' on' : ''}" data-map="${k}" style="--c:var(--gold)"><div class="tt"><span>${m.name}</span><span class="chip">CT ${m.ctPct}%</span></div><div class="ts">${esc(m.tag)}</div></button>`;
+  }
+  h += `</div>`;
+  bar.sum = D.m.length === 2 ? `<b>${D.m.map(k => K.MAPS[k].name).join(' + ')}</b>` : `Выбрано ${D.m.length} из 2`;
+  if (D.m.length === 2) bar.go = () => submit({ m: D.m.slice() });
+  return h;
+}
+function viewSide(bar) {
+  const m = K.MAPS[S.map];
+  bar.hideGo = true; bar.sum = 'Ты выиграл ножевой';
+  return `<h2 class="h">Выбери сторону</h2><p class="sub">Ножевой за тобой. ${m.name}: CT выигрывают ${m.ctPct}% раундов в про-сцене. ${esc(m.tag)}.</p>
+  <div class="grid2"><button class="tile" data-side="T" style="--c:var(--t);padding:18px 14px"><div class="tt"><span style="font:20px var(--display);color:var(--t)">T</span></div><div class="ts">Атака. Ставишь бомбу. Дешевле AK, Tec-9, молотов.</div></button>
+  <button class="tile" data-side="CT" style="--c:var(--ct);padding:18px 14px"><div class="tt"><span style="font:20px var(--display);color:var(--ct)">CT</span></div><div class="ts">Защита. Держишь углы, разминируешь. M4, кит.</div></button></div>
+  <div class="note">Первые 7 раундов за эту сторону, потом смена.</div>`;
+}
+
+/* --- закупка --- */
+const CAT_NAME = { smg: 'Пистолеты-пулемёты', shotgun: 'Дробовики', rifle: 'Винтовки', sniper: 'Снайперки', pistol: 'Пистолеты' };
+function viewBuy(bar) {
+  const side = sideOf(me), inv = S.inv[me];
+  D.items = D.items || []; if (D.pk == null) D.pk = false;
+  const pr = K.priceBuy(S, me, { items: D.items, pk: D.pk });
+  const left = S.money[me] - (pr.cost || 0);
+  const cur = pr.inv || inv;
+  const pistolRound = S.round === 1 || S.round === K.HALF + 1;
+  let h = `<h2 class="h">Закупка${pistolRound ? ' · пистолетка' : S.half === 3 ? ' · решающий' : ''}</h2>`;
+  const om = S.money[opp()];
+  const read = om < 2000 ? 'скорее эко или сейв' : om < 4000 ? 'может форсить: ПП или дробовик' : 'хватит на полную закупку';
+  h += `<p class="sub">У соперника <b style="color:var(--money)">${fmt$(om)}</b>, ${read}. Что он купит, увидишь в перестрелке.</p>`;
+  if (S.pickup[me]) {
+    const w = K.W[S.pickup[me]];
+    h += `<button class="tile${D.pk ? ' on' : ''}" data-pk="1" style="--c:var(--gold);margin-bottom:6px"><div class="tt"><span>Подобрать ${esc(w.name)}</span><span class="pr">бесплатно</span></div><div class="ts">Лежит после прошлого раунда. ${powHTML(w)}</div></button>`;
+  }
+  const kept = [];
+  if (inv.prim) kept.push(K.W[inv.prim].name);
+  if (inv.pist !== K.DEFAULT_PISTOL[side]) kept.push(K.W[inv.pist].name);
+  if (inv.armor) kept.push(inv.armor === 2 ? 'броня+шлем' : 'кевлар');
+  for (const n of K.NADE_KEYS) if (inv.nades[n]) kept.push(K.nadeName(n, side) + (inv.nades[n] > 1 ? ' ×' + inv.nades[n] : ''));
+  if (inv.kit) kept.push('кит');
+  if (kept.length) h += `<div class="note" style="margin:0 0 6px">С прошлого раунда у тебя: <b>${esc(kept.join(', '))}</b></div>`;
+  const wTile = (id) => {
+    const w = K.W[id], isPist = K.PISTOLS.includes(id);
+    const on = D.items.includes(id);
+    const has = !on && (isPist ? inv.pist === id : inv.prim === id) && !D.items.some(x => K.W[x] && K.PISTOLS.includes(x) === isPist);
+    const afford = on || has || w.price <= left;
+    return `<button class="tile${on || has ? ' on' : ''}" data-buy="${has ? '' : id}" ${afford ? '' : 'disabled'} style="--c:var(--side)">${has ? '<span class="have">ЕСТЬ</span>' : ''}<div class="tt"><span>${esc(w.name)}</span><span class="pr">${fmt$(w.price)}</span></div><div class="row" style="justify-content:space-between">${powHTML(w)}</div>${w.note ? `<div class="ts">${esc(w.note)}</div>` : ''}</button>`;
+  };
+  const list = Object.keys(K.W).filter(id => K.canBuyWeapon(side, id) && id !== K.DEFAULT_PISTOL[side]);
+  const cheap = S.money[me] < 2000;
+  const cats = cheap ? ['pistol', 'GEAR', 'NADES', 'smg', 'shotgun', 'rifle', 'sniper'] : ['rifle', 'sniper', 'smg', 'shotgun', 'GEAR', 'NADES', 'pistol'];
+  const parts = {};
+  for (const cat of ['rifle', 'sniper', 'smg', 'shotgun', 'pistol']) {
+    const ids = list.filter(id => K.W[id].cat === cat);
+    parts[cat] = ids.length ? `<div class="sec">${CAT_NAME[cat]}${cat === 'pistol' ? `<b>по умолчанию ${K.W[K.DEFAULT_PISTOL[side]].name}</b>` : ''}</div><div class="grid2">${ids.map(wTile).join('')}</div>` : '';
+  }
+  // снаряжение
+  let g = '';
+  g += `<div class="sec">Броня и снаряжение</div><div class="grid2">`;
+  const gearTile = (id, title, price, sub, dis, has) => `<button class="tile${D.items.includes(id) ? ' on' : ''}" data-buy="${id}" ${dis ? 'disabled' : ''} style="--c:var(--side)">${has ? '<span class="have">ЕСТЬ</span>' : ''}<div class="tt"><span>${title}</span><span class="pr">${fmt$(price)}</span></div><div class="ts">${sub}</div></button>`;
+  const helmPrice = inv.armor === 1 ? 350 : 1000;
+  if (inv.armor < 1) g += gearTile('kev', 'Кевлар', 650, 'Режет урон по корпусу', !D.items.includes('kev') && 650 > left, false);
+  g += gearTile('helm', inv.armor === 1 ? 'Шлем' : 'Кевлар + шлем', helmPrice, 'Хэдшот не ваншот, кроме AK, Deagle, Tec-9, AWP', inv.armor >= 2 || (!D.items.includes('helm') && helmPrice > left), inv.armor >= 2);
+  if (side === 'CT') g += gearTile('kit', 'Набор сапёра', 400, 'Дефьюз за 1 обмен вместо 2', inv.kit || (!D.items.includes('kit') && 400 > left), inv.kit);
+  g += gearTile('wu', 'Разминка аима', 400, '+1 карта прицела в руку на раунд', !D.items.includes('wu') && 400 > left, false);
+  g += `</div>`;
+  parts.GEAR = g;
+  // гранаты
+  let nh = `<div class="sec">Гранаты<b>до 4 штук</b></div><div style="display:flex;flex-direction:column;gap:6px">`;
+  const totalN = K.NADE_KEYS.reduce((a, n) => a + cur.nades[n], 0);
+  for (const n of K.NADE_KEYS) {
+    const N = K.NADES[n], price = K.nadePrice(n, side), mine = D.items.filter(x => x === n).length, haveN = inv.nades[n];
+    const canAdd = cur.nades[n] < N.max && totalN < 4 && price <= left;
+    nh += `<div class="tile" style="flex-direction:row;align-items:center;gap:10px"><div style="flex:1;min-width:0"><div class="tt"><span>${esc(K.nadeName(n, side))} <span class="pr" style="margin-left:6px">${fmt$(price)}</span></span></div><div class="ts">${esc(N.short)}${haveN ? ` · есть ${haveN}` : ''}</div></div>
+      <div class="cnt"><button data-nade="${n}" data-d="-1" ${mine ? '' : 'disabled'} aria-label="Меньше">−</button><b>${cur.nades[n]}</b><button data-nade="${n}" data-d="1" ${canAdd ? '' : 'disabled'} aria-label="Больше">+</button></div></div>`;
+  }
+  nh += `</div>`;
+  parts.NADES = nh;
+  for (const c of cats) h += parts[c] || '';
+  bar.sum = `Потратишь <b>${fmt$(pr.cost || 0)}</b> · останется <b style="color:var(--money)">${fmt$(left)}</b>`;
+  if (!pr.err) bar.go = () => submit({ items: D.items.slice(), pk: !!D.pk });
+  bar.label = D.items.length || D.pk ? 'Купить' : 'Сейв';
+  return h;
+}
+
+/* --- план --- */
+function viewPlan(bar) {
+  const m = K.MAPS[S.map], side = sideOf(me), w = K.W[K.weaponOf(S, me)], second = S.step === 'plan2';
+  let h = '';
+  if (side === 'T') {
+    if (!second) {
+      h += `<h2 class="h">Куда идёшь?</h2><p class="sub">CT стоит на одной из позиций и не знает, куда ты пойдёшь. Не угадал он, значит бомба твоя.</p>`;
+      const opts = [['A', 'Раш на A', 'Прямо на точку A'], ['M', 'Через мид', `Займёшь мид, потом выход на A или B со сплитом +${m.split}`], ['B', 'Раш на B', 'Прямо на точку B']];
+      h += `<div style="display:flex;flex-direction:column;gap:8px">` + opts.map(([k, t, s]) => `<button class="tile${D.r === k ? ' on' : ''}" data-route="${k}" style="--c:var(--t);padding:14px 13px"><div class="tt"><span style="font-size:16px">${t}</span></div><div class="ts">${s}</div></button>`).join('') + `</div>`;
+      h += `<div class="note">Если CT на миде, а ты рашишь точку: бомба твоя, но CT успеет на ретейк раньше (+10 сек).</div>`;
+    } else {
+      h += `<h2 class="h">Мид твой. Куда сплит?</h2><p class="sub">CT понял, что ты на миде, и сейчас перестраивается. Выход с двух сторон даёт +${m.split} в перестрелке.</p>`;
+      h += `<div class="grid2">` + ['A', 'B'].map(k => `<button class="tile${D.r === k ? ' on' : ''}" data-route="${k}" style="--c:var(--t);padding:18px 13px"><div class="tt"><span style="font:20px var(--display)">${k}</span><span class="chip plus">+${m.split}</span></div><div class="ts">Сплит на ${k}</div></button>`).join('') + `</div>`;
+    }
+    bar.sum = D.r ? `Выбрано: <b>${D.r === 'M' ? 'через мид' : 'точка ' + D.r}</b>` : 'Выбери направление';
+    if (D.r) bar.go = () => submit({ r: D.r });
+    return h;
+  }
+  h += second
+    ? `<h2 class="h">T занял мид</h2><p class="sub">Он выйдет на A или B со сплитом +${m.split}. Встань туда, где его ждёшь. На миде ты успеешь только на ретейк.</p>`
+    : `<h2 class="h">Где стоишь?</h2><p class="sub">Угадал точку, значит встречаешь его с угла. Мид ловит T, который пошёл через центр, а если он рашит точку, успеваешь на ретейк.</p>`;
+  for (const site of ['A', 'M', 'B']) {
+    h += `<div class="sec">${site === 'M' ? 'Мид' : 'Точка ' + site}</div><div class="grid${site === 'M' ? '2' : '3'}">`;
+    for (const p of m.ct.filter(x => x.site === site)) {
+      h += `<button class="tile${D.p === p.id ? ' on' : ''}" data-pos="${p.id}" style="--c:var(--ct)"><div class="tt"><span>${esc(p.name)}</span></div><div class="row" style="flex-wrap:wrap;gap:4px">${distChip(p.d)}${p.b ? `<span class="chip plus">+${p.b}</span>` : ''}</div><div class="ts">${esc(w.name)}: ${w.pow[p.d]}${p.b ? ` +${p.b}` : ''}</div></button>`;
+    }
+    h += `</div>`;
+  }
+  const sel = D.p ? K.ctPos(S, D.p) : null;
+  bar.sum = sel ? `<b>${esc(sel.name)}</b> · ${K.DIST[sel.d].toLowerCase()}` : 'Выбери позицию';
+  if (sel) bar.go = () => submit({ p: D.p });
+  return h;
+}
+function viewPlant(bar) {
+  const site = S.R.bomb.site, w = K.W[K.weaponOf(S, me)], opts = K.MAPS[S.map].pp[site];
+  let h = `<h2 class="h">Бомба на ${site}! Где держишь?</h2><p class="sub">CT придёт на ретейк. Выбери угол, откуда будешь защищать бомбу. ${esc(w.name)} сильнее там, где число больше.</p><div class="grid2">`;
+  for (const p of opts) h += `<button class="tile${D.p === p.id ? ' on' : ''}" data-pp="${p.id}" style="--c:var(--t);padding:14px 12px"><div class="tt"><span>${esc(p.name)}</span>${p.b ? `<span class="chip plus">+${p.b}</span>` : ''}</div><div class="row">${distChip(p.d)}</div><div class="ts">${esc(w.name)}: сила ${w.pow[p.d]}</div></button>`;
+  h += `</div>`;
+  bar.sum = D.p ? 'Держишь бомбу отсюда' : 'Выбери позицию';
+  if (D.p) bar.go = () => submit({ p: D.p });
+  return h;
+}
+
+/* --- перестрелка --- */
+function ctxLine() {
+  const c = S.R.contact;
+  if (!c) return '';
+  const where = c.type === 'mid' ? 'Мид' : c.type === 'retake' ? `Ретейк ${c.site}` : `Вход на ${c.site}`;
+  return `${where}${c.posName ? ' · ' + esc(c.posName) : ''}`;
+}
+function viewFight(bar) {
+  const c = S.R.contact, side = sideOf(me), o = opp(), acts = K.fightActs(S, me);
+  const w = K.W[K.weaponOf(S, me)], ow = S.R.seen[o] ? K.W[K.weaponOf(S, o)] : null;
+  if (!acts.includes(D.a)) D.a = null;
+  const hand = S.deck[me].hand;
+  if (D.c == null || D.c >= hand.length) D.c = null;
+  let h = `<div class="ctx"><div class="ctx-top"><span class="ctx-title">${ctxLine()}</span>${distChip(c.dist)}</div>
+    <div class="vs"><div><b>${esc(w.name)}</b>сила ${w.pow[c.dist]} · ${S.hp[me]} HP</div><em>VS</em><div class="r"><b>${ow ? esc(ow.name) : '???'}</b>${ow ? 'сила ' + ow.pow[c.dist] + ' · ' : ''}${S.hp[o]} HP</div></div>`;
+  if (c.type === 'retake') {
+    const need = (S.inv[K.ctSeat(S)].kit ? 1 : 2), b = S.R.bomb;
+    h += `<div style="font-size:12px;color:var(--muted)">💣 до взрыва ${b.left} ${b.left === 1 ? 'обмен' : b.left < 5 ? 'обмена' : 'обменов'} · дефьюз ${b.prog}/${need}${side === 'CT' ? (S.inv[me].kit ? ' (с китом)' : ' (без кита)') : ''}</div>`;
+  } else if (c.split && side === 'T') h += `<div style="font-size:12px;color:var(--ok)">Сплит через мид: +${c.split}</div>`;
+  if (c.posB && ((side === 'CT' && c.type !== 'retake') || (side === 'T' && c.type === 'retake'))) h += `<div style="font-size:12px;color:var(--ok)">Твоя позиция даёт +${c.posB}, если держишь угол</div>`;
+  h += `</div>`;
+  // действия
+  const hint = {
+    hold: c.type === 'retake' && side === 'T' ? '+2, если выйдет. А если дефьюзит?' : '+2, если он выйдет',
+    peek: 'Идёшь на него сам',
+    back: c.type === 'retake' ? 'Раунд отдан, оружие с тобой' : side === 'T' ? 'Сменить точку, уйдёт время' : (c.type === 'mid' ? 'Отдать мид' : 'Отдать точку, будет ретейк'),
+    defuse: (S.inv[me].kit ? 'С китом 1 раз' : 'Нужно 2 раза') + '. Выйдет на тебя: −2'
+  };
+  h += `<div class="sec">Действие</div><div class="acts" style="--n:${acts.length}">` + acts.map(a => `<button class="act${D.a === a ? ' on' : ''}" data-act="${a}" style="--c:${a === 'back' ? 'var(--muted)' : a === 'defuse' ? 'var(--ok)' : 'var(--side)'}">${ACT[a].ic}<b>${actName(a, side, c.type)}</b><small>${hint[a]}</small></button>`).join('') + `</div>`;
+  // гранаты
+  const nades = K.NADE_KEYS.filter(n => S.inv[me].nades[n] > 0);
+  h += `<div class="sec">Граната${nades.length ? '' : '<b>нет гранат</b>'}</div>`;
+  if (nades.length) h += `<div class="nades">` + nades.map(n => `<button class="nade${D.u === n ? ' on' : ''}" data-u="${n}">${esc(K.nadeName(n, side))}${S.inv[me].nades[n] > 1 ? ` <i>×${S.inv[me].nades[n]}</i>` : ''}</button>`).join('') + `</div>` + (D.u ? `<div style="font-size:12px;color:var(--muted);margin-top:6px">${esc(K.NADES[D.u].short)}</div>` : '');
+  // карты
+  h += `<div class="sec">Карта прицела<b>сыграется, если будет стрельба</b></div><div class="hand" style="--n:${hand.length}">`;
+  hand.forEach((cd, i) => {
+    const now = D.a ? K.cardValue(cd, { act: D.a === 'defuse' ? 'defuse' : D.a, oppAct: 'peek', dist: c.dist }) : null;
+    h += `<button class="card ${cardCls(cd)}${D.c === i ? ' on' : ''}" data-card="${i}">${cardHTML(cd, { now: D.a && K.CARDS[cd].kind !== 'num' ? now : null })}</button>`;
+  });
+  h += `</div>`;
+  if (D.c != null && K.CARDS[hand[D.c]].kind === 'pre') h += `<div style="font-size:12px;color:var(--muted);margin-top:6px">Префайр сработает, только если ты держишь угол, а он выходит.</div>`;
+  // подсказка
+  const tips = [];
+  if (side === 'T' && c.type !== 'retake' && D.a === 'peek' && !D.u && S.hp[me] > 0) tips.push('Выходить на угол без гранаты опасно: держащий получает +2.');
+  if (side === 'CT' && c.type === 'retake' && D.a === 'peek' && !D.u) tips.push('T держит бомбу с угла. Флешка или дым сильно помогут.');
+  if (D.a === 'hold' && c.type !== 'retake' && side === 'T') tips.push('Если оба держат, время идёт. Это на руку CT.');
+  if (tips.length) h += `<div class="note">${tips.join(' ')}</div>`;
+  const ready = D.a && (D.c != null || !hand.length);
+  bar.sum = D.a ? `<b>${actName(D.a, side, c.type)}</b>${D.u ? ' + ' + esc(K.nadeName(D.u, side)) : ''}${D.c != null ? ' · ' + esc(K.CARDS[hand[D.c]].name) : ' · выбери карту'}` : 'Выбери действие и карту';
+  if (ready) bar.go = () => submit({ a: D.a, u: D.u || null, c: D.c == null ? undefined : D.c });
+  return h;
+}
+
+/* --- ожидание и итог --- */
+function viewWait(pd, waiting, bar) {
+  const N = names();
+  let txt = '';
+  if (waiting) txt = 'Ждём соперника…';
+  else if (S.step === 'side') txt = `${esc(N[opp()])} выбирает сторону…`;
+  else if (S.step === 'plant') txt = `${esc(N[opp()])} выбирает, откуда держать бомбу…`;
+  else txt = 'Ждём…';
+  bar.sum = `<span class="wait"><span class="spin"></span>${txt}</span>`;
+  bar.hideGo = true;
+  let h = `<h2 class="h">${S.step === 'maps' ? 'Карты выбраны' : S.step === 'buy' ? 'Закупка готова' : S.step === 'fight' ? 'Ход сделан' : 'Ждём'}</h2>`;
+  const row = M.picks[applied], mine = row && row[me];
+  if (mine && S.step === 'fight') {
+    const side = sideOf(me), c = S.R.contact;
+    h += `<p class="sub">Ты: <b>${actName(mine.a, side, c.type)}</b>${mine.u ? ' + ' + esc(K.nadeName(mine.u, side)) : ''}. Вскрытие, когда соперник тоже решит.</p>`;
+  } else if (mine && S.step === 'buy') {
+    const pr = K.priceBuy(S, me, mine);
+    h += `<p class="sub">Потрачено ${fmt$(pr.cost || 0)}. В бою: <b>${esc(K.W[(pr.inv && (pr.inv.prim || pr.inv.pist)) || K.weaponOf(S, me)].name)}</b>.</p>`;
+  } else h += `<p class="sub">${txt}</p>`;
+  if (M.mode === 'online') h += `<div class="note">Пока ждёшь, можно обсудить по звонку. Только не пали свой выбор 😉</div>`;
+  return h;
+}
+function viewOver(bar) {
+  const win = S.winner === me;
+  bar.sum = `<b>${S.score[me]} : ${S.score[opp()]}</b>`;
+  bar.label = 'Реванш'; bar.go = rematch;
+  return `<h2 class="h" style="font-size:26px;color:${win ? 'var(--ok)' : 'var(--red)'}">${win ? 'ПОБЕДА' : 'ПОРАЖЕНИЕ'}</h2><p class="sub">${K.MAPS[S.map].name} · ${S.score[me]} : ${S.score[opp()]}</p>` + historyHTML();
+}
+function historyHTML() {
+  if (!S.history.length) return '';
+  return `<div class="sec">Раунды</div><div style="display:flex;flex-wrap:wrap;gap:5px">` + S.history.map(r => {
+    const mine = r.w === me, sd = (r.w === r.tSeat) ? 'T' : 'CT';
+    return `<span class="chip" style="background:${mine ? '#67E3A622' : '#FF545422'};color:${mine ? 'var(--ok)' : '#ff9d9d'}" title="${esc(r.how)}">${r.round}·${sd}</span>`;
+  }).join('') + `</div>`;
+}
+function rematch() {
+  if (!M) return;
+  if (M.mode === 'bot') { store.del('solo'); startBot(false); return; }
+  onlineRematch();
+}
+
+/* ---------------- вскрытие ---------------- */
+function showReveal() {
+  if (rvOpen || !rq.length) return;
+  // склеиваем пустые/служебные пачки
+  let batch = rq.shift();
+  while (batch && !batch.some(e => e.t !== 'buy' && e.t !== 'round') && rq.length) batch = rq.shift();
+  const html = batch ? revealHTML(batch) : '';
+  if (!html) { if (rq.length) showReveal(); return; }
+  rvOpen = true;
+  const el = $('#rv'); el.innerHTML = html;
+  $('#reveal').hidden = false; el.scrollTop = 0;
+  const btn = el.querySelector('[data-next]'); if (btn) btn.onclick = closeReveal;
+  const rb = el.querySelector('[data-rematch]'); if (rb) rb.onclick = () => { closeReveal(); rematch(); };
+  playBatchFx(batch);
+  const roul = el.querySelector('.roul'); if (roul) spinRoulette(roul, batch.find(e => e.t === 'map'));
+}
+function closeReveal() { $('#reveal').hidden = true; rvOpen = false; sfx.tap(); if (rq.length) setTimeout(showReveal, 120); }
+function spinRoulette(box, e) {
+  const tiles = [...box.children]; let i = 0, steps = 12 + e.idx + 4 * 2; const btn = $('#rv [data-next]'); if (btn) btn.disabled = true;
+  const tick = () => { tiles.forEach((t, k) => t.classList.toggle('lit', k === i % 4)); sfx.flip(); i++; if (i <= steps) setTimeout(tick, 60 + i * 9); else {
+    tiles.forEach((t, k) => t.classList.toggle('lit', k === e.idx)); sfx.win(); if (btn) btn.disabled = false;
+    const after = $('#rv .after-spin'); if (after) { after.style.visibility = 'visible'; after.querySelectorAll('.flip').forEach(x => { x.style.animation = 'none'; void x.offsetWidth; x.style.animation = ''; }); const tt = $('#rv .rv-title'); if (tt) tt.textContent = after.dataset.mapName; }
+  } };
+  steps = 4 * 3 + e.idx; tick();
+}
+function playBatchFx(batch) {
+  for (const e of batch) {
+    if (e.t === 'fight' && e.shots && e.shots.length) { setTimeout(() => (e.shots.some(s => s.hs) ? sfx.hs() : sfx.shot()), 250); if (e.shots.some(s => s.kill)) buzz([30, 40, 60]); }
+    if (e.t === 'plant') setTimeout(() => { sfx.beep(); setTimeout(sfx.beep, 250); }, 200);
+    if (e.boom || (e.t === 'end' && e.how === 'bomb')) setTimeout(sfx.boom, 300);
+    if (e.t === 'end') setTimeout(() => (e.w === me ? sfx.win() : sfx.lose()), 500);
+  }
+}
+const sideName = s => s === 'T' ? 'T' : 'CT';
+function partsHTML(p, side) {
+  return `<div class="parts">${p.parts.map(x => `<div class="${x.v < 0 ? 'neg' : ''}"><span>${esc(x.l)}</span><b>${x.v > 0 && x !== p.parts[0] ? '+' : ''}${x.v < 0 ? '−' + (-x.v) : x.v}</b></div>`).join('')}<div class="tot"><span>Сила</span><b>${p.total}</b></div></div>`;
+}
+function revealHTML(batch) {
+  const N = names(), parts = [];
+  let t = K.tSeat(S);
+  let eyebrow = '', title = '', titleCls = '', body = '', next = 'Дальше', over = null;
+  for (const e of batch) {
+    if (e.tS != null) t = e.tS;
+    switch (e.t) {
+      case 'map': {
+        eyebrow = 'Рулетка карт';
+        title = 'Крутим…';
+        body += `<div class="roul">${e.pool.map((k, i) => `<div>${K.MAPS[k].name}<small>${i < 2 ? (0 === me ? 'ты' : esc(N[0])) : (1 === me ? 'ты' : esc(N[1]))}</small></div>`).join('')}</div><div class="after-spin" data-map-name="${esc(K.MAPS[e.map].name)}" style="visibility:hidden"><p class="sub" style="margin:6px 0 0">${esc(K.MAPS[e.map].tag)}</p>`;
+        break;
+      }
+      case 'knife': {
+        body += `<div class="sec">Ножевой раунд</div><div class="knife">${[me, opp()].map(k => `<div class="flip${e.win === k ? ' win' : ''}"><b>${e.cards[k]}</b><span>${k === me ? 'ты' : esc(N[k])}</span></div>`).join('')}</div><p class="sub" style="text-align:center;margin:0">${e.win === me ? 'Ты выбираешь сторону' : esc(N[opp()]) + ' выбирает сторону'}</p></div>`;
+        break;
+      }
+      case 'side': {
+        const mine = (e.tSeat === me) ? 'T' : 'CT';
+        if (e.why === 'swap') { eyebrow = 'Перерыв'; title = 'Смена сторон'; body += `<p class="sub">Теперь ты за <b style="color:var(${mine === 'T' ? '--t' : '--ct'})">${mine}</b>. Деньги снова по $800, вторая пистолетка.</p>`; }
+        else if (e.why === 'decider') { eyebrow = '7 : 7'; title = 'Решающий раунд'; body += `<p class="sub">Стороны по жребию: ты за <b style="color:var(${mine === 'T' ? '--t' : '--ct'})">${mine}</b>. У обоих по $10 000.</p>`; }
+        else if (!title) { eyebrow = 'Стороны'; title = `Ты за ${mine}`; body += `<p class="sub">${mine === 'T' ? 'Атакуешь и ставишь бомбу.' : 'Защищаешь точки и разминируешь.'} Первые 7 раундов.</p>`; }
+        else body += `<p class="sub">Ты за <b style="color:var(${mine === 'T' ? '--t' : '--ct'})">${mine}</b>.</p>`;
+        break;
+      }
+      case 'plan': case 'plan2': {
+        const iAmT = me === t;
+        eyebrow = e.t === 'plan2' ? 'Сплит' : 'Вскрытие плана';
+        const tTxt = e.route === 'M' ? 'через мид' : (e.t === 'plan2' ? 'сплит на ' : 'раш на ') + e.route;
+        const ctTxt = `${e.posName} (${e.posSite === 'M' ? 'мид' : 'точка ' + e.posSite})`;
+        body += `<div class="cols"><div class="col"><div class="col-h"><span class="badge" style="background:var(--t)">T</span><span class="pl-name">${t === me ? 'Ты' : esc(N[t])}</span></div><div class="col-act" style="color:var(--t)">${esc(tTxt)}</div></div><div class="col ct"><div class="col-h"><span class="badge" style="background:var(--ct)">CT</span><span class="pl-name">${t !== me ? 'Ты' : esc(N[1 - t])}</span></div><div class="col-act" style="color:var(--ct)">${esc(ctTxt)}</div></div></div>`;
+        const R = {
+          contact: [iAmT ? 'CT ждал тебя!' : 'Угадал!', `Перестрелка на входе на ${e.route}, дистанция ${K.DIST[e.posD].toLowerCase()}.`, 'red'],
+          mid: ['Встреча на миде', `Перестрелка на миде, ${K.DIST[e.posD].toLowerCase()}.`, 'red'],
+          midfree: [iAmT ? 'Мид твой' : 'T прошёл через мид', iAmT ? 'CT стоял на точке. Теперь выбери, куда сплит.' : 'Он выйдет на A или B со сплитом. Перестройся.', 'gold'],
+          rotate: [iAmT ? 'Бомба твоя, но CT рядом' : 'Успеваешь на ротацию', iAmT ? `CT был на миде и быстро придёт на ретейк (+10 сек).` : `T ставит бомбу на ${e.route}. Ты с мида, времени чуть больше.`, 'gold'],
+          plant: [iAmT ? 'Не угадал он!' : 'Не угадал…', iAmT ? `Точка ${e.route} пустая, ставишь бомбу.` : `T ставит бомбу на ${e.route}. Нужен ретейк.`, iAmT ? 'green' : 'red']
+        }[e.res];
+        if (R) body += `<div class="outcome"><span class="big ${R[2]}">${R[0]}</span>${R[1]}</div>`;
+        title = title || (e.t === 'plan2' ? 'Выход со сплитом' : 'Кто куда пошёл');
+        break;
+      }
+      case 'plant': if (!title) { eyebrow = 'Бомба'; title = `Бомба установлена на ${e.site}`; } body += `<p class="sub" style="margin-top:8px">💣 Таймер пошёл. ${e.by === me ? '+$300 за установку.' : 'Ретейк!'}</p>`; break;
+      case 'post': if (me !== t) { eyebrow = 'Ретейк'; title = `T держит бомбу: ${e.posName}`; body += `<p class="sub">Дистанция ${K.DIST[e.d].toLowerCase()}. Решай: выходить, держать или дефьюзить.</p>`; } break;
+      case 'round': if (!title && !batch.some(x => x.t === 'end' || x.t === 'side')) { return ''; } break;
+      case 'fight': {
+        eyebrow = `${e.ctype === 'mid' ? 'Мид' : e.ctype === 'retake' ? 'Ретейк ' + e.site : 'Вход на ' + e.site}${e.posName ? ' · ' + e.posName : ''} · ${K.DIST[e.duelDist != null ? e.duelDist : e.dist].toLowerCase()}`;
+        const col = k => {
+          const side = k === t ? 'T' : 'CT';
+          const actTxt = actName(e.act[k], side, e.ctype) + (e.util[k] ? ' + ' + K.nadeName(e.util[k], side) : '');
+          let inner = `<div class="col-h"><span class="badge" style="background:var(${side === 'T' ? '--t' : '--ct'})">${side}</span><span class="pl-name">${k === me ? 'Ты' : esc(N[k])}</span></div><div class="col-act">${esc(actTxt)}</div>`;
+          if (e.pow) inner += partsHTML(e.pow[k], side);
+          else inner += `<div class="parts"><div><span>${esc(K.W[e.weap[k]].name)}</span><b>${K.W[e.weap[k]].pow[e.dist]}</b></div></div>`;
+          return `<div class="col${side === 'CT' ? ' ct' : ''}">${inner}</div>`;
+        };
+        body += `<div class="cols">${col(me)}${col(opp())}</div>`;
+        let out = '', big = '', cls = '';
+        for (const n of e.notes) out += `<div>${n.k === me ? 'Твоя' : 'Его'} граната. ${esc(n.txt)}</div>`;
+        const who = k => k === me ? 'Ты' : esc(N[k]);
+        if (e.shots && e.shots.length) {
+          for (const sh of e.shots) {
+            const wn = K.W[e.weap[sh.sh]].name;
+            if (sh.kill) { big = e.shots.length > 1 && e.shots.every(x => x.kill) ? 'ОБА ПОГИБЛИ' : sh.hs ? 'ХЭДШОТ' : e.chase != null ? 'ДОБИЛ В СПИНУ' : 'УБИЙСТВО'; cls = big === 'ОБА ПОГИБЛИ' ? 'gold' : sh.sh === me ? 'green' : 'red'; out += `<div><b>${who(sh.sh)}</b> ${sh.sh === me ? 'убил' : 'убил тебя'} из ${esc(wn)}${sh.hs ? ' в голову' : ''}${sh.awp ? ' (AWP не прощает)' : ''}.</div>`; }
+            else { out += `<div><b>${who(sh.sh)}</b> ${sh.sh === me ? 'попал' : 'попал в тебя'}${sh.hs ? ' в голову' : ''}${sh.helmet ? ' (шлем спас)' : ''}: −${sh.dmg} HP.</div>`; if (!big) { big = e.out2 === 'trade' ? 'РАЗМЕН' : e.chase != null ? 'ПОПАЛ В СПИНУ' : 'ПОПАДАНИЕ'; cls = 'gold'; } }
+          }
+        } else if (e.pow && e.chase != null) { big = 'УШЁЛ'; cls = 'gold'; out += `<div>${e.chase === me ? 'Не догнал: он ушёл без урона.' : 'Ты ушёл без урона.'}</div>`; }
+        else if (e.pow) { big = 'МИМО'; cls = 'gold'; out += `<div>Никто не попал.</div>`; }
+        const OUT = {
+          standoff: ['ОБА ДЕРЖАТ', 'Никто не высунулся, время идёт.'],
+          defprog: ['ДЕФЬЮЗ', me === t ? 'Ты держал угол, а он начал разминировать!' : 'Ты разминируешь, он не вышел.'],
+          defstop: ['ДЕФЬЮЗ СБИТ', 'Огонь сбил разминирование.'],
+          bothback: ['ОБА ОТОШЛИ', 'Заново решаете, кто куда.'],
+          tback: ['T ОТОШЁЛ', 'T меняет план. Время идёт.'],
+          ctback: ['CT ОТОШЁЛ', e.ctype === 'mid' ? 'Мид за T.' : 'Точка пустая, T ставит бомбу.'],
+          save: ['СЕЙВ', 'CT сохраняет оружие. Бомба взорвётся.']
+        };
+        if (e.out && OUT[e.out] && !(e.shots && e.shots.some(s => s.kill))) { if (!big) { big = OUT[e.out][0]; cls = 'gold'; } out += `<div>${OUT[e.out][1]}</div>`; }
+        if (e.prog != null && e.out === 'defprog') out += `<div>Дефьюз ${e.prog}/${e.need}.</div>`;
+        if (e.boom) out += `<div><b>💥 Бомба взорвалась.</b></div>`;
+        body += `<div class="outcome">${big ? `<span class="big ${cls}">${big}</span>` : ''}${out}</div>`;
+        title = '';
+        break;
+      }
+      case 'end': {
+        const win = e.w === me;
+        if (!eyebrow) eyebrow = `Раунд ${e.round}`;
+        if (batch.some(x => x.t === 'fight')) body += `<div style="height:8px"></div>`;
+        body += `<div class="outcome"><span class="big ${win ? 'green' : 'red'}">${win ? 'РАУНД ТВОЙ' : 'РАУНД ПРОИГРАН'}</span>Раунд ${e.round}: ${esc(e.howText)}. Счёт <b>${e.score[me]} : ${e.score[opp()]}</b>${e.pickup && e.pickup.k === me ? `<div style="margin-top:6px">🔫 Ты можешь подобрать <b>${esc(K.W[e.pickup.w].name)}</b> на закупке.</div>` : ''}${e.pickup && e.pickup.k !== me ? `<div style="margin-top:6px">Твой ${esc(K.W[e.pickup.w].name)} остался лежать. Он может его подобрать.</div>` : ''}${e.alive[me] && !win ? '<div style="margin-top:6px">Ты выжил, оружие остаётся.</div>' : ''}</div>`;
+        const inc = e.inc[me];
+        body += `<div class="money-list"><div><span>${win ? 'За победу' : 'Бонус за поражение'}</span><b>+${fmt$(inc)}</b></div><div><span>Теперь у тебя</span><b>${fmt$(S.money[me])}</b></div></div>`;
+        if (!title) title = '';
+        break;
+      }
+      case 'over': over = e.w; break;
+    }
+  }
+  if (over != null) {
+    const win = over === me;
+    return `<div class="rv-eyebrow">Матч окончен</div><div class="rv-title ${win ? 'win' : 'lose'}">${win ? 'ПОБЕДА!' : 'ПОРАЖЕНИЕ'}</div>${body}<div class="rv-btns"><button class="btn" data-next>Закрыть</button><button class="btn main" data-rematch>Реванш</button></div>`;
+  }
+  if (!body) return '';
+  return `${eyebrow ? `<div class="rv-eyebrow">${esc(eyebrow)}</div>` : ''}${title ? `<div class="rv-title ${titleCls}">${esc(title)}</div>` : '<div style="height:8px"></div>'}${body}<div class="rv-btns"><button class="btn main" data-next>${next}</button></div>`;
+}
+
+/* ---------------- клики ---------------- */
+$('#panel').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b || b.disabled || !S) return;
+  const d = b.dataset;
+  if (d.map) { D.m = D.m || []; const i = D.m.indexOf(d.map); if (i >= 0) D.m.splice(i, 1); else { if (D.m.length >= 2) D.m.shift(); D.m.push(d.map); } }
+  else if (d.side) { submit({ side: d.side }); return; }
+  else if (d.pk) D.pk = !D.pk;
+  else if (d.buy) {
+    const id = d.buy, items = D.items;
+    const i = items.indexOf(id);
+    if (i >= 0) items.splice(i, 1);
+    else {
+      if (K.W[id]) { const isP = K.PISTOLS.includes(id); D.items = items.filter(x => !(K.W[x] && K.PISTOLS.includes(x) === isP)); D.items.push(id); }
+      else if (id === 'kev') { D.items = items.filter(x => x !== 'helm'); D.items.push('kev'); }
+      else if (id === 'helm') { D.items = items.filter(x => x !== 'kev'); D.items.push('helm'); }
+      else items.push(id);
+      const pr = K.priceBuy(S, me, { items: D.items, pk: D.pk });
+      if (pr.err) { D.items = D.items.filter(x => x !== id); if (i < 0) D.items = D.items; toast('Не хватает денег'); }
+    }
+  }
+  else if (d.nade) {
+    const n = d.nade;
+    if (+d.d > 0) { D.items.push(n); if (K.priceBuy(S, me, { items: D.items, pk: D.pk }).err) { D.items.pop(); toast('Не хватает денег'); } }
+    else { const i = D.items.lastIndexOf(n); if (i >= 0) D.items.splice(i, 1); }
+  }
+  else if (d.route) D.r = d.route;
+  else if (d.pos) D.p = d.pos;
+  else if (d.pp) D.p = d.pp;
+  else if (d.act) D.a = d.act;
+  else if (d.u) D.u = D.u === d.u ? null : d.u;
+  else if (d.card) D.c = +d.card;
+  else return;
+  sfx.tap(); render();
+});
+
+/* ---------------- меню ---------------- */
+const sheet = $('#sheet');
+function openSheet() { sheet.hidden = false; $('#vMain').hidden = false; $('#vRoom').hidden = true; $('#btnBack').hidden = !S; $('#btnResume').hidden = !(store.get('solo', null) && (!M || M.mode !== 'bot')); }
+function closeSheet() { sheet.hidden = true; }
+$('#btnMenu').onclick = () => { if (net.on) showRoomPanel(); else openSheet(); };
+$('#btnBack').onclick = closeSheet;
+$('#btnBot').onclick = () => { const snap = store.get('solo', null); if (snap && snap.picks && snap.picks.length > 3 && !confirm('Начать новый матч с ботом? Старый пропадёт.')) return; startBot(false); };
+$('#btnResume').onclick = () => startBot(true);
+$('#btnSound').onclick = () => { soundOn = !soundOn; store.set('sound', soundOn); renderSound(); if (soundOn) sfx.tap(); };
+$('#nameInp').value = myName();
+$('#nameInp').addEventListener('input', e => { store.set('name', e.target.value.trim().slice(0, 12)); if (net.on && net.ch) send('name', { name: myName() || null }); });
+$('#btnCreate').onclick = () => createRoom();
+$('#btnJoin').onclick = () => joinRoom($('#joinCode').value);
+$('#joinCode').addEventListener('keydown', e => { if (e.key === 'Enter') joinRoom(e.target.value); });
+$('#roomPill').onclick = showRoomPanel;
+$('#buildTag').textContent = BUILD;
+$('#rulesBody').innerHTML = `
+<h4>Матч</h4><ul><li>1 на 1, до 8 побед. 7 раундов за одну сторону, потом смена.</li><li>Раунды 1 и 8 пистолетные: по $800. При 7:7 решающий раунд, обоим по $10 000.</li><li>Перед матчем каждый выбирает 2 карты из 7, рулетка крутит одну. Ножевой решает, кто выбирает сторону.</li></ul>
+<h4>Раунд</h4><ul><li><b>Закупка</b> (тайно): оружие, броня, гранаты, кит, разминка (+1 карта прицела).</li><li><b>План</b> (тайно): T идёт на A, B или через мид. CT встаёт на позицию. У позиции есть дистанция и иногда бонус.</li><li>CT угадал точку → перестрелка. CT на миде, а T рашит точку → бомба стоит, но CT быстрее на ретейке. T прошёл мид → снова выбор A/B со сплитом +1.</li><li>Не угадал CT → бомба стоит, ретейк.</li></ul>
+<h4>Перестрелка</h4><ul><li>Оба тайно выбирают действие, гранату и карту прицела.</li><li><b>Сила</b> = оружие на этой дистанции + карта + бонусы. Держишь угол, а он вышел: +2.</li><li>Разница 3+ → убийство. 1–2 → попадание (броня режет урон). Ровно → оба попали.</li><li>Хэдшот-карта: победил = в голову. AK, Deagle, Tec-9, Five-SeveN, SSG, AWP убивают и в шлем. AWP убивает любым попаданием.</li><li>Оба держат → никто не стреляет, время идёт. Отходишь, а он выходит, и не далеко → догоняет и стреляет в спину.</li><li>Флешка −2 ему. Дым гасит его угол, далеко → средне. Молотов бьёт того, кто стоит или дефьюзит. HE −35 HP.</li></ul>
+<h4>Бомба</h4><ul><li>Раунд: 5 моментов. Не поставил бомбу → CT выиграл.</li><li>После установки 4 обмена до взрыва. Дефьюз: 2 раза без кита, 1 с китом. Дефьюзишь, а он вышел → у тебя −2.</li><li>Держать угол вместо дефьюза — это фейк-дефьюз.</li></ul>
+<h4>Деньги</h4><ul><li>Победа $3250 ($3500 за взрыв или дефьюз). Поражения подряд: $1400 → $1900 → … → $3400.</li><li>За убийство: винтовка и пистолет $300, ПП $600, дробовик $900, AWP $100. Установка +$300.</li><li>Выжил → оружие остаётся. Убил вплотную или на средней → можешь подобрать его оружие.</li></ul>`;
+
+/* ---------------- онлайн ----------------
+   Комната: { code, host, seats, names, v, game, sv, picks: [[p0,p1],...] }. Каждый игрок пишет только в свой слот,
+   поэтому слияние — простое объединение. Движок у обоих одинаковый, seed = код + номер игры. */
+const net = { on: false, code: null, room: null, ch: null, status: 'off', online: new Set(), lastSeen: {}, everOk: false, errorMsg: '', lastHello: 0, timers: {}, wasStarted: false };
+let sb = null, myId = null;
+function rid(n) { const a = 'abcdefghijkmnpqrstuvwxyz23456789', b = new Uint8Array(n); try { crypto.getRandomValues(b); } catch (e) { for (let i = 0; i < n; i++) b[i] = Math.random() * 256; } let s = ''; for (const x of b) s += a[x % a.length]; return s; }
+const CODE_ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function newCode() { const b = new Uint8Array(4); try { crypto.getRandomValues(b); } catch (e) { for (let i = 0; i < 4; i++) b[i] = Math.random() * 256; } let s = ''; for (const x of b) s += CODE_ABC[x % CODE_ABC.length]; return s; }
+const CYR = { 'А': 'A', 'В': 'B', 'Е': 'E', 'К': 'K', 'М': 'M', 'Н': 'H', 'О': 'O', 'Р': 'P', 'С': 'C', 'Т': 'T', 'У': 'Y', 'Х': 'X' };
+const normCode = s => String(s || '').toUpperCase().replace(/[А-ЯЁ]/g, ch => CYR[ch] || '').replace(/[^A-Z0-9]/g, '').slice(0, 4);
+function codeFromHash() { const c = normCode(decodeURIComponent(location.hash.slice(1))); return c.length === 4 ? c : null; }
+function getId() { if (!myId) { myId = store.get('cid', null) || rid(10); store.set('cid', myId); } return myId; }
+const filledSeats = r => r.seats.filter(Boolean).length;
+const started = r => !!r && r.seats.every(Boolean);
+const mySeatOnline = () => (net.room && myId) ? net.room.seats.indexOf(myId) : -1;
+const slots = r => r.picks.reduce((a, row) => a + (row ? (row[0] != null) + (row[1] != null) : 0), 0);
+const roomKey = r => [r.game, slots(r), filledSeats(r), r.sv | 0];
+function cmpKey(a, b) { for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return a[i] - b[i]; return 0; }
+const inviteUrl = () => location.origin + location.pathname + '#' + (net.code || '');
+function cleanPick(p) { if (p == null || typeof p !== 'object') return null; try { const s = JSON.stringify(p); if (s.length > 600) return null; return JSON.parse(s); } catch (e) { return null; } }
+function sanitize(s) {
+  const fit = (a, f) => [0, 1].map(i => (Array.isArray(a) && a[i] != null) ? f(a[i]) : null);
+  return {
+    code: String(s.code || ''), host: s.host || null, v: String(s.v || '').slice(0, 16),
+    seats: fit(s.seats, x => String(x).slice(0, 24)), names: fit(s.names, x => String(x).slice(0, 12)),
+    game: Math.max(0, s.game | 0), sv: Math.max(0, s.sv | 0),
+    picks: (Array.isArray(s.picks) ? s.picks : []).slice(0, 1500).map(row => Array.isArray(row) ? [cleanPick(row[0]), cleanPick(row[1])] : [null, null])
+  };
+}
+function saveRoom() { if (net.room) store.set('room:' + net.code, net.room); }
+function getClient() { if (sb) return sb; if (!window.supabase || !window.supabase.createClient) throw new Error('nolib'); sb = window.supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }, realtime: { params: { eventsPerSecond: 20 } } }); return sb; }
+function send(t, data) { if (!net.ch) return; try { const p = net.ch.send({ type: 'broadcast', event: 'm', payload: Object.assign({ t, from: myId, v: BUILD }, data || {}) }); if (p && p.catch) p.catch(() => {}); } catch (e) {} }
+function hello() { clearTimeout(net.timers.hello); const wait = Math.max(120, 1500 - (Date.now() - net.lastHello)); net.timers.hello = setTimeout(() => { net.lastHello = Date.now(); send('hello', { name: myName() || null }); }, wait); }
+function ping() { if (!net.ch) return; const r = net.room; if (net.status === 'ok') send('ping', { k: r ? roomKey(r) : null }); recomputeOnline(); }
+function recomputeOnline() {
+  if (!net.ch) return;
+  let stt = {}; try { stt = net.ch.presenceState() || {}; } catch (e) {}
+  const now = Date.now(), on = new Set(Object.keys(stt));
+  for (const id in net.lastSeen) if (now - net.lastSeen[id] < 13000) on.add(id);
+  const r = net.room;
+  if (r && net.wasStarted) r.seats.forEach((id, k) => { if (!id || id === myId) return; const was = net.online.has(id), is = on.has(id); if (was && !is) toast(`${r.names[k] || 'Соперник'}: нет связи`); if (!was && is) toast(`${r.names[k] || 'Соперник'} снова в игре`); });
+  const changed = on.size !== net.online.size || [...on].some(x => !net.online.has(x));
+  net.online = on; if (changed) refreshOnline();
+}
+function amHost() { const r = net.room; if (!r) return false; for (const id of r.seats) if (id && (id === myId || net.online.has(id))) return id === myId; return true; }
+function joinRoom(code, room) {
+  code = normCode(code);
+  if (code.length !== 4) { toast('Код комнаты: 4 символа'); return; }
+  if (net.on && net.code === code) { showRoomPanel(); return; }
+  if (net.on) leaveRoom();
+  getId();
+  Object.assign(net, { on: true, code, room: null, ch: null, status: 'connecting', online: new Set(), lastSeen: {}, everOk: false, errorMsg: '', lastHello: 0, wasStarted: false });
+  if (room) { room.code = code; room.host = myId; room.seats[0] = myId; room.names[0] = myName() || null; room.v = BUILD; net.room = room; }
+  else { const snap = store.get('room:' + code, null); if (snap && snap.code === code) net.room = sanitize(snap); }
+  if (codeFromHash() !== code) { try { history.replaceState(null, '', '#' + code); } catch (e) {} }
+  if (net.room) { saveRoom(); bindOnline(); }
+  showRoomPanel(); connect();
+}
+function createRoom() { joinRoom(newCode(), { code: '', host: null, seats: [null, null], names: [null, null], game: 0, sv: 0, picks: [], v: BUILD }); }
+const NET_ERR = 'Не получается подключиться к серверу. Проверь интернет. В превью внутри Claude онлайн не работает, только на сайте.';
+function connect() {
+  let client; try { client = getClient(); } catch (e) { net.status = 'error'; net.errorMsg = 'Не загрузился модуль связи. Обнови страницу.'; refreshOnline(); return; }
+  const ch = client.channel(APP + '-' + net.code, { config: { broadcast: { self: false, ack: false }, presence: { key: myId } } });
+  net.ch = ch;
+  ch.on('broadcast', { event: 'm' }, msg => { if (net.ch === ch) onMsg((msg && msg.payload) || {}); });
+  ch.on('presence', { event: 'sync' }, () => { if (net.ch === ch) { recomputeOnline(); const r = net.room; if (!r || !r.seats.includes(myId)) hello(); refreshOnline(); } });
+  ch.subscribe(status => {
+    if (net.ch !== ch) return;
+    if (status === 'SUBSCRIBED') {
+      net.status = 'ok'; net.everOk = true; net.errorMsg = '';
+      try { const p = ch.track({ on: 1 }); if (p && p.catch) p.catch(() => {}); } catch (e) {}
+      hello(); ping();
+      clearTimeout(net.timers.find);
+      net.timers.find = setTimeout(() => { if (net.on && !net.room) { net.errorMsg = 'Комната не найдена. Возможно, её создатель вышел. Попроси новый код.'; refreshOnline(); } }, 7000);
+    } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') { net.status = 'lost'; if (!net.everOk) net.errorMsg = NET_ERR; }
+    refreshOnline();
+  });
+  clearInterval(net.timers.ping); net.timers.ping = setInterval(ping, 5000);
+  clearTimeout(net.timers.conn); net.timers.conn = setTimeout(() => { if (net.ch === ch && !net.everOk) { net.errorMsg = NET_ERR; refreshOnline(); } }, 9000);
+}
+function leaveRoom() {
+  const ch = net.ch; net.ch = null;
+  if (ch) { try { ch.untrack(); } catch (e) {} try { sb && sb.removeChannel(ch); } catch (e) {} }
+  Object.values(net.timers).forEach(t => { clearTimeout(t); clearInterval(t); });
+  Object.assign(net, { on: false, code: null, room: null, status: 'off', online: new Set(), lastSeen: {}, everOk: false, errorMsg: '', wasStarted: false });
+  if (M && M.mode === 'online') { M = null; S = null; }
+  try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+  $('#roomPill').hidden = true; render();
+}
+function onMsg(m) {
+  if (!m || !m.t || !m.from || m.from === myId) return;
+  net.lastSeen[m.from] = Date.now();
+  if (!net.online.has(m.from)) recomputeOnline();
+  if (m.v && m.v !== BUILD && !net.warned) { net.warned = true; toast('У вас разные версии игры. Обновите страницу оба'); }
+  switch (m.t) {
+    case 'ping': { const r = net.room; if (Array.isArray(m.k)) { if (!r || cmpKey(m.k.map(x => x | 0), roomKey(r)) > 0) hello(); else if (r && cmpKey(m.k.map(x => x | 0), roomKey(r)) < 0 && r.seats.includes(myId)) send('state', { room: r }); } break; }
+    case 'hello': onHello(m); break;
+    case 'state': adoptState(m.room); break;
+    case 'pick': onPick(m); break;
+    case 'rematch': applyRematch(m.g | 0, m.from); break;
+    case 'name': { const r = net.room; if (!r) break; const k = r.seats.indexOf(m.from); if (k >= 0) { r.names[k] = m.name ? String(m.name).slice(0, 12) : null; saveRoom(); refreshOnline(); render(); } break; }
+    case 'full': if (m.to === myId && mySeatOnline() < 0) { net.errorMsg = 'Комната уже заполнена.'; refreshOnline(); } break;
+  }
+}
+function onHello(m) {
+  const r = net.room; if (!r) return;
+  const id = String(m.from); let seat = r.seats.indexOf(id), changed = false;
+  const host = amHost();
+  if (seat < 0 && host) {
+    let k = started(r) ? -1 : r.seats.indexOf(null);
+    if (k < 0) k = r.seats.findIndex(s => s && s !== myId && s !== id && !net.online.has(s));
+    if (k < 0) { send('full', { to: id }); send('state', { room: r }); return; }
+    if (r.seats[k]) r.sv = (r.sv | 0) + 1;
+    r.seats[k] = id; seat = k; changed = true;
+    r.names[k] = m.name ? String(m.name).slice(0, 12) : (r.names[k] || null);
+  } else if (seat >= 0 && host && m.name && r.names[seat] !== m.name) { r.names[seat] = String(m.name).slice(0, 12); changed = true; }
+  if (changed) { saveRoom(); refreshOnline(); }
+  if (host || r.seats.includes(myId)) send('state', { room: r });
+}
+function mergePicks(dst, src) {
+  let ch = false;
+  for (let i = 0; i < src.length; i++) {
+    if (!dst[i]) { dst[i] = [null, null]; ch = true; }
+    for (const k of [0, 1]) if (dst[i][k] == null && src[i][k] != null) { dst[i][k] = src[i][k]; ch = true; }
+  }
+  return ch;
+}
+function adoptState(s0) {
+  if (!s0 || s0.code !== net.code || !Array.isArray(s0.seats)) return;
+  const s = sanitize(s0), r = net.room, before = mySeatOnline();
+  if (!r) { net.room = s; saveRoom(); bindOnline(); refreshOnline(); return; }
+  if (s.game > r.game) { net.room = s; saveRoom(); bindOnline(); refreshOnline(); return; }
+  if (s.game < r.game) { send('state', { room: r }); return; }
+  let ch = false;
+  if ((s.sv | 0) > (r.sv | 0) || (filledSeats(s) > filledSeats(r) && (s.sv | 0) >= (r.sv | 0))) { r.seats = s.seats; r.sv = s.sv; ch = true; }
+  s.names.forEach((x, i) => { if (x && r.names[i] !== x && r.seats[i] !== myId) { r.names[i] = x; ch = true; } });
+  if (mergePicks(r.picks, s.picks)) ch = true;
+  if (ch) { saveRoom(); bindOnline(true); }
+  if (before >= 0 && mySeatOnline() < 0) toast('Твоё место заняли с другого окна или телефона');
+  refreshOnline();
+}
+function onPick(m) {
+  const r = net.room; if (!r) { hello(); return; }
+  const g = m.g | 0, i = m.i | 0, k = m.k | 0;
+  if (g !== r.game) { if (g > r.game) hello(); return; }
+  if (k !== 0 && k !== 1 || r.seats[k] !== m.from) return;
+  if (i > r.picks.length) { hello(); return; }
+  if (!r.picks[i]) r.picks[i] = [null, null];
+  if (r.picks[i][k] == null) { r.picks[i][k] = cleanPick(m.p); saveRoom(); if (M && M.mode === 'online') advance(); }
+}
+// Привязать онлайн-комнату к матчу. keep — не пересобирать с нуля, а догнать.
+function bindOnline(keep) {
+  const r = net.room; if (!r) return;
+  const seed = r.code + ':' + r.game;
+  const seat = r.seats.indexOf(myId);
+  if (keep && M && M.mode === 'online' && M.seed === seed && S) { M.picks = r.picks; me = seat >= 0 ? seat : 0; advance(); return; }
+  M = { mode: 'online', seed, picks: r.picks }; me = seat >= 0 ? seat : 0;
+  rebuild(false);
+  render();
+}
+function onlineRematch() { const r = net.room; if (!r) return; const g = r.game + 1; applyRematch(g, null); send('rematch', { g }); send('state', { room: net.room }); }
+function applyRematch(g, from) {
+  const r = net.room; if (!r) return;
+  if (g <= r.game) return; if (g > r.game + 1) { hello(); return; }
+  r.game = g; r.picks = []; saveRoom(); bindOnline();
+  if (from) toast('Соперник начал реванш');
+  refreshOnline();
+}
+function refreshOnline() {
+  if (!net.on) return;
+  const r = net.room;
+  if (r && started(r) && !net.wasStarted) {
+    net.wasStarted = true;
+    if (slots(r) === 0 && net.everOk) { toast('Оба в комнате. Поехали!'); sfx.ready(); }
+    closeSheet();
+  }
+  if (r && M && M.mode === 'online') { const seat = r.seats.indexOf(myId); if (seat >= 0 && seat !== me) { me = seat; render(); } }
+  $('#roomPill').hidden = false; $('#roomPillCode').textContent = net.code || '';
+  $('#roomDot').className = 'dot' + (net.status === 'ok' && r && r.seats.every(id => id && (id === myId || net.online.has(id))) ? ' on' : '');
+  renderRoomPanel();
+}
+function showRoomPanel() { sheet.hidden = false; $('#vMain').hidden = true; $('#vRoom').hidden = false; renderRoomPanel(); }
+function renderRoomPanel() {
+  if (!net.on) return;
+  const r = net.room;
+  $('#roomCode').textContent = net.code || '····';
+  $('#roomLink').textContent = inviteUrl();
+  $('#btnShare').textContent = navigator.share ? 'Поделиться ссылкой' : 'Скопировать ссылку';
+  const box = $('#seats'); box.innerHTML = '';
+  if (r) r.seats.forEach((id, k) => {
+    const d = document.createElement('div'); d.className = 'seat';
+    let st = 'ждём…', on = false;
+    if (id === myId) { st = 'ты'; on = net.status === 'ok'; } else if (id && net.online.has(id)) { st = 'в сети'; on = true; } else if (id) st = 'не в сети';
+    d.innerHTML = `<span class="badge" style="background:${k === 0 ? 'var(--t)' : 'var(--ct)'}">${k + 1}</span><span class="pl-name"></span><span class="st${on ? ' on' : ''}">${st}</span>`;
+    d.querySelector('.pl-name').textContent = id ? (r.names[k] || ('Игрок ' + (k + 1))) : 'Свободно';
+    box.appendChild(d);
+  });
+  const note = $('#netNote'); let txt, err = false;
+  if (net.errorMsg) { txt = net.errorMsg; err = true; }
+  else if (net.status === 'connecting') txt = 'Подключаюсь…';
+  else if (net.status === 'lost') txt = 'Связь пропала, переподключаюсь…';
+  else if (!r) txt = 'Ищу комнату…';
+  else if (!started(r)) txt = 'Отправь брату ссылку или код. Игра начнётся, когда он зайдёт.';
+  else txt = 'Оба на месте.';
+  note.textContent = txt; note.className = 'netnote' + (err ? ' err' : '');
+  $('#btnRoomGo').hidden = !(r && started(r));
+}
+$('#btnShare').onclick = async () => {
+  const url = inviteUrl();
+  if (navigator.share) { try { await navigator.share({ title: 'КС-тактика', text: 'Заходи в КС-тактику, код ' + net.code, url }); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
+  try { await navigator.clipboard.writeText(url); toast('Ссылка скопирована'); } catch (e) { toast('Скопируй ссылку вручную'); }
+};
+$('#btnLeave').onclick = () => { leaveRoom(); openSheet(); };
+$('#btnRoomGo').onclick = closeSheet;
+document.addEventListener('visibilitychange', () => { if (!document.hidden && net.on) { if (net.status !== 'ok' && net.ch) { /* realtime сам переподключится */ } hello(); ping(); } });
+window.addEventListener('hashchange', () => { const c = codeFromHash(); if (c && (!net.on || net.code !== c)) joinRoom(c); });
+
+/* ---------------- старт ---------------- */
+(function boot() {
+  renderSound();
+  const c = codeFromHash();
+  if (c) { joinRoom(c); return; }
+  openSheet();
+  render();
+})();
+</script>
+</body>
+</html>
