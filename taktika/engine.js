@@ -382,9 +382,9 @@
     const burned = [false, false];
     for (const k of [0, 1]) {
       const o = 1 - k;
-      if (util[k] === 'he') { const d = s.inv[o].armor ? 22 : 35; hurt(s, o, d); e.notes.push({ k, txt: `HE: −${d} HP`, dmg: d, to: o }); }
-      if (util[k] === 'mo' && (act[o] === 'hold' || act[o] === 'defuse')) { hurt(s, o, 20); burned[o] = true; e.notes.push({ k, txt: `${nadeName('mo', s.sideOf[k])}: выкурил, −20 HP`, dmg: 20, to: o }); }
-      if (util[k] === 'mo' && !(act[o] === 'hold' || act[o] === 'defuse')) e.notes.push({ k, txt: `${nadeName('mo', s.sideOf[k])} мимо: он не стоял на месте` });
+      if (util[k] === 'he') { const d = s.inv[o].armor ? 22 : 35; hurt(s, o, d); e.notes.push({ k, u: 'he', txt: `HE: −${d} HP`, dmg: d, to: o }); }
+      if (util[k] === 'mo' && (act[o] === 'hold' || act[o] === 'defuse')) { hurt(s, o, 20); burned[o] = true; e.notes.push({ k, u: 'mo', txt: `${nadeName('mo', s.sideOf[k])}: выкурил, −20 HP`, dmg: 20, to: o }); }
+      if (util[k] === 'mo' && !(act[o] === 'hold' || act[o] === 'defuse')) e.notes.push({ k, u: 'mo', miss: true, txt: `${nadeName('mo', s.sideOf[k])} мимо: он не стоял на месте` });
     }
     if (!s.alive[0] || !s.alive[1]) { e.out = 'nade'; settleDeaths(s, e, [util[0] === 'he' || util[0] === 'mo', util[1] === 'he' || util[1] === 'mo'], null); return; }
 
