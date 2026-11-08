@@ -5,8 +5,14 @@
 const DX = [0, 1, 0, -1], DY = [-1, 0, 1, 0];
 const VR = 2, CAM_R = 3;
 export const LM = [['🖼️', 'картина'], ['🪴', 'фикус'], ['🗿', 'статуя'], ['📚', 'книги'], ['🏺', 'ваза'], ['🕰️', 'часы'], ['🎷', 'саксофон'], ['🧸', 'мишка'], ['🪞', 'зеркало'], ['🎸', 'гитара'], ['🐠', 'аквариум'], ['🦁', 'лев'], ['🛡️', 'щит'], ['🎻', 'скрипка'], ['🌵', 'кактус'], ['⚓', 'якорь'],
-  ['🐟', 'рыбка'], ['🎺', 'труба'], ['🌲', 'ёлка'], ['🗽', 'статуя свободы'], ['🦚', 'павлин'], ['🏆', 'кубок'], ['🎹', 'пианино'], ['🦉', 'сова'], ['🌻', 'подсолнух'], ['🎭', 'маски'], ['🕯️', 'свеча'], ['📺', 'телевизор'], ['☎️', 'телефон'], ['🧯', 'огнетушитель'], ['🦖', 'динозавр'], ['🚲', 'велосипед'], ['🎯', 'мишень'], ['🦜', 'попугай'], ['🍷', 'вино']];
-const PLACES = ['Ювелирка', 'Галерея', 'Казино', 'Музей', 'Банк', 'Особняк', 'Аукцион', 'Обсерватория', 'Казначейство', 'Пентхаус', 'Хранилище', 'Дворец', 'Яхт-клуб', 'Библиотека', 'Посольство', 'Ломбард', 'Ипподром', 'Театр'];
+  ['🐟', 'рыбка'], ['🎺', 'труба'], ['🌲', 'ёлка'], ['🗽', 'статуя свободы'], ['🦚', 'павлин'], ['🏆', 'кубок'], ['🎹', 'пианино'], ['🦉', 'сова'], ['🌻', 'подсолнух'], ['🎭', 'маски'], ['🕯️', 'свеча'], ['📺', 'телевизор'], ['☎️', 'телефон'], ['🧯', 'огнетушитель'], ['🦖', 'динозавр'], ['🚲', 'велосипед'], ['🎯', 'мишень'], ['🦜', 'попугай'], ['🍷', 'вино'],
+  // 08.11.2026 — ориентиры новых зданий (музей, банк, офис, ювелирный дом)
+  ['🐎', 'конь'], ['🐋', 'кит'], ['🐘', 'слон'], ['🗡️', 'меч'], ['☄️', 'метеорит'], ['🧶', 'прялка'], ['💰', 'сундук'], ['🔭', 'телескоп'],
+  ['🏧', 'банкомат'], ['🧾', 'касса'], ['🛋️', 'диван'], ['🚰', 'кулер'], ['🚩', 'флаг'], ['🐂', 'бык'], ['☕', 'кофе'], ['🗄️', 'картотека'],
+  ['🌍', 'глобус'], ['🔐', 'ячейки'], ['🖨️', 'принтер'], ['📋', 'доска'], ['📽️', 'экран'], ['🪑', 'кресло'], ['🗃️', 'стеллаж'], ['💡', 'торшер'],
+  ['💍', 'витрина'], ['💠', 'колье'], ['👑', 'корона'], ['⚖️', 'весы'], ['🔍', 'лупа'], ['🍵', 'чай']];
+// названия по кругу: у дел подряд здания разные (особняк, музей, банк, ювелирка, офис), начало круга — от кода комнаты
+const PLACES = ['Особняк', 'Музей', 'Банк', 'Ювелирка', 'Бизнес-центр', 'Усадьба', 'Галерея', 'Казначейство', 'Дворец', 'Аукцион', 'Пентхаус', 'Яхт-клуб', 'Обсерватория', 'Хранилище', 'Бутик', 'Библиотека', 'Ипподром', 'Ломбард', 'Театр', 'Посольство'];
 function hashStr(s) { let h = 2166136261 | 0; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h | 0; }
 function RNG(s) { let h = hashStr(s); return () => { h = (h + 0x6D2B79F5) | 0; let t = Math.imul(h ^ (h >>> 15), h | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 const isRotate = L => true;
@@ -67,6 +73,21 @@ function panelFor(seed, L, att) {
   for (let k = 0; k < rounds; k++) { const w = left[k], c = wireRule(w, digit); cuts.push(c); left.push(w.filter((_, i) => i !== c)); }
   return { wires, digit, num, cuts, left, cut: cuts[0], rounds, maxStrikes: L >= 14 ? 1 : 2 };
 }
+// щиток видеонаблюдения: на наклейке модель и серийный номер (6 цифр), пароль (4 цифры) — по правилу модели.
+// Правила у штурмана в папке, наклейка своя у каждой попытки
+const CCTV_MODELS = ['VX-480', 'HK-21', 'DS-7200', 'ZT-9'];
+function cctvPass(m, sn) {
+  const d = sn.split('').map(Number);
+  if (m === 0) return d.slice(2).reverse().join('');                      // последние 4 цифры задом наперёд
+  if (m === 1) return d.slice(0, 4).map(x => (x + 1) % 10).join('');       // первые 4, к каждой +1 (9 → 0)
+  if (m === 2) return '' + d[0] + d[2] + d[4] + d[5];                      // 1-я, 3-я, 5-я и последняя
+  return String(d.reduce((a, b) => a + b, 0)).padStart(2, '0') + d[4] + d[5]; // сумма всех цифр и две последние
+}
+function cctvFor(seed, L, att) {
+  const r = RNG(seed + '#' + L + '#' + att), m = Math.floor(r() * 4);
+  let sn = ''; for (let i = 0; i < 6; i++) sn += Math.floor(r() * 10);
+  return { model: CCTV_MODELS[m], m, sn, pass: cctvPass(m, sn), maxStrikes: 2 };
+}
 function diff(L) {
   return {
     cw: L < 1 ? 3 : L < 4 ? 4 : L < 10 ? 5 : L < 14 ? 6 : 7, ch: L < 1 ? 5 : L < 4 ? 6 : L < 10 ? 7 : L < 14 ? 8 : 9,
@@ -74,7 +95,7 @@ function diff(L) {
     blink: L === 0 ? 0 : L < 3 ? 2 : L < 10 ? Math.min(4, 2 + Math.floor(L / 4)) : 5,
     lock: L >= 2, safe: L >= 3, gate: L >= 8, hide: L >= 12, dupes: L >= 2, flicker: L >= 6, vr: L >= 6 ? 3 : 2, camr: L >= 6 ? 4 : 3, vis: L >= 8 ? 1.6 : 2.45, timer: L >= 1,
     guards: L < 3 ? 0 : L < 5 ? 1 : L < 9 ? 2 : L < 14 ? 3 : 4,
-    cams: L < 4 ? 0 : L < 8 ? 1 : L < 14 ? 2 : 3,
+    cams: L < 4 ? 0 : L < 8 ? 1 : L < 14 ? 2 : 3, cctv: L >= 10,
     stains: L < 7 ? 0 : L < 12 ? 1 : 2,
     pings: L < 3 ? 2 : L < 10 ? 1 : L < 12 ? 0 : 1,
     rotate: isRotate(L)
@@ -82,11 +103,15 @@ function diff(L) {
 }
 
 /* ---------- темы интерьера: у каждой свой набор ориентиров (индексы в LM) ---------- */
+// ровно 14 ориентиров у каждой темы: перемешивание тратит столько же случайных чисел, планировка дел не зависит от здания
 export const THEMES = {
-  mansion: { id: 'mansion', name: 'особняк', lm: [0, 1, 2, 3, 4, 5, 8, 11, 12, 13, 22, 23, 26, 30] }
+  mansion: { id: 'mansion', name: 'особняк', lm: [0, 1, 2, 3, 4, 5, 8, 11, 12, 13, 22, 23, 26, 30], places: ['Особняк', 'Усадьба', 'Дворец', 'Яхт-клуб', 'Ипподром'] },
+  museum: { id: 'museum', name: 'музей', lm: [0, 2, 4, 12, 25, 30, 35, 36, 37, 38, 39, 40, 41, 42], places: ['Музей', 'Галерея', 'Обсерватория', 'Библиотека', 'Театр'] },
+  bank: { id: 'bank', name: 'банк', lm: [43, 1, 5, 0, 11, 44, 45, 46, 47, 48, 49, 50, 51, 52], places: ['Банк', 'Казначейство', 'Хранилище', 'Ломбард'] },
+  office: { id: 'office', name: 'офис', lm: [46, 53, 10, 14, 32, 27, 45, 49, 54, 55, 31, 56, 57, 58], places: ['Бизнес-центр', 'Пентхаус', 'Посольство'] },
+  jewelry: { id: 'jewelry', name: 'ювелирный дом', lm: [8, 59, 60, 61, 20, 5, 4, 45, 56, 26, 62, 63, 64, 0], places: ['Ювелирка', 'Аукцион', 'Бутик'] }
 };
-// пока одна тема на все места; остальные появятся на следующих этапах
-export function themeOf(place) { void place; return THEMES.mansion; }
+export function themeOf(place) { for (const k in THEMES) if (THEMES[k].places.includes(place)) return THEMES[k]; return THEMES.mansion; }
 const levelCache = new Map();
 function getLevel(seed, L) {
   const k = seed + '|' + L;
@@ -126,7 +151,7 @@ function tryGen(seed, L, tr, easy) {
     const opts = []; for (let k = 0; k < 4; k++) { const nx = cx + DX[k], ny = cy + DY[k]; if (nx >= 0 && ny >= 0 && nx < cw && ny < ch && !g[id(2 * cx + 1 + DX[k], 2 * cy + 1 + DY[k])]) opts.push(k); }
     if (opts.length) { const k = opts[Math.floor(r() * opts.length)]; g[id(2 * cx + 1 + DX[k], 2 * cy + 1 + DY[k])] = 1; }
   }
-  const lv = { L, seed, W, H, g, deco: {}, S: id(2 * sc[0] + 1, 2 * sc[1] + 1), E: id(W - 2, 1), face0: L === 0 ? 0 : Math.floor(r() * 4), gem: -1, door: -1, note: -1, lasers: [], guards: [], cams: [], rotate: d.rotate, pings: d.pings, stains: [], gate: -1, panel: -1, hide: d.hide, doorType: doorTypeOf(seed, L), safe: d.safe, flicker: d.flicker, vis: d.vis, vr: d.vr, camr: d.camr, limit: 0, name: PLACES[(L + (hashStr(seed) >>> 0)) % PLACES.length], best: 0 };
+  const lv = { L, seed, W, H, g, deco: {}, S: id(2 * sc[0] + 1, 2 * sc[1] + 1), E: id(W - 2, 1), face0: L === 0 ? 0 : Math.floor(r() * 4), gem: -1, door: -1, note: -1, lasers: [], guards: [], cams: [], rotate: d.rotate, pings: d.pings, stains: [], gate: -1, panel: -1, cctv: -1, hide: d.hide, doorType: doorTypeOf(seed, L), safe: d.safe, flicker: d.flicker, vis: d.vis, vr: d.vr, camr: d.camr, limit: 0, name: PLACES[(L + (hashStr(seed) >>> 0)) % PLACES.length], best: 0 };
   const dS = bfs(lv, lv.S, null, true);
   if (L > 0) {
     // exit: a random cell among the far half from the start
@@ -245,20 +270,42 @@ function tryGen(seed, L, tr, easy) {
   if (!easy && lv.guards.length < d.guards) return null;
   addSideTrips(lv, dS, used, RNG(seed + '|side|' + L + '|' + tr));
   // cameras on walls, looking along corridors
-  // в 3D камера висит на стене комнаты под потолком: в углах между проёмами её нет, сквозь стену она не видит —
-  // поэтому смотрит в одну комнату (и дальше, если проём напротив): 2 такта в комнату, 2 такта отвёрнута
+  // в 3D камера висит на стене комнаты под потолком и поворачивается между двумя проходами: 2 такта смотрит прямо
+  // (в комнату и дальше, если проём напротив), 2 такта — в боковую дверь комнаты и дальше. В стену не смотрит.
+  // v — её состояния по очереди: [откуда луч, направление, длина]
   const camC = shuffle(wallC.filter(t => lv.deco[t] == null));
+  const rayOk = (from, k, len) => { let c = from; for (let s = 0; s < len; s++) { const cx2 = c % W + DX[k], cy2 = ((c / W) | 0) + DY[k]; if (cx2 < 0 || cy2 < 0 || cx2 >= W || cy2 >= H) break; c = id(cx2, cy2); if (!g[c]) break; if (dS[c] < 3 || c === lv.E) return false; } return true; };
   for (const t of camC) {
     if (lv.cams.length >= d.cams) break;
-    const x = t % W, y = (t / W) | 0, dirs = [];
+    const x = t % W, y = (t / W) | 0, opts = [];
     if (x % 2 === 0 && y % 2 === 0) continue;
     for (let k = 0; k < 4; k++) {
-      const nx = x + DX[k], ny = y + DY[k]; if (nx < 0 || ny < 0 || nx >= W || ny >= H || !g[id(nx, ny)]) continue;
-      let ok = true, c = t; for (let s = 0; s < lv.camr; s++) { const cx2 = c % W + DX[k], cy2 = ((c / W) | 0) + DY[k]; if (cx2 < 0 || cy2 < 0 || cx2 >= W || cy2 >= H) break; c = id(cx2, cy2); if (!g[c]) break; if (dS[c] < 3 || c === lv.E) ok = false; }
-      if (ok) dirs.push(k);
+      const nx = x + DX[k], ny = y + DY[k]; if (nx < 0 || ny < 0 || nx >= W || ny >= H || !g[id(nx, ny)] || !rayOk(t, k, lv.camr)) continue;
+      const R = id(nx, ny);
+      for (const sd of [(k + 1) % 4, (k + 3) % 4]) { const n = stepT(lv, R, sd); if (n >= 0 && g[n] && rayOk(R, sd, lv.camr - 1)) opts.push([k, sd]); }
     }
-    if (!dirs.length || lv.cams.some(c => Math.abs(c.i % W - x) + Math.abs(((c.i / W) | 0) - y) < 4)) continue;
-    lv.cams.push({ i: t, dirs: [dirs.length === 1 ? dirs[0] : shuffle(dirs)[0], -1] });
+    if (!opts.length || lv.cams.some(c => Math.abs(c.i % W - x) + Math.abs(((c.i / W) | 0) - y) < 4)) continue;
+    const [k, sd] = opts[Math.floor(r() * opts.length)], R = id(x + DX[k], y + DY[k]);
+    lv.cams.push({ i: t, k, s: sd, room: R, v: [[t, k, lv.camr], [R, sd, lv.camr - 1]] });
+  }
+  // щиток видеонаблюдения (с дела №11): одна камера неподвижна и смотрит прямо всегда, пока систему не взломают.
+  // Неподвижной делаем ту, что смотрит на путь к добыче; щиток — в комнате, куда можно дойти мимо неё
+  if (d.cctv && lv.cams.length) {
+    const toGem = bfs(lv, lv.gem, null, true), onPath = new Set();
+    for (let c = lv.S, n = 0; n < 400 && c !== lv.gem && toGem[c] > 0; n++) {
+      onPath.add(c); let nx = -1;
+      for (let k = 0; k < 4; k++) { const q = stepT(lv, c, k); if (q >= 0 && g[q] && toGem[q] === toGem[c] - 1) { nx = q; break; } }
+      if (nx < 0) break; c = nx;
+    }
+    const fx = lv.cams.find(c => ray(lv, c.i, c.k, lv.camr).some(q => onPath.has(q))) || lv.cams[0];
+    fx.fix = 1; fx.v = [[fx.i, fx.k, lv.camr]];
+    const blocked = new Set(ray(lv, fx.i, fx.k, lv.camr)); if (lv.gate >= 0) blocked.add(lv.gate);
+    const reach = bfs(lv, lv.S, blocked, true), wch = watchedCells(lv), spec = [lv.S, lv.E, lv.gem, lv.door, lv.note, lv.gate, lv.panel], cand = [];
+    for (let cy = 0; cy < ch; cy++) for (let cx = 0; cx < cw; cx++) { const t = id(2 * cx + 1, 2 * cy + 1); if (reach[t] >= 3 && !spec.includes(t) && !wch.has(t) && !lv.lasers.some(l => l.i === t)) cand.push(t); }
+    if (!cand.length) return null;
+    const dc = cand.filter(t => dead.includes(t)), pool = dc.length ? dc : cand;
+    lv.cctv = pool[Math.floor(r() * pool.length)];
+    special.add(lv.cctv);
   }
   if (lv.guards.length && !easy) {
     const hard = new Set(lv.lasers.filter(l => l.m === 0).map(l => l.i)), reach = bfs(lv, lv.S, hard, true);
@@ -274,7 +321,7 @@ function tryGen(seed, L, tr, easy) {
   if (d.stains) {
     const haz = new Set(lv.lasers.map(l => l.i));
     for (const gd of lv.guards) { const P = gPeriod(gd); for (let t = 0; t < P; t++) { const q = guardAt(gd, t); haz.add(q.i); ray(lv, q.i, q.face, lv.vr).forEach(c => haz.add(c)); } }
-    for (const c of lv.cams) { haz.add(c.i); for (const k of c.dirs) if (k >= 0) ray(lv, c.i, k, lv.camr).forEach(x => haz.add(x)); }
+    for (const c of lv.cams) { haz.add(c.i); for (const [a, k, n] of c.v) ray(lv, a, k, n).forEach(x => haz.add(x)); }
     for (let si = 0; si < d.stains; si++) for (let at = 0; at < 80; at++) {
       const sw = 3 + Math.floor(r() * 2), sh = 3 + Math.floor(r() * 2), x0 = 1 + Math.floor(r() * (W - sw - 1)), y0 = 1 + Math.floor(r() * (H - sh - 1));
       const cells = []; let ok = true;
@@ -291,14 +338,14 @@ function tryGen(seed, L, tr, easy) {
   if (!easy && sol.length > (L < 10 ? Math.min(160, 48 + L * 12) : L < 14 ? 190 : 230)) return null;
   lv.best = sol.length; lv.sol = sol;
   const per = L < 3 ? Math.max(2, 2.6 - L * 0.04) : L < 12 ? 2 : L < 16 ? 1.8 : L < 18 ? 1.65 : 1.55;
-  const limitOf = n => d.timer ? Math.round((30 + n * per + (lv.door >= 0 ? (lv.doorType === 'digits' ? 20 : 30) : 0) + (lv.safe ? (L < 8 ? 20 : 35) : 0) + (lv.gate >= 0 ? (L >= 20 ? 75 : L >= 12 ? 55 : 35) : 0)) / 5) * 5 : 0;
+  const limitOf = n => d.timer ? Math.round((30 + n * per + (lv.door >= 0 ? (lv.doorType === 'digits' ? 20 : 30) : 0) + (lv.safe ? (L < 8 ? 20 : 35) : 0) + (lv.gate >= 0 ? (L >= 20 ? 75 : L >= 12 ? 55 : 35) : 0) + (lv.cctv >= 0 ? 35 : 0)) / 5) * 5 : 0;
   lv.limit = limitOf(sol.length);
   lv.starts = [{ s: lv.S, f: lv.face0 || 0, best: sol.length, limit: lv.limit }];
   if (L > 0) {
     // other safe starting spots: every retry begins somewhere new, so the navigator has to find the thief again
     const danger = new Set([...special, ...lv.lasers.map(l => l.i)]);
     for (const gd of lv.guards) { const P = gPeriod(gd); for (let t = 0; t < P; t++) { const q = guardAt(gd, t); danger.add(q.i); ray(lv, q.i, q.face, lv.vr).forEach(c => danger.add(c)); } }
-    for (const c of lv.cams) for (const k of c.dirs) if (k >= 0) ray(lv, c.i, k, lv.camr).forEach(x => danger.add(x));
+    for (const c of lv.cams) for (const [a, k, n] of c.v) ray(lv, a, k, n).forEach(x => danger.add(x));
     const dG = bfs(lv, lv.gem, null, true), cand = [];
     for (let cy = 0; cy < ch; cy++) for (let cx = 0; cx < cw; cx++) { const t = id(2 * cx + 1, 2 * cy + 1); if (!danger.has(t) && dG[t] >= 4) cand.push(t); }
     shuffle(cand);
@@ -335,7 +382,7 @@ function guardAt(gd, t) {
 // заход: из первой клетки маршрута через проём в соседнюю комнату (2 или 4 клетки), только туда, где можно обойти
 function addSideTrips(lv, dS, used, r) {
   if (lv.L < 3) return;
-  const { W, H, g } = lv, special = new Set([lv.S, lv.E, lv.gem, lv.door, lv.note, lv.gate, lv.panel].filter(x => x >= 0));
+  const { W, H, g } = lv, special = new Set([lv.S, lv.E, lv.gem, lv.door, lv.note, lv.gate, lv.panel, lv.cctv].filter(x => x >= 0));
   for (const gd of lv.guards) {
     const ok = c => c >= 0 && g[c] && !used.has(c) && !special.has(c) && dS[c] >= 3 && !lv.lasers.some(l => l.i === c);
     const opts = [];
@@ -363,7 +410,7 @@ function addHides(lv) {
   lv.hides = [];
   if (lv.L < 3 || !lv.guards.length) return;
   const r = RNG(lv.seed + '|hide|' + lv.L), { W, H, g } = lv;
-  const busy = new Set([lv.S, lv.E, lv.gem, lv.note, lv.panel].filter(c => c >= 0));
+  const busy = new Set([lv.S, lv.E, lv.gem, lv.note, lv.panel, lv.cctv].filter(c => c >= 0));
   const gp = lv.guards.flatMap(gd => [...gd.path, ...(gd.side || [])]);
   const cand = [];
   for (let y = 1; y < H; y += 2) for (let x = 1; x < W; x += 2) {
@@ -416,7 +463,10 @@ function hearNoise(lv, s, c) {
 }
 let curW = 0;
 function dirOf(W, a, b) { const ax = a % W, ay = (a / W) | 0, bx = b % W, by = (b / W) | 0; return bx > ax ? 1 : bx < ax ? 3 : by > ay ? 2 : 0; }
-const camDir = (c, t) => c.dirs[Math.floor(t / 2) % c.dirs.length];
+// камера: состояние в такт t (0 — прямо, 1 — в боковую дверь; у неподвижной одно) и клетки под взглядом.
+// После взлома щитка видеонаблюдения (s.camOff) камеры не видят ничего
+const camState = (c, t) => Math.floor(t / 2) % c.v.length;
+function camCells(lv, c, t, s) { if (s && s.camOff) return []; const [a, k, n] = c.v[camState(c, t)]; return ray(lv, a, k, n); }
 const laserOn = (l, t) => l.m === 0 || (l.m === 1 ? t % 2 === 0 : t % 2 === 1);
 function stepT(lv, c, k) { const x = c % lv.W + DX[k], y = ((c / lv.W) | 0) + DY[k]; if (x < 0 || y < 0 || x >= lv.W || y >= lv.H) return -1; return y * lv.W + x; }
 function ray(lv, from, k, len) { const out = []; let c = from; for (let s = 0; s < len; s++) { c = stepT(lv, c, k); if (c < 0 || !lv.g[c] || c === lv.door) break; out.push(c); } return out; }
@@ -424,7 +474,7 @@ function seenBy(lv, t, x, s) {
   curW = lv.W;
   const hid = !!(s && s.hidden);
   if (!hid) for (let k = 0; k < lv.guards.length; k++) { const { i, face } = guardPos(lv, s, k, t); if (i === x || ray(lv, i, face, lv.vr || VR).includes(x)) return 'guard'; }
-  if (!hid) for (const c of lv.cams) { const k = camDir(c, t); if (k >= 0 && ray(lv, c.i, k, lv.camr || CAM_R).includes(x)) return 'cam'; }
+  if (!hid) for (const c of lv.cams) if (camCells(lv, c, t, s).includes(x)) return 'cam';
   for (const l of lv.lasers) if (l.i === x && laserOn(l, t)) return 'laser';
   return '';
 }
@@ -448,7 +498,7 @@ function watchedCells(lv) {
   const out = new Set(), P = period(lv);
   for (let t = 0; t < P; t++) {
     for (const gd of lv.guards) { const q = guardAt(gd, t); out.add(q.i); ray(lv, q.i, q.face, lv.vr).forEach(c => out.add(c)); }
-    for (const c of lv.cams) { const k = camDir(c, t); if (k >= 0) ray(lv, c.i, k, lv.camr).forEach(x => out.add(x)); }
+    for (const c of lv.cams) camCells(lv, c, t).forEach(x => out.add(x));
   }
   return out;
 }
@@ -458,6 +508,7 @@ function spotsWatched(lv) {
   if (lv.safe) spots.push(lv.gem);
   if (lv.door >= 0) spots.push(lv.door + (lv.door - lv.gem));   // клетка перед дверью, где вор набирает код
   if (lv.panel >= 0) spots.push(lv.panel);
+  if (lv.cctv >= 0) spots.push(lv.cctv);   // у щитка видеонаблюдения вор ждёт, пока штурман вводит пароль
   return spots.some(c => w.has(c));
 }
 
@@ -465,36 +516,63 @@ function spotsWatched(lv) {
 function period(lv) {
   let P = 2;
   for (const gd of lv.guards) P = lcm(P, gPeriod(gd));
-  for (const c of lv.cams) P = lcm(P, 2 * c.dirs.length);
+  for (const c of lv.cams) P = lcm(P, 2 * c.v.length);
   return P;
 }
-const flags0 = (lv, from) => (from ? ((from.gem ? 1 : 0) | (from.note || from.open ? 2 : 0) | (from.gateOff ? 4 : 0)) : 0) | (lv.gate < 0 ? 4 : 0) | (lv.note < 0 ? 2 : 0);
+// кто видит клетку в такт t (охрана с лучом, камеры, лазеры; без шума и укрытий) — таблица на весь период.
+// Решатели берут ответ из неё, а не считают лучи на каждом шаге: на больших делах это в десятки раз быстрее
+function dangerOf(lv, P) {
+  if (lv._dt && lv._dt.P === P) return lv._dt;
+  const N = lv.W * lv.H, nG = lv.guards.length, D = new Uint8Array(P * N), gp = new Int32Array(P * nG), C = lv.cctv >= 0 ? new Uint8Array(P * N) : null;
+  for (let t = 0; t < P; t++) {
+    const o = t * N;
+    lv.guards.forEach((gd, k) => { const { i, face } = guardAt(gd, t); gp[t * nG + k] = i; D[o + i] = 1; for (const c of ray(lv, i, face, lv.vr || VR)) D[o + c] = 1; });
+    for (const c of lv.cams) for (const x of camCells(lv, c, t)) (C || D)[o + x] = 1;   // C — камеры, которые выключит взлом
+    for (const l of lv.lasers) if (laserOn(l, t)) D[o + l.i] = 1;
+  }
+  Object.defineProperty(lv, '_dt', { value: { P, N, nG, D, gp, C }, configurable: true, writable: true });
+  return lv._dt;
+}
+// то же, что caughtCheck(lv, prev, cur, t) без шума: виден в такт t или поменялся клетками с охранником; f & 8 — камеры выключены
+function caughtFast(T, prev, cur, t, f) {
+  const a = t % T.P; if (T.D[a * T.N + cur] || (T.C && !(f & 8) && T.C[a * T.N + cur])) return true;
+  if (t > 0) { const b = (t - 1) % T.P; for (let k = 0; k < T.nG; k++) if (T.gp[b * T.nG + k] === cur && T.gp[a * T.nG + k] === prev) return true; }
+  return false;
+}
+const flags0 = (lv, from) => (from ? ((from.gem ? 1 : 0) | (from.note || from.open ? 2 : 0) | (from.gateOff ? 4 : 0) | (from.camOff ? 8 : 0)) : 0) | (lv.gate < 0 ? 4 : 0) | (lv.note < 0 ? 2 : 0);
 const stepOk = (lv, c, f) => c >= 0 && !!lv.g[c] && !(c === lv.door && !(f & 2)) && !(c === lv.gate && !(f & 4));
-const nextF = (lv, c, f) => f | (c === lv.gem ? 1 : 0) | (c === lv.note ? 2 : 0) | (c === lv.panel ? 4 : 0);
+const nextF = (lv, c, f) => f | (c === lv.gem ? 1 : 0) | (c === lv.note ? 2 : 0) | (c === lv.panel ? 4 : 0) | (c === lv.cctv ? 8 : 0);   // 8 — камеры взломаны (вор у щитка, штурман ввёл пароль)
 
 // Пошаговый режим («Вором вслепую»): каждый переход в клетку и каждое «ждать» — один такт, проверка после шага, как в 2D.
 // Возвращает путь (клетка на каждый такт) или null.
+// буферы решателей: состояние (клетка, такт периода, флаги) — номер в плоском массиве, а не ключ в Map
+const MAX_STATES = 4e6;
+let PAR = new Int32Array(0), QUE = new Int32Array(0), SEEN = new Uint8Array(0), RS = new Int32Array(0), rsStamp = 0;
 export function solve(lv, from) {
-  const P = period(lv), key = (p, t, f) => ((p * P + t) << 3) | f;
-  const p0 = from ? from.pos : lv.S, t0 = from ? from.t % P : 0, f0 = flags0(lv, from);
-  const prev = new Map([[key(p0, t0, f0), null]]), q = [[p0, t0, f0]];
-  for (let h = 0; h < q.length; h++) {
-    const [p, t, f] = q[h];
+  // флаги: 1 добыча, 2 записка/дверь, 4 барьер выкл, 8 камеры выкл (этот бит — только на делах со щитком видеонаблюдения)
+  const FB = lv.cctv >= 0 ? 4 : 3, FM = (1 << FB) - 1, P = period(lv), key = (p, t, f) => ((p * P + t) << FB) | f, T = dangerOf(lv, P), S = T.N * P * (1 << FB);
+  if (S > MAX_STATES) return null;   // период охраны слишком длинный: такое дело генератор не берёт
+  if (PAR.length < S) { PAR = new Int32Array(S); QUE = new Int32Array(Math.min(S, 900005)); }
+  PAR.fill(-1, 0, S);
+  const p0 = from ? from.pos : lv.S, t0 = from ? from.t % P : 0, f0 = flags0(lv, from), k0 = key(p0, t0, f0);
+  PAR[k0] = -2; QUE[0] = k0;
+  let tail = 1;
+  for (let h = 0; h < tail; h++) {
+    const k = QUE[h], f = k & FM, pt = k >> FB, p = (pt / P) | 0, t = pt - p * P;
     if (p === lv.E && (f & 1)) {
-      const path = []; let k = key(p, t, f);
-      while (prev.get(k)) { const [pk, c] = prev.get(k); path.push(c); k = pk; }
+      const path = []; for (let c = k; PAR[c] >= 0; c = PAR[c]) path.push(((c >> FB) / P) | 0);
       return path.reverse();
     }
     for (let d = -1; d < 4; d++) {
       const np = d < 0 ? p : stepT(lv, p, d);
       if (d >= 0 && !stepOk(lv, np, f)) continue;
       const nt = t + 1;
-      if (caughtCheck(lv, p, np, nt)) continue;
-      const nf = nextF(lv, np, f), kk = key(np, nt % P, nf);
-      if (prev.has(kk)) continue;
-      prev.set(kk, [key(p, t, f), np]); q.push([np, nt % P, nf]);
+      if (caughtFast(T, p, np, nt, f)) continue;
+      const kk = key(np, nt % P, nextF(lv, np, f));
+      if (PAR[kk] !== -1) continue;
+      PAR[kk] = k; QUE[tail++] = kk;
     }
-    if (q.length > 900000) return null;
+    if (tail > 900000) return null;
   }
   return null;
 }
@@ -504,55 +582,61 @@ export function solve(lv, from) {
 // Возвращает число тактов до выхода или 0.
 export const RT_STEPS = 2;
 export function solveRT(lv, from) {
-  const P = period(lv), key = (p, t, f) => ((p * P + t) << 3) | f;
+  const FB = lv.cctv >= 0 ? 4 : 3, FS = 1 << FB, P = period(lv), key = (p, t, f) => ((p * P + t) << FB) | f, T = dangerOf(lv, P), N = T.N, S = N * P * FS,
+    seenT = (t, c, f) => T.D[(t % P) * N + c] || (T.C && !(f & 8) && T.C[(t % P) * N + c]);
+  if (S > MAX_STATES) return 0;
+  if (SEEN.length < S) SEEN = new Uint8Array(S);
+  SEEN.fill(0, 0, S);
+  if (RS.length < N * 16) { RS = new Int32Array(N * 16); rsStamp = 0; }
   const p0 = from ? from.pos : lv.S, t0 = from ? from.t % P : 0, f0 = flags0(lv, from);
-  const seen = new Set([key(p0, t0, f0)]), noisy = noisyCells(lv, P);
-  let layer = [[p0, t0, f0]];
+  if (!T.noisy) T.noisy = noisyCells(lv, P);
+  const noisy = T.noisy;
+  SEEN[key(p0, t0, f0)] = 1;
+  let layer = [[p0, t0, f0]], seenN = 1;
   for (let ticks = 0; layer.length && ticks < 2000; ticks++) {
     const next = [];
     for (const [p, t, f] of layer) {
       // все клетки, куда можно дойти за этот такт
-      const reach = [[p, f]], rs = new Set([p * 8 + f]);
+      const reach = [[p, f]], st = ++rsStamp;   // RS[клетка*8+флаги] === st — уже дошли в этом такте
+      RS[p * FS + f] = st;
       for (let s = 0, from0 = 0; s < RT_STEPS; s++) {
         const to = reach.length;
         for (let i = from0; i < to; i++) {
           const [c, cf] = reach[i];
           for (let d = 0; d < 4; d++) {
-            const n = stepT(lv, c, d); if (!stepOk(lv, n, cf) || seenBy(lv, t, n)) continue;
+            const n = stepT(lv, c, d); if (!stepOk(lv, n, cf) || seenT(t, n, cf)) continue;
             // второй шаг за такт — это обычная ходьба, она слышна: нельзя, если первая или вторая клетка в зоне слышимости (там вор крадётся)
-            if (s > 0 && (noisy[t % P].has(c) || noisy[t % P].has(n))) continue;
+            if (s > 0 && (noisy[(t % P) * N + c] || noisy[(t % P) * N + n])) continue;
             const nf = nextF(lv, n, cf);
             if (n === lv.E && (nf & 1)) return ticks + 1;
-            if (rs.has(n * 8 + nf)) continue;
-            rs.add(n * 8 + nf); reach.push([n, nf]);
+            if (RS[n * FS + nf] === st) continue;
+            RS[n * FS + nf] = st; reach.push([n, nf]);
           }
         }
         from0 = to;
       }
       for (const [c, cf] of reach) {
         const nt = (t + 1) % P;
-        if (seenBy(lv, t + 1, c)) continue;
-        const kk = key(c, nt, cf); if (seen.has(kk)) continue;
-        seen.add(kk); next.push([c, nt, cf]);
+        if (seenT(t + 1, c, cf)) continue;
+        const kk = key(c, nt, cf); if (SEEN[kk]) continue;
+        SEEN[kk] = 1; seenN++; next.push([c, nt, cf]);
       }
     }
-    if (seen.size > 900000) return 0;
+    if (seenN > 900000) return 0;
     layer = next;
   }
   return 0;
 }
 
-// клетки, где охрана услышит обычные шаги (по такту периода); дверь считаем открытой — так строже
+// клетки, где охрана услышит обычные шаги: noisy[t * N + c] по такту периода; дверь считаем открытой — так строже
 function noisyCells(lv, P) {
-  const memo = new Map(), out = [];
+  const memo = new Map(), N = lv.W * lv.H, out = new Uint8Array(P * N);
   for (let t = 0; t < P; t++) {
-    const set = new Set();
     for (const gd of lv.guards) {
       const q = guardAt(gd, t).i;
       if (!memo.has(q)) memo.set(q, bfs(lv, q, null, true));
-      const d = memo.get(q); for (let c = 0; c < d.length; c++) if (d[c] >= 0 && d[c] <= HEAR) set.add(c);
+      const d = memo.get(q); for (let c = 0; c < d.length; c++) if (d[c] >= 0 && d[c] <= HEAR) out[t * N + c] = 1;
     }
-    out.push(set);
   }
   return out;
 }
@@ -564,10 +648,11 @@ function noisyCells(lv, P) {
    h / u  спрятался в укрытие / вышел из него
    M<c>   шаг в клетку c за один такт (режим «Вором вслепую»)
    w      ждать один такт (режим «Вором вслепую»)
-   k<i>   кнопка сейфа, c<i> провод щитка, o/x<rid> верный/неверный код двери, z время вышло */
-export const EV_RE = /^(g|z|w|n|h|u|T[0-9a-z]{1,5}|[mMr][0-9a-z]{1,4}|k[0-5]|c[0-5]|[ox][a-z0-9]{3,8})$/;
+   k<i>   кнопка сейфа, c<i> провод щитка, o/x<rid> верный/неверный код двери, z время вышло
+   j      вор подключился к щитку видеонаблюдения; v / y — штурман ввёл верный / неверный пароль (камеры выкл / ошибка) */
+export const EV_RE = /^(g|z|w|n|h|u|j|v|y|T[0-9a-z]{1,5}|[mMr][0-9a-z]{1,4}|k[0-5]|c[0-5]|[ox][a-z0-9]{3,8})$/;
 export function startOf(lv, att) { const st = lv.starts || [{ s: lv.S, f: lv.face0 || 0, best: lv.best, limit: lv.limit }]; return st[(att | 0) % st.length]; }
-export function newSim(lv, att) { const st = startOf(lv, att); return { pos: st.s, face: st.f, t: 0, gem: false, note: lv.note < 0, open: lv.door < 0, gateOff: !(lv.gate >= 0), pstrikes: 0, pcut: 0, caught: '', won: false, trail: [st.s], wrong: 0, steps: 0, sp: 0, strikes: 0 }; }
+export function newSim(lv, att) { const st = startOf(lv, att); return { pos: st.s, face: st.f, t: 0, gem: false, note: lv.note < 0, open: lv.door < 0, gateOff: !(lv.gate >= 0), pstrikes: 0, pcut: 0, plugged: false, camOff: false, hstrikes: 0, caught: '', won: false, trail: [st.s], wrong: 0, steps: 0, sp: 0, strikes: 0 }; }
 export function cloneSim(s) { return Object.assign({}, s, { trail: s.trail.slice() }); }
 export const adjCell = (lv, a, b) => Math.abs(a % lv.W - b % lv.W) + Math.abs(((a / lv.W) | 0) - ((b / lv.W) | 0)) === 1;
 // cur = { safe, panel } — данные сейфа и щитка текущей попытки
@@ -595,6 +680,10 @@ export function applyEv(lv, s, e, cur) {
     else { s.pstrikes++; if (s.pstrikes >= pn.maxStrikes) s.caught = 'panel'; }
     return true;
   }
+  // щиток видеонаблюдения: подключиться можно, только стоя у него; пароль проверяет компьютер вора
+  if (e === 'j') { if (!(lv.cctv >= 0) || s.pos !== lv.cctv || s.plugged) return false; s.plugged = true; return true; }
+  if (e === 'v') { if (!s.plugged || s.camOff) return false; s.camOff = true; return true; }
+  if (e === 'y') { if (!s.plugged || s.camOff) return false; s.hstrikes = (s.hstrikes | 0) + 1; if (s.hstrikes >= 2) s.caught = 'cctv'; return true; }
   if (e[0] === 'T') {
     const n = parseInt(e.slice(1), 36); if (!(n > s.t)) return false;
     while (s.t < n) { s.t++; const why = seenBy(lv, s.t, s.pos, s); if (why) { s.caught = why; break; } }
@@ -616,4 +705,4 @@ export function applyEv(lv, s, e, cur) {
 }
 export function simulate(lv, log, att, cur) { const s = newSim(lv, att); for (const e of log) applyEv(lv, s, e, cur); return s; }
 
-export { gPeriod, DX, DY, VR, CAM_R, PLACES, GLYPHS, DCOL, SHAPES, ARW, ARWN, REL, RELA, WCOL, hashStr, RNG, safeFor, doorFor, doorTypeOf, panelFor, diff, getLevel, bfs, guardAt, dirOf, camDir, laserOn, stepT, ray, seenBy, whoCaught, caughtCheck, codeFor, watchedCells };
+export { gPeriod, DX, DY, VR, CAM_R, PLACES, GLYPHS, DCOL, SHAPES, ARW, ARWN, REL, RELA, WCOL, hashStr, RNG, safeFor, doorFor, doorTypeOf, panelFor, cctvFor, CCTV_MODELS, diff, getLevel, bfs, guardAt, dirOf, camState, camCells, laserOn, stepT, ray, seenBy, whoCaught, caughtCheck, codeFor, watchedCells };

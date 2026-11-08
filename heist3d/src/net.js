@@ -15,7 +15,8 @@ const sess = {
   set(k, v) { try { sessionStorage.setItem(APP + ':' + k, v); } catch (e) {} }
 };
 let BUILD = '', toast = () => {};
-// связь с игрой: reset(mode), sync(full), ui(), started(firstOk), hideOverlays(keepBrief), handleCode(rid, val), checkPeerBuild(v)
+// связь с игрой: reset(mode), sync(full), ui(), started(firstOk), hideOverlays(keepBrief), handleCode(rid, val), checkPeerBuild(v),
+// hack(val) — пароль щитка видеонаблюдения от штурмана; pz(from, on, t0, lvl, att) — напарник не готов (пауза): 1 меню, 2 брифинг, 3 сценка; myPz() — то же про меня
 let H = {};
 export function initNet(hooks, build, toastFn) { H = hooks; BUILD = build; toast = toastFn; }
 export const net = { on: false, code: null, room: null, ch: null, status: 'off', online: new Set(), presence: null, lastSeen: {}, peerKey: {}, wasStarted: false, everOk: false, errorMsg: '', lastHello: 0, presenceSeen: false, pending: null, timers: {} };
@@ -42,10 +43,14 @@ export function getIdentity() {
   });
 }
 const filled = r => r.seats.filter(Boolean).length;
-export const started = r => !!r && r.seats.every(Boolean);
+// дело идёт, когда оба на местах и кто-то нажал «Начинаем» (до этого — выбор ролей)
+export const started = r => !!r && r.seats.every(Boolean) && !!r.go;
+export const bothIn = r => !!r && r.seats.every(Boolean);
 export const mySeat = () => (net.on && net.room && myId) ? net.room.seats.indexOf(myId) : -1;
+// кто вор: место 0 или 1 (сначала тот, кто создал комнату); меняется кнопкой «Поменяться ролями»
+export const thiefSeat = r => (r && r.thief ? 1 : 0);
 export function cmpKey(a, b) { for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return a[i] - b[i]; return 0; }
-export const roomKey = r => [r.lvl, r.att, r.log.length, filled(r)];
+export const roomKey = r => [r.lvl, r.att, r.log.length, filled(r), r.rv | 0];
 export const inviteUrl = () => location.origin + location.pathname + location.search + '#' + (net.code || '');
 export function sanitize(s) {
   const fit = (a, f) => [0, 1].map(i => (Array.isArray(a) && a[i] != null) ? f(a[i]) : null);
@@ -53,6 +58,7 @@ export function sanitize(s) {
     code: s.code, host: s.host || null,
     seats: fit(s.seats, x => String(x).slice(0, 24)), names: fit(s.names, x => String(x).slice(0, 12)),
     lvl: Math.max(0, Math.min(999, s.lvl | 0)), att: Math.max(0, s.att | 0), best: Math.max(0, s.best | 0), t0: +s.t0 || 0,
+    thief: (s.thief | 0) ? 1 : 0, rv: Math.max(0, s.rv | 0), go: s.go ? 1 : 0,
     log: (Array.isArray(s.log) ? s.log : []).map(String).filter(x => EV_RE.test(x)).slice(0, 8000)
   };
 }
@@ -71,7 +77,7 @@ export function hello() {
 }
 // Presence is tracked once per join and never updated: re-tracking makes the realtime client drop the key.
 function trackOnce() { if (!net.ch || net.status !== 'ok') return; try { const p = net.ch.track({ on: 1 }); if (p && p.catch) p.catch(() => {}); } catch (e) {} }
-export function ping() { if (!net.ch) return; const r = net.room; if (net.status === 'ok') send('ping', { k: r ? roomKey(r) : null, v: BUILD }); recomputeOnline(); }
+export function ping() { if (!net.ch) return; const r = net.room; if (net.status === 'ok') send('ping', { k: r ? roomKey(r) : null, v: BUILD, pz: H.myPz ? H.myPz() | 0 : 0 }); recomputeOnline(); }
 function recomputeOnline() {
   if (!net.ch) return;
   let stt = {}; try { stt = net.ch.presenceState() || {}; } catch (e) {}
@@ -113,7 +119,20 @@ export async function joinRoom(code, room) {
   if (net.room) { saveRoom(); H.sync(true); }
   showRoomPanel(); connect();
 }
-export function createRoom() { joinRoom(newCode(), { code: '', host: null, seats: [null, null], names: [null, null], lvl: 0, att: 0, best: 0, t0: 0, log: [] }); }
+export function createRoom(lvl) { joinRoom(newCode(), { code: '', host: null, seats: [null, null], names: [null, null], lvl: Math.max(0, lvl | 0), att: 0, best: 0, t0: 0, log: [], thief: 0, rv: 0, go: 0 }); }
+// поменяться ролями: новая версия ролей уходит напарнику, у кого версия старше — того и правда
+export function startGame() {
+  const r = net.room; if (!r || !bothIn(r) || r.go) return;
+  r.go = 1; r.rv = (r.rv | 0) + 1; saveRoom();
+  send('roles', { thief: thiefSeat(r), rv: r.rv, go: 1 });
+  H.sync(); refreshOnline();
+}
+export function setThief(seat) {
+  const r = net.room; if (!r) return;
+  r.thief = seat ? 1 : 0; r.rv = (r.rv | 0) + 1; saveRoom();
+  send('roles', { thief: r.thief, rv: r.rv, go: r.go });
+  H.sync(); if (H.roles) H.roles(); refreshOnline();
+}
 const NET_ERR = 'Не получается подключиться к серверу. Проверь интернет. В превью внутри Claude онлайн не работает, только на опубликованном сайте.';
 export function connect() {
   let client;
@@ -155,6 +174,7 @@ function onMsg(m) {
   switch (m.t) {
     case 'ping': {
       net.peerKey[m.from] = Array.isArray(m.k) ? m.k : null;
+      if (H.pz) H.pz(m.from, m.pz | 0);
       if (!Array.isArray(m.k)) { if (r && r.seats.includes(myId)) send('state', { room: r }); break; }
       if (!r) { hello(); break; }
       const c = cmpKey(m.k.map(x => x | 0), roomKey(r));
@@ -167,20 +187,35 @@ function onMsg(m) {
       if (!r) { hello(); break; }
       const lvl = m.lvl | 0, att = m.att | 0, seq = m.seq | 0, e = String(m.e || '');
       if (lvl !== r.lvl || att !== r.att) { if (lvl > r.lvl || (lvl === r.lvl && att > r.att)) hello(); break; }
-      if (r.seats[lvl % 2] !== m.from || !EV_RE.test(e)) break;
-      if (m.t0 && !r.t0) r.t0 = +m.t0 || 0;
+      if (r.seats[thiefSeat(r)] !== m.from || !EV_RE.test(e)) break;
+      if (m.t0) r.t0 = +m.t0 || r.t0;
       if (seq === r.log.length) { r.log.push(e); saveRoom(); H.sync(); }
       else if (seq > r.log.length) hello();
       break;
     }
     case 'req': {
-      if (!r || !amWriter() || (m.lvl | 0) !== r.lvl || (m.att | 0) !== r.att) break;
+      if (!r || mySeat() !== thiefSeat(r) || (m.lvl | 0) !== r.lvl || (m.att | 0) !== r.att) break;
       const ridv = String(m.rid || '').replace(/[^a-z0-9]/g, '').slice(0, 8), val = String(m.val || '').replace(/\D/g, '').slice(0, 3);
       if (ridv.length >= 3 && val.length === 3) H.handleCode(ridv, val);
       break;
     }
+    // пароль щитка видеонаблюдения от штурмана: проверяет и пишет событие компьютер вора
+    case 'hack': {
+      if (!r || mySeat() !== thiefSeat(r) || (m.lvl | 0) !== r.lvl || (m.att | 0) !== r.att) break;
+      const val = String(m.val || '').replace(/\D/g, '').slice(0, 4);
+      if (val.length === 4 && H.hack) H.hack(val);
+      break;
+    }
     case 'name': { if (!r) break; const k = r.seats.indexOf(m.from); if (k < 0) break; r.names[k] = m.name ? String(m.name).slice(0, 12) : null; saveRoom(); refreshOnline(); break; }
     case 'pose': if (H.pose) H.pose(m); break;
+    // пауза: напарник открыл или закрыл меню; вор после паузы присылает сдвинутое начало попытки
+    case 'pz': if (H.pz) H.pz(m.from, m.on | 0, +m.t0 || 0, m.lvl | 0, m.att | 0); break;
+    case 'roles': {
+      if (!r || (m.rv | 0) <= (r.rv | 0)) break;
+      r.thief = (m.thief | 0) ? 1 : 0; r.rv = m.rv | 0; r.go = m.go ? 1 : 0; saveRoom();
+      H.sync(); if (H.roles) H.roles(); refreshOnline();
+      break;
+    }
     case 'full': if (m.to === myId && mySeat() < 0) { net.errorMsg = 'В комнате уже двое.'; refreshOnline(); } break;
   }
 }
@@ -206,6 +241,7 @@ function adoptState(s0) {
   let ch = false;
   s.seats.forEach((x, i) => { if (x && !r.seats[i]) { r.seats[i] = x; ch = true; } });
   s.names.forEach((x, i) => { if (x && !r.names[i]) { r.names[i] = x; ch = true; } });
+  if ((s.rv | 0) > (r.rv | 0)) { r.thief = s.thief; r.rv = s.rv; r.go = s.go; ch = true; if (H.roles) setTimeout(H.roles); }
   const c = cmpKey([s.lvl, s.att, s.log.length], [r.lvl, r.att, r.log.length]);
   if (c > 0) {
     const sameAtt = s.lvl === r.lvl && s.att === r.att && r.log.every((x, i) => s.log[i] === x);
@@ -229,25 +265,38 @@ export function refreshOnline() {
   if (!stt && $('#menu').hidden) showRoomPanel();
   renderRoomPanel(); H.ui();
 }
-export function showRoomPanel() { $('#vMain').hidden = true; $('#vRoom').hidden = false; $('#menu').hidden = false; renderRoomPanel(); }
+export function showRoomPanel() {
+  $('#vMain').hidden = true; $('#vCases').hidden = true; $('#vSettings').hidden = true; $('#vRoom').hidden = false; $('#menu').hidden = false;
+  for (const b of document.querySelectorAll('#ftabs button')) b.setAttribute('aria-pressed', String(b.dataset.tab === 'play'));
+  renderRoomPanel();
+}
+export const ROLE_IC = [
+  '<svg class="rc-ic" viewBox="0 0 48 48" aria-hidden="true"><path d="M24 5c-8.5 0-13.5 6-13.5 14.5V27c0 9 6.2 16 13.5 16s13.5-7 13.5-16v-7.5C37.5 11 32.5 5 24 5z" fill="#111"/><rect x="12.5" y="18" width="23" height="7" rx="3.5" fill="#FFD23F"/><circle cx="19" cy="21.5" r="2" fill="#111"/><circle cx="29" cy="21.5" r="2" fill="#111"/><path d="M17 33h14" stroke="#333" stroke-width="2"/></svg>',
+  '<svg class="rc-ic" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="22" r="11" fill="#c9a27e"/><path d="M9 26v-4a15 15 0 0 1 30 0v4" fill="none" stroke="#04213A" stroke-width="3.5"/><rect x="6" y="23" width="7" height="11" rx="3" fill="#04213A"/><rect x="35" y="23" width="7" height="11" rx="3" fill="#04213A"/><path d="M10 34c0 5 5 7 11 7" fill="none" stroke="#04213A" stroke-width="2.5"/><circle cx="22" cy="41" r="2.5" fill="#04213A"/><rect x="14" y="38" width="20" height="6" rx="1" fill="#7FD4FF" opacity=".0"/></svg>',
+];
 export function renderRoomPanel() {
   if (!net.on) return;
   const r = net.room;
   $('#roomCode').textContent = net.code || '····';
   $('#roomLink').textContent = inviteUrl();
   $('#btnShare').textContent = navigator.share ? 'Поделиться' : 'Копировать';
-  $('#seats').innerHTML = r ? r.seats.map((id, k) => {
+  // две карточки: вор и штурман, на каждой — кто на этой роли
+  const th = thiefSeat(r);
+  $('#seats').innerHTML = r ? [th, 1 - th].map((k, i) => {
+    const id = r.seats[k];
     const nm = id ? (r.names[k] || (k ? 'Второй' : 'Первый')) : 'ждём…';
-    const st = !id ? '' : id === myId ? 'это ты' : net.online.has(id) ? 'на связи' : 'не в сети';
-    return `<div class="seat"><b>${esc(nm)}</b><em class="${id && (id === myId || net.online.has(id)) ? 'on' : ''}">${st}</em></div>`;
+    const st = !id ? 'отправь ссылку' : id === myId ? 'это ты' : net.online.has(id) ? 'на связи' : 'не в сети';
+    return `<button class="rolecard ${i ? 'nav' : 'thief'}${id === myId ? ' me' : ''}" data-seat="${k}" type="button">${ROLE_IC[i]}<span class="rc-t"><small>${i ? 'ШТУРМАН · в фургоне' : 'ВОР · в здании'}</small><b>${esc(nm)}</b><em class="${id && (id === myId || net.online.has(id)) ? 'on' : ''}">${st}</em></span></button>`;
   }).join('') : '';
+  $('#btnGo').hidden = !(r && bothIn(r) && !r.go);
   const note = $('#netNote'); let txt, err = false;
   if (net.errorMsg) { txt = net.errorMsg; err = true; }
   else if (net.status === 'connecting') txt = 'Подключаюсь…';
   else if (net.status === 'lost') txt = 'Связь пропала, переподключаюсь…';
   else if (!r) txt = 'Ищу комнату…';
   else if (mySeat() < 0) txt = 'Жду, пока меня пустят…';
-  else if (!started(r)) txt = 'Отправь брату ссылку или код. Как только он зайдёт, начнётся дело. Созвонитесь!';
+  else if (!bothIn(r)) txt = 'Отправь напарнику ссылку или код и созвонитесь. Кликни по карточке, чтобы поменяться ролями.';
+  else if (!r.go) txt = 'Оба на месте. Решите, кто вор, и жмите «Начинаем».';
   else txt = `Дело №${r.lvl + 1}. Комната живёт, пока в ней кто-то есть.`;
   note.textContent = txt; note.classList.toggle('err', err);
   $('#btnRoomClose').hidden = !(r && started(r));

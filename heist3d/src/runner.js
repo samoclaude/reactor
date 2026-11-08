@@ -27,6 +27,7 @@ export class Runner {
     this.onStep = null;
     this.lookYaw = 0;
     this.lookPitch = 0; // для крупных планов: камеру ведёт не мышь
+    this.sens = 1; // ползунок «Мышь» в настройках
     canvas.addEventListener("click", () => {
       if (this.enabled && !this.locked && !this.closeup)
         canvas.requestPointerLock();
@@ -36,8 +37,12 @@ export class Runner {
     });
     document.addEventListener("mousemove", (e) => {
       if (!this.locked || !this.enabled) return;
-      this.yaw -= e.movementX * SENS;
-      this.pitch = clamp(this.pitch - e.movementY * SENS, -1.25, 1.25);
+      this.yaw -= e.movementX * SENS * this.sens;
+      this.pitch = clamp(
+        this.pitch - e.movementY * SENS * this.sens,
+        -1.25,
+        1.25,
+      );
     });
     addEventListener("keydown", (e) => {
       if (e.target && e.target.tagName === "INPUT") return;
@@ -53,7 +58,11 @@ export class Runner {
     this.vel.set(0, 0);
   }
   unlock() {
-    if (document.pointerLockElement) document.exitPointerLock();
+    // мышь отпускает сама игра (брифинг, итоги, меню) — это не Esc игрока
+    if (document.pointerLockElement) {
+      this.selfUnlock = true;
+      document.exitPointerLock();
+    }
   }
   free(R, x, z) {
     const r = RADIUS,
@@ -99,13 +108,21 @@ export class Runner {
       1,
       Math.ceil((Math.hypot(this.vel.x, this.vel.y) * dt) / 0.05),
     );
+    const v0 = Math.hypot(this.vel.x, this.vel.y);
+    let hit = false;
     for (let i = 0; i < n; i++) {
       const nx = this.pos.x + (this.vel.x * dt) / n;
       if (this.free(R, nx, this.pos.z)) this.pos.x = nx;
-      else this.vel.x = 0;
+      else ((hit = hit || Math.abs(this.vel.x) > 1.2), (this.vel.x = 0));
       const nz = this.pos.z + (this.vel.y * dt) / n;
       if (this.free(R, this.pos.x, nz)) this.pos.z = nz;
-      else this.vel.y = 0;
+      else ((hit = hit || Math.abs(this.vel.y) > 1.2), (this.vel.y = 0));
+    }
+    // уткнулся в стену на ходу — шорох куртки (не чаще раза в 0,8 с)
+    this.bumpT = (this.bumpT || 0) + dt;
+    if (hit && v0 > 1.5 && this.bumpT > 0.8 && this.onBump) {
+      this.bumpT = 0;
+      this.onBump();
     }
     // шаги и лёгкое покачивание
     const v = Math.hypot(this.vel.x, this.vel.y);
@@ -113,16 +130,24 @@ export class Runner {
     this.loud = v > SNEAK + 0.3;
     if (v > 0.3) {
       const prev = this.stepPhase;
-      this.stepPhase += dt * v * 1.9;
+      // шагов в секунду: обычным шагом ~3,5, крадучись ~2,25; один шаг — пол-оборота фазы
+      this.stepPhase += dt * Math.PI * (0.9 + 0.75 * v);
       if (
         Math.floor(prev / Math.PI) !== Math.floor(this.stepPhase / Math.PI) &&
         this.onStep
       )
         this.onStep(this.loud);
     }
+    // остановился после ходьбы — мягкий последний шаг
+    if (v > 1) this.moving = true;
+    else if (this.moving && v < 0.3) {
+      this.moving = false;
+      if (this.onStop) this.onStop();
+    }
     this.bob +=
       ((v > 0.3
-        ? Math.sin(this.stepPhase * 2) * 0.025 * Math.min(1, v / SNEAK)
+        ? // ниже всего голова в момент шага — тогда же и звук
+          -Math.cos(this.stepPhase * 2) * 0.025 * Math.min(1, v / SNEAK)
         : 0) -
         this.bob) *
       Math.min(1, dt * 10);

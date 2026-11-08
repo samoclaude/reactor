@@ -4,13 +4,50 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
 import { glowSprite } from "./world.js";
-import { makeThiefModel } from "./guard.js";
+import { makeThiefModel, makeCrewModel, guardReady } from "./guard.js";
+import { loadStreet, buildStreet, GATE_Z, HOUSE_Z } from "./street.js";
 
 const ease = (t) => t * t * (3 - 2 * t);
 const clamp01 = (t) => Math.max(0, Math.min(1, t));
 const VAN_Z = -2.2, // фургон стоит на дальней полосе чуть левее ворот
-  VAN_X = -3.4,
-  GATE_Z = -7.4;
+  VAN_X = -3.4;
+// из кадра для досье вырезается середина 4:3; экран уже 4:3 (телефон) — угол шире, чтобы в вырез влезло всё
+export const fitFov = (fov, aspect) =>
+  aspect >= 4 / 3
+    ? fov
+    : (2 *
+        Math.atan((Math.tan((fov * Math.PI) / 360) * 4) / 3 / aspect) *
+        180) /
+      Math.PI;
+// ракурсы фото объекта для брифинга: [x, y, z камеры, высота взгляда на дом, угол обзора] — «телевик» из фургона
+const STILLS = [
+  [-6, 1.6, 6, 4.5, 34],
+  [1.5, 1.4, 5, 5, 38],
+  [4, 1.7, 7.5, 4.2, 30],
+];
+// у новых зданий свои ракурсы: [x, y, z камеры, куда смотреть x, y, z, угол обзора]
+const LOT_STILLS = {
+  museum: [
+    [-7, 1.5, 4.2, 0, 6.5, -20, 48], // у бордюра: фонарь нашей стороны (x = -4,4, z = 4,55) за спиной, не в кадре
+    [3, 1.4, 6, -2, 5.5, -19, 40],
+    [9, 1.7, 7.5, 2, 6, -20, 38],
+  ],
+  bank: [
+    [-8, 1.5, 4.2, 0, 7, -8, 54], // у бордюра: фонарь нашей стороны за спиной, иначе столб перечёркивал фото
+    [4, 1.4, 6, -1, 6, -8, 44],
+    [-2, 1.6, 7.5, 1, 6.5, -8, 46],
+  ],
+  office: [
+    [2, 1.4, 7, 4, 8.5, -16, 50],
+    [5, 1.5, 7, 6, 7, -16, 46],
+    [0, 1.6, 7.5, 3, 10, -16, 52],
+  ],
+  jewelry: [
+    [-8, 1.5, 4.2, 0, 6.5, -8, 54],
+    [4, 1.4, 6, -1, 5.5, -8, 44],
+    [-1, 1.6, 7.5, 1, 6, -8, 46],
+  ],
+};
 // точка на ломаной pts через долю пути k (0..1) и направление движения
 function along(pts, k) {
   const seg = [];
@@ -36,16 +73,89 @@ function along(pts, k) {
   }
 }
 
+// мониторы в фургоне: три «камеры» с зелёной ночной картинкой (коридор, дверь, сейф)
+function vanScreens() {
+  const cv = document.createElement("canvas");
+  cv.width = 384;
+  cv.height = 96;
+  const g = cv.getContext("2d");
+  for (let k = 0; k < 3; k++) {
+    const x = k * 128;
+    const gr = g.createRadialGradient(x + 64, 48, 4, x + 64, 48, 80);
+    gr.addColorStop(0, "#2f8a55");
+    gr.addColorStop(1, "#06200f");
+    g.fillStyle = gr;
+    g.fillRect(x, 0, 128, 96);
+    g.strokeStyle = "rgba(160,255,190,0.55)";
+    g.lineWidth = 2;
+    g.beginPath();
+    if (k === 0) {
+      // коридор в перспективе
+      g.moveTo(x + 10, 90);
+      g.lineTo(x + 50, 40);
+      g.lineTo(x + 78, 40);
+      g.lineTo(x + 118, 90);
+      g.moveTo(x + 50, 40);
+      g.lineTo(x + 50, 8);
+      g.moveTo(x + 78, 40);
+      g.lineTo(x + 78, 8);
+    } else if (k === 1) {
+      g.rect(x + 40, 18, 48, 70);
+      g.moveTo(x + 80, 54);
+      g.arc(x + 80, 54, 3, 0, 7);
+    } else {
+      g.rect(x + 34, 22, 60, 60);
+      g.moveTo(x + 76, 52);
+      g.arc(x + 64, 52, 12, 0, 7);
+    }
+    g.stroke();
+    for (let y = 0; y < 96; y += 3) {
+      g.fillStyle = "rgba(0,0,0,0.18)";
+      g.fillRect(x, y, 128, 1);
+    }
+    g.fillStyle = "rgba(200,255,210,0.85)";
+    g.font = "bold 11px monospace";
+    g.fillText("CAM " + (k + 1), x + 6, 13);
+    g.fillStyle = "#ff4040";
+    g.beginPath();
+    g.arc(x + 118, 9, 3.5, 0, 7);
+    g.fill();
+  }
+  const t = new THREE.CanvasTexture(cv);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
 export class Cutscenes {
   constructor(fadeEl) {
     this.fade = fadeEl;
     this.cam = new THREE.PerspectiveCamera(48, 1, 0.1, 140);
     this.active = null;
     this.van = null;
+    this.weather = "rain"; // 'rain' | 'clear' | 'snow' | 'storm' — ставит main.js по делу
+    this.flash = 0; // вспышка молнии 0..1
+    this.cues = []; // звуки сценки: [секунда, что сыграть] — ставит main.js после play()
+    this.lot = { id: "mansion", name: "" }; // здание дела: ставит main.js при сборке уровня
+  }
+  // участок улицы под здание дела (в меню — всегда особняк)
+  useLot(id) {
+    if (!this.street) return;
+    const L = id || this.lot.id;
+    if (this.street.lotId !== L || (L === this.lot.id && this.street.lot && this.street.lot.signName !== this.lot.name))
+      this.street.setLot(L, L === this.lot.id ? this.lot.name : "");
+  }
+  // вход вора у текущего здания: [x, z] снаружи
+  entry() {
+    const L = this.street && this.street.lot;
+    return L && L.entry ? [L.entry.x, L.entry.z] : [0.3, GATE_Z];
   }
   async load() {
     const l = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
-    const g = await l.loadAsync("assets/models/van_ext.glb");
+    const [g, st] = await Promise.all([
+      l.loadAsync("assets/models/van_ext.glb"),
+      loadStreet(l),
+    ]);
+    this.streetTex = st;
     this.van = g.scene;
   }
   ready() {
@@ -54,167 +164,14 @@ export class Cutscenes {
   // улица строится один раз, при первой сценке
   build() {
     const s = (this.scene = new THREE.Scene());
-    s.background = new THREE.Color(0x060a12);
-    s.fog = new THREE.FogExp2(0x070b14, 0.03);
-    s.add(new THREE.HemisphereLight(0x6a7ca0, 0x15120f, 1.0));
-    const moon = new THREE.DirectionalLight(0x8fa6d8, 0.5);
-    moon.position.set(-10, 20, 8);
-    s.add(moon);
-    const std = (color, rough = 0.8, metal = 0) =>
-      new THREE.MeshStandardMaterial({
-        color,
-        roughness: rough,
-        metalness: metal,
-      });
-    const box = (w, h, d, m, x, y, z, parent = s) => {
-      const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m);
-      o.position.set(x, y, z);
-      parent.add(o);
-      return o;
-    };
-    // мокрый асфальт, тротуары, газон и дорожка
-    const road = new THREE.Mesh(
-      new THREE.PlaneGeometry(120, 8),
-      std(0x111317, 0.28, 0.25),
-    );
-    road.rotation.x = -Math.PI / 2;
-    s.add(road);
-    const walk = std(0x2a2b2e, 0.55);
-    box(120, 0.15, 3.4, walk, 0, 0.075, -5.7);
-    box(120, 0.15, 3.4, walk, 0, 0.075, 5.7);
-    box(120, 0.05, 30, std(0x0d1510, 0.95), 0, 0.15, -22.5);
-    box(2.2, 0.06, 10.6, std(0x3a3631, 0.9), 0, 0.17, -12.7);
-    // разметка
-    for (let x = -60; x < 60; x += 6)
-      box(3, 0.01, 0.12, std(0x8a8a80, 0.6), x, 0.005, 0);
-    // ограда с воротами
-    const iron = std(0x0c0d0f, 0.5, 0.6);
-    const bars = new THREE.InstancedMesh(
-      new THREE.BoxGeometry(0.03, 1.9, 0.03),
-      iron,
-      800,
-    );
-    let n = 0;
-    const m4 = new THREE.Matrix4();
-    for (let x = -55; x <= 55; x += 0.14) {
-      if (Math.abs(x) < 1.5) continue;
-      m4.makeTranslation(x, 1.1, GATE_Z);
-      bars.setMatrixAt(n++, m4);
-    }
-    bars.count = n;
-    s.add(bars);
-    for (const side of [-1, 1]) {
-      box(54, 0.05, 0.05, iron, side * 28.6, 1.9, GATE_Z);
-      box(54, 0.05, 0.05, iron, side * 28.6, 0.45, GATE_Z);
-      box(0.6, 2.5, 0.6, std(0x3b3630, 0.85), side * 1.8, 1.4, GATE_Z);
-      const lamp = glowSprite(0xffc070, 0.9, 0.9);
-      lamp.position.set(side * 1.8, 2.85, GATE_Z);
-      s.add(lamp);
-    }
-    // особняк: фасад, карниз, крыша, окна (часть горит), портик с колоннами
-    const stone = std(0x3b3631, 0.9),
-      dark = std(0x0d1016, 0.2, 0.3),
-      lit = new THREE.MeshStandardMaterial({
-        color: 0x2a1a08,
-        emissive: 0xffa850,
-        emissiveIntensity: 1.6,
-      });
-    const H = new THREE.Group();
-    H.position.z = -26;
-    s.add(H);
-    box(30, 9.6, 10, stone, 0, 4.95, 0, H);
-    box(31, 0.5, 10.8, std(0x2c2824, 0.8), 0, 9.9, 0, H);
-    const roof = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.01, 6.2, 3.2, 4, 1),
-      std(0x1a1d22, 0.7),
-    );
-    roof.rotation.y = Math.PI / 4;
-    roof.scale.set(3.6, 1, 1.25);
-    roof.position.set(0, 11.7, 0);
-    H.add(roof);
-    for (const x of [-9, 9]) box(1, 2.4, 1, stone, x, 12.4, -1.5, H);
-    for (let r = 0; r < 2; r++)
-      for (let c = 0; c < 11; c++) {
-        const x = -12.5 + c * 2.5;
-        if (r === 0 && Math.abs(x) < 3) continue;
-        const on = (r * 11 + c) % 4 === 1;
-        box(1.2, 2.2, 0.2, on ? lit : dark, x, 2.6 + r * 3.6, 5.05, H);
-        box(1.5, 0.15, 0.35, stone, x, 1.4 + r * 3.6, 5.1, H);
-      }
-    for (const x of [-2.4, -0.8, 0.8, 2.4]) {
-      const col = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.28, 0.32, 5.2, 14),
-        std(0x5a544c, 0.8),
-      );
-      col.position.set(x, 2.9, 7.2);
-      H.add(col);
-    }
-    box(6.4, 0.6, 3, std(0x5a544c, 0.8), 0, 5.8, 7.2, H);
-    for (let k = 0; k < 3; k++)
-      box(
-        6 - k * 0.6,
-        0.18,
-        1.2 - k * 0.3,
-        stone,
-        0,
-        0.18 + k * 0.18,
-        8.4 - k * 0.3,
-        H,
-      );
-    box(1.6, 2.8, 0.2, std(0x1b120c, 0.6), 0, 1.6, 5.05, H);
-    const doorGlow = glowSprite(0xffb060, 3, 0.5);
-    doorGlow.position.set(0, 4.2, 6.2);
-    H.add(doorGlow);
-    // фонари вдоль улицы: столб, плафон, свечение; два ближних дают свет
-    this.lights = [];
-    for (const [x, z] of [
-      [-11, -4.4],
-      [11, -4.4],
-      [-4, 4.4],
-      [16, 4.4],
-      [-22, 4.4],
-    ]) {
-      box(0.12, 4.6, 0.12, iron, x, 2.3, z);
-      box(0.9, 0.08, 0.08, iron, x + (z < 0 ? 0.4 : -0.4), 4.55, z);
-      const g = glowSprite(0xffc27a, 2.2, 0.85);
-      g.position.set(x + (z < 0 ? 0.8 : -0.8), 4.4, z);
-      s.add(g);
-    }
-    for (const [x, z] of [
-      [-10.2, -4.4],
-      [10.8, -4.4],
-      [-4.8, 4.4],
-    ]) {
-      const l = new THREE.PointLight(0xffc488, 70, 24, 1.6);
-      l.position.set(x, 4.3, z);
-      s.add(l);
-    }
-    // фонарики на столбах ворот светят на тротуар, где выходит вор
-    const gl = new THREE.PointLight(0xffc070, 30, 12, 1.6);
-    gl.position.set(0, 3.2, GATE_Z + 0.6);
-    s.add(gl);
-    // дождь: косые штрихи вокруг камеры
-    const N = 2600,
-      pos = new Float32Array(N * 6);
-    this.rainSeed = [];
-    for (let i = 0; i < N; i++) {
-      const x = (Math.random() - 0.5) * 50,
-        y = Math.random() * 14,
-        z = -14 + Math.random() * 26;
-      this.rainSeed.push([x, y, z]);
-    }
-    this.rainGeo = new THREE.BufferGeometry();
-    this.rainGeo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
-    s.add(
-      new THREE.LineSegments(
-        this.rainGeo,
-        new THREE.LineBasicMaterial({
-          color: 0x9fb4d4,
-          transparent: true,
-          opacity: 0.32,
-        }),
-      ),
-    );
+    s.background = new THREE.Color(0x05070c);
+    s.fog = new THREE.FogExp2(0x0a0e16, 0.024);
+    // улица целиком: особняк, ограда, фонари, мокрый асфальт, небо, дождь (street.js)
+    this.street = buildStreet(s, this.streetTex, this.renderer);
+    // свет на вора и штурмана в меню (со стороны камеры), в сценках выключен; заведён сразу, чтобы шейдеры не пересобирались
+    this.crewLight = new THREE.PointLight(0xffe2c4, 0, 11, 1.4);
+    this.crewLight.position.set(2.6, 2.9, 0.4);
+    s.add(this.crewLight);
     // фургон: сам кузов, дверь и колёса — узлы модели; фары светят вперёд
     this.vanG = new THREE.Group();
     const v = this.van.clone(true);
@@ -223,6 +180,27 @@ export class Cutscenes {
     this.door = v.getObjectByName("door");
     this.door0 = this.door ? this.door.position.clone() : null;
     this.wheels = [0, 1, 2, 3].map((k) => v.getObjectByName("wheel" + k));
+    // снег на крыше и капоте фургона, мокрый блеск в дождь — как у всей улицы
+    v.traverse((o) => {
+      if (
+        o.isMesh &&
+        !/glass|light|screen|led|lamp|amber/.test(o.material.name)
+      )
+        this.street.weatherize(o.material);
+    });
+    // задние створки (в меню открыты: внутри рабочее место штурмана) и свет в отсеке
+    this.rear = [v.getObjectByName("rear_l"), v.getObjectByName("rear_r")];
+    this.vanIn = new THREE.PointLight(0x9fe8c8, 0, 4, 1.5);
+    this.vanIn.position.set(0, 1.7, -0.6); // в осях модели: перед +Z, корма -Z
+    v.add(this.vanIn);
+    v.traverse((o) => {
+      if (o.isMesh && o.material && o.material.name === "screen") {
+        o.material = o.material.clone();
+        o.material.emissiveMap = vanScreens();
+        o.material.emissive.set(0xffffff);
+        o.material.emissiveIntensity = 1.1;
+      }
+    });
     for (const sx of [-0.8, 0.8]) {
       const h = new THREE.SpotLight(0xfff0d0, 60, 26, 0.45, 0.6, 1.5);
       h.position.set(-2.6, 0.9, sx);
@@ -233,8 +211,179 @@ export class Cutscenes {
       this.vanG.add(gl);
     }
     s.add(this.vanG);
+    this.ensureThief();
+  }
+  // вор для сценок: модель людей грузится отдельно от улицы (улицу строит уже меню) — создаём, когда готова
+  ensureThief() {
+    if (this.thief || !this.scene || !guardReady()) return;
     this.thief = makeThiefModel();
-    if (this.thief) s.add(this.thief.model, ...this.thief.extra);
+    if (this.thief) this.scene.add(this.thief.model, ...this.thief.extra);
+  }
+  // меню: фургон у ворот, у его кормы вор и штурман, камера медленно плывёт.
+  // focus 0..1 — камера подъезжает к ним (выбор ролей). false — улица ещё не загрузилась
+  menu(dt, aspect, focus) {
+    if (!this.van || !this.streetTex) return false;
+    if (!this.scene) this.build();
+    // люди грузятся отдельно от улицы: героев создаём, когда модель готова
+    if (!this.crew && guardReady()) {
+      this.crew = { thief: makeCrewModel("thief"), nav: makeCrewModel("nav") };
+      for (const c of Object.values(this.crew))
+        if (c) this.scene.add(c.model, ...c.extra);
+    }
+    if (window.__freeze) dt = 0;
+    this.useLot("mansion");
+    this.street.weatherAt(0);
+    const t = (this.menuT = (this.menuT || 0) + dt);
+    this.focus = this.focus || 0;
+    this.focus += (focus - this.focus) * Math.min(1, dt * 1.6);
+    this.cam.aspect = aspect;
+    this.cam.updateProjectionMatrix();
+    this.street.update(dt, this.weather, this.flash);
+    this.vanG.position.set(VAN_X, 0, VAN_Z);
+    if (this.door) this.door.position.copy(this.door0);
+    if (this.thief) this.thief.model.visible = false;
+    this.crewLight.intensity = 10 + 6 * this.focus;
+    this.rearOpen(1);
+    this.street.gateOpen(0);
+    // вор и штурман у кормы фургона, повёрнуты к камере
+    const spots = { thief: [0.35, -1.25, 0.55], nav: [1.35, -2.05, 0.35] };
+    for (const [k, c] of Object.entries(this.crew || {})) {
+      if (!c) continue;
+      c.model.visible = true;
+      c.model.position.set(spots[k][0], 0, spots[k][1]);
+      c.model.rotation.y = spots[k][2];
+      c.update(dt);
+    }
+    const f = ease(clamp01(this.focus)),
+      sw = Math.sin(t * 0.07),
+      bob = Math.sin(t * 0.11) * 0.06;
+    const far = [6.2 + sw * 0.7, 1.55 + bob, 6.4 - sw * 0.3],
+      near = [5.0 + sw * 0.12, 1.65 + bob * 0.5, 4.3],
+      lookFar = [-1.6, 1.9, -4.2],
+      lookNear = [-0.3, 1.35, -2.3];
+    const L = (a, b) => a.map((v, i) => v + (b[i] - v) * f);
+    this.cam.position.set(...L(far, near));
+    this.cam.lookAt(...L(lookFar, lookNear));
+    // папка меню слева: самое интересное — в правой половине кадра (на узком экране — по центру)
+    this.cam.rotateY(aspect > 1.2 ? 0.3 - 0.06 * f : 0);
+    return true;
+  }
+  // фото объекта для брифинга: особняк через дорогу, без фургона и людей, погода — this.weather.
+  // v — номер ракурса. Возвращает функцию «вернуть всё как было» (false — улица ещё не загрузилась)
+  still(aspect, v = 0) {
+    if (!this.van || !this.streetTex) return false;
+    if (!this.scene) this.build();
+    const hide = [this.vanG, this.thief && this.thief.model];
+    for (const c of Object.values(this.crew || {}))
+      if (c) hide.push(c.model, ...c.extra);
+    const off = hide.filter((o) => o && o.visible);
+    for (const o of off) o.visible = false;
+    this.useLot();
+    this.street.gateOpen(0);
+    this.street.update(0, this.weather, 0);
+    const fov0 = this.cam.fov,
+      ls = LOT_STILLS[this.street.lotId];
+    if (ls) {
+      const [x, y, z, lx, ly, lz, fov] = ls[v % ls.length];
+      this.cam.fov = fitFov(fov, aspect);
+      this.cam.position.set(x, y, z);
+      this.cam.lookAt(lx, ly, lz);
+    } else {
+      const [x, y, z, ly, fov] = STILLS[v % STILLS.length];
+      this.cam.fov = fitFov(fov, aspect);
+      this.cam.position.set(x, y, z);
+      this.cam.lookAt(0, ly, HOUSE_Z);
+    }
+    this.street.weatherAt(this.cam.position.x);
+    this.cam.aspect = aspect;
+    this.cam.updateProjectionMatrix();
+    return () => {
+      for (const o of off) o.visible = true;
+      this.cam.fov = fov0;
+      this.cam.updateProjectionMatrix();
+    };
+  }
+  // фото на память для итогов дела: вор и штурман у кормы фургона, как в меню, только камера ближе.
+  // Возвращает функцию «вернуть всё как было» (false — улица или люди ещё не загрузились)
+  crewStill(aspect) {
+    if (!this.van || !this.streetTex || !guardReady()) return false;
+    if (!this.scene) this.build();
+    if (!this.crew) {
+      this.crew = { thief: makeCrewModel("thief"), nav: makeCrewModel("nav") };
+      for (const c of Object.values(this.crew))
+        if (c) this.scene.add(c.model, ...c.extra);
+    }
+    const objs = [this.vanG, this.thief && this.thief.model];
+    for (const c of Object.values(this.crew))
+      if (c) objs.push(c.model, ...c.extra);
+    const was = objs.filter(Boolean).map((o) => [o, o.visible]),
+      vanPos = this.vanG.position.clone(),
+      light0 = this.crewLight.intensity,
+      fov0 = this.cam.fov;
+    this.vanG.visible = true;
+    this.vanG.position.set(VAN_X, 0, VAN_Z);
+    if (this.door) this.door.position.copy(this.door0);
+    if (this.thief) this.thief.model.visible = false;
+    this.rearOpen(1);
+    this.useLot();
+    this.street.weatherAt(0);
+    this.street.gateOpen(0);
+    this.street.update(0, this.weather, 0);
+    this.crewLight.intensity = 16;
+    const spots = { thief: [0.35, -1.25, 0.55], nav: [1.35, -2.05, 0.35] };
+    for (const [k, c] of Object.entries(this.crew)) {
+      if (!c) continue;
+      c.model.visible = true;
+      for (const o of c.extra) o.visible = true;
+      c.model.position.set(spots[k][0], 0, spots[k][1]);
+      c.model.rotation.y = spots[k][2];
+      c.update(0.016);
+    }
+    this.cam.fov = fitFov(34, aspect);
+    this.cam.aspect = aspect;
+    this.cam.updateProjectionMatrix();
+    this.cam.position.set(3.9, 1.55, 3.1);
+    this.cam.lookAt(0.6, 1.15, -1.9);
+    return () => {
+      for (const [o, v] of was) o.visible = v;
+      this.vanG.position.copy(vanPos);
+      this.crewLight.intensity = light0;
+      this.cam.fov = fov0;
+      this.cam.updateProjectionMatrix();
+    };
+  }
+  // где на экране головы вора и штурмана: для табличек с именами (0..1 по ширине и высоте)
+  crewScreen() {
+    const out = {};
+    if (!this.crew) return out;
+    for (const [k, c] of Object.entries(this.crew || {})) {
+      if (!c || !c.head) continue;
+      const v = new THREE.Vector3();
+      c.head.getWorldPosition(v);
+      v.y += 0.38;
+      v.project(this.cam);
+      out[k] = { x: (v.x + 1) / 2, y: (1 - v.y) / 2, on: v.z < 1 };
+    }
+    return out;
+  }
+  // задние створки: k = 0 закрыты, 1 распахнуты; с ними — свет мониторов в отсеке
+  rearOpen(k) {
+    const [l, r] = this.rear || [];
+    if (l) l.rotation.y = -1.85 * k;
+    if (r) r.rotation.y = 1.85 * k;
+    if (this.vanIn) this.vanIn.intensity = 3.5 * k;
+  }
+  hideCrew() {
+    if (this.crew)
+      for (const c of Object.values(this.crew))
+        if (c) {
+          c.model.visible = false;
+          for (const o of c.extra) o.visible = false;
+        }
+  }
+  // кадр: отражение в мокром асфальте и сама улица; mirror — доля разрешения для отражения
+  render(renderer, mirror = 0.33) {
+    this.street.render(renderer, this.scene, this.cam, mirror);
   }
   // kind: "arrive" | "escape"; done вызывается в конце (или при пропуске)
   play(kind, done) {
@@ -243,6 +392,12 @@ export class Cutscenes {
       return;
     }
     if (!this.scene) this.build();
+    this.useLot();
+    this.ensureThief();
+    this.hideCrew();
+    this.crewLight.intensity = 0;
+    this.rearOpen(0);
+    this.cues = [];
     this.active = {
       kind,
       t: 0,
@@ -250,6 +405,16 @@ export class Cutscenes {
       dur: kind === "arrive" ? 6.2 : 5.2,
       x: 0,
     };
+    // фургон встаёт напротив входа здания (у особняка — у ворот): вся сценка сдвигается по улице на ox
+    // доля пути до входа: калитка (дверь) распахивается, когда вор до неё добегает; по этой секунде и скрип в cutCues
+    const [ex, ez] = this.entry(),
+      ox = (this.active.ox = ex - 0.3),
+      d1 = Math.hypot(ex - (VAN_X + ox), ez + 0.8 - (VAN_Z - 1.2));
+    if (this.street) this.street.weatherAt(ox);
+    this.active.tGate =
+      kind === "arrive"
+        ? 3.6 + 2.4 * (d1 / (d1 + 4.8)) - 0.4
+        : Math.max(0.05, 1.5 * (3.8 / (d1 + 3.8)) - 0.35);
     document.body.classList.add("cut");
     this.fade.style.transition = "none";
     this.fade.style.opacity = 1;
@@ -259,7 +424,7 @@ export class Cutscenes {
     });
     if (this.thief) {
       this.thief.model.visible = kind === "escape";
-      this.thief.play(kind === "arrive" ? "walk" : "run");
+      this.thief.play("run"); // вбегает и выбегает бегом
     }
   }
   skip() {
@@ -279,41 +444,41 @@ export class Cutscenes {
     if (!a) return;
     if (window.__freeze) dt = 0; // для проверок: сценка стоит на месте
     a.t += dt;
+    // звук идёт по времени сценки: подвис кадр — звук подождёт вместе с картинкой
+    while (this.cues.length && this.cues[0][0] <= a.t) this.cues.shift()[1]();
     const t = a.t;
     this.cam.aspect = aspect;
     this.cam.updateProjectionMatrix();
-    // дождь падает и чуть сносится ветром
-    const p = this.rainGeo.attributes.position.array;
-    this.rainSeed.forEach((r, i) => {
-      r[1] -= dt * 16;
-      r[0] -= dt * 2.4;
-      if (r[1] < 0) {
-        r[1] += 14;
-        r[0] = (Math.random() - 0.5) * 50;
-      }
-      p.set([r[0], r[1], r[2], r[0] + 0.07, r[1] + 0.5, r[2]], i * 6);
-    });
-    this.rainGeo.attributes.position.needsUpdate = true;
+    // погода, дождь, брызги, небо — на улице (street.js)
+    this.street.update(window.__freeze ? 0 : dt, this.weather, this.flash);
     let vanX, doorK, th;
+    const [ex, ez] = this.entry(),
+      ox = a.ox || 0,
+      VX = VAN_X + ox; // где фургон встаёт у этого здания
     if (a.kind === "arrive") {
       // фургон подъезжает справа и тормозит у ворот, дверь отъезжает, вор идёт к воротам
       const k = clamp01(t / 3.0);
-      vanX = VAN_X + 29 * (1 - k) * (1 - k);
+      vanX = VX + 29 * (1 - k) * (1 - k);
       doorK = ease(clamp01((t - 3.1) / 0.6));
       th = {
         on: t > 3.5,
         ...along(
           [
-            [VAN_X, VAN_Z - 1.2],
-            [0.3, GATE_Z + 0.8],
-            [0.3, GATE_Z - 4],
+            [VX, VAN_Z - 1.2],
+            [ex, ez + 0.8],
+            [ex, ez - 4],
           ],
           (t - 3.6) / 2.4,
         ),
       };
       const e = ease(clamp01(t / 6));
-      this.cam.position.set(8 - 4 * e, 3.6 - 0.6 * e, 9.5 - 1.5 * e);
-      this.cam.lookAt(vanX * 0.35, 1.0, -4.5 - 3 * ease(clamp01((t - 3) / 3)));
+      this.cam.position.set(ox + 8 - 4 * e, 3.6 - 0.6 * e, 9.5 - 1.5 * e);
+      const fx = ease(clamp01((t - 3) / 3));
+      this.cam.lookAt(
+        ox + (vanX - ox) * 0.35 * (1 - fx) + (ex - ox) * 0.6 * fx,
+        1.0 + Math.max(0, -ez + GATE_Z) * 0.08 * fx, // вход в глубине площади — камера чуть выше
+        Math.min(-4.5, ez + 2.9) - 3 * fx,
+      );
       if (t > a.dur - 0.7 && !a.fading) {
         a.fading = true;
         this.fade.style.transition = "opacity .6s";
@@ -325,18 +490,18 @@ export class Cutscenes {
         on: t < 1.55,
         ...along(
           [
-            [0.3, GATE_Z - 3],
-            [0.3, GATE_Z + 0.8],
-            [VAN_X, VAN_Z - 1.2],
+            [ex, ez - 3],
+            [ex, ez + 0.8],
+            [VX, VAN_Z - 1.2],
           ],
           t / 1.5,
         ),
       };
       doorK = 1 - ease(clamp01((t - 1.6) / 0.5));
       const k = clamp01((t - 2.1) / 2.6);
-      vanX = VAN_X - 30 * k * k;
-      this.cam.position.set(6, 3.2, 8.5);
-      this.cam.lookAt(Math.max(vanX, -10) * 0.4, 1.0, -4.2);
+      vanX = VX - 30 * k * k;
+      this.cam.position.set(ox + 6, 3.2, 8.5);
+      this.cam.lookAt(ox + Math.max(vanX - ox, -10) * 0.4, 1.0, Math.min(-4.2, ez + 3.2));
       if (t > a.dur - 0.7 && !a.fading) {
         a.fading = true;
         this.fade.style.transition = "opacity .6s";
@@ -346,6 +511,12 @@ export class Cutscenes {
     const dx = vanX - this.vanG.position.x;
     this.vanG.position.set(vanX, 0, VAN_Z);
     for (const w of this.wheels) if (w) w.rotation.x -= dx / 0.36;
+    // калитка: вор распахивает её, когда добегает (на входе ~4,8 с, на выходе ~0,6 с), скрип — в cutCues
+    this.street.gateOpen(
+      a.kind === "arrive"
+        ? ease(clamp01((t - a.tGate) / 0.5))
+        : ease(clamp01((t - a.tGate) / 0.45)),
+    );
     if (this.door) {
       // дверь чуть наружу и назад (в осях модели: наружу -X, назад -Z)
       this.door.position.copy(this.door0);

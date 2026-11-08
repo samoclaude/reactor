@@ -1,6 +1,6 @@
 // Схема здания для штурмана (и мини-карта в тренировке). Рисуется в 2D canvas.
 // Как в 2D-версии: мир показан на такт вперёд, бледный охранник — где он сейчас.
-import { LM, guardPos, ray, camDir, laserOn, whoCaught } from "./logic.js";
+import { LM, guardPos, ray, camCells, laserOn, whoCaught } from "./logic.js";
 
 function emoji(g, ch, x, y, size) {
   g.font = `${Math.round(size)}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
@@ -9,11 +9,14 @@ function emoji(g, ch, x, y, size) {
   g.fillText(ch, x, y + size * 0.05);
 }
 
-// o: { lv, sim, now, showGuards, showThief, thief: {x, y, yaw} в клетках, pingUntil, showStart, start }
+// o: { lv, sim, now, showGuards, showAll (тренировка), showThief, thief: {x, y, yaw} в клетках, pingUntil, showStart, start }
 export function drawPlan(g, CW, CH, o) {
   const { lv, sim } = o,
     W = lv.W,
     H = lv.H;
+  // охрана в тени (с дела №13): штурман видит только маршруты, охрану — после поимки и в тренировке
+  const showG =
+    o.showGuards && (!lv.hide || o.showAll || !!sim.caught || !!sim.won);
   const T = Math.floor(Math.min(CW / W, CH / H)),
     ox = Math.floor((CW - T * W) / 2),
     oy = Math.floor((CH - T * H) / 2);
@@ -41,11 +44,19 @@ export function drawPlan(g, CW, CH, o) {
       g.fillRect(X + 1, Y + 1, T - 2, T - 2);
     }
   };
+  // обзор камер (на такт вперёд): ярко-оранжевый, с рамкой — чтобы на синей схеме не терялся;
+  // после взлома щитка видеонаблюдения камер нет
   for (const c of lv.cams) {
-    const k = camDir(c, t);
-    if (k >= 0) zone(ray(lv, c.i, k, lv.camr), "rgba(255,170,40,.32)");
+    const cells = camCells(lv, c, t, sim);
+    zone(cells, "rgba(255,150,30,.42)");
+    g.strokeStyle = "rgba(255,190,90,.75)";
+    g.lineWidth = Math.max(1, T * 0.04);
+    for (const q of cells) {
+      const [X, Y] = at(q);
+      g.strokeRect(X + 2, Y + 2, T - 4, T - 4);
+    }
   }
-  if (o.showGuards)
+  if (showG)
     lv.guards.forEach((gd, k) => {
       const { i, face } = guardPos(lv, sim, k, t);
       zone([i, ...ray(lv, i, face, lv.vr)], "rgba(255,60,60,.30)");
@@ -82,18 +93,43 @@ export function drawPlan(g, CW, CH, o) {
       if (lv.deco[c] != null)
         emoji(g, LM[lv.deco[c]][0], X + T / 2, Y + T / 2, T * 0.72);
     }
-  // маршруты охраны
+  // маршруты охраны; в тени — оранжевые точки, квадрат в конце и пунктир захода в соседнюю комнату
   g.save();
-  g.setLineDash([2, 4]);
-  g.strokeStyle = "rgba(255,120,120,.5)";
-  g.lineWidth = 1.5;
-  for (const gd of lv.guards) {
+  const line = (cells) => {
     g.beginPath();
-    gd.path.forEach((c, i) => {
+    cells.forEach((c, i) => {
       const [X, Y] = at(c);
       i ? g.lineTo(X + T / 2, Y + T / 2) : g.moveTo(X + T / 2, Y + T / 2);
     });
     g.stroke();
+  };
+  if (lv.hide) {
+    g.strokeStyle = "rgba(255,184,77,.7)";
+    g.lineWidth = 2;
+  } else {
+    g.setLineDash([2, 4]);
+    g.strokeStyle = "rgba(255,120,120,.5)";
+    g.lineWidth = 1.5;
+  }
+  for (const gd of lv.guards) {
+    line(gd.path);
+    if (!lv.hide) continue;
+    g.fillStyle = "#FFB84D";
+    for (const c of gd.path) {
+      const [X, Y] = at(c);
+      g.beginPath();
+      g.arc(X + T / 2, Y + T / 2, Math.max(2.5, T * 0.09), 0, 6.283);
+      g.fill();
+    }
+    const [EX, EY] = at(gd.path[gd.path.length - 1]),
+      s2 = Math.max(6, T * 0.26);
+    g.fillRect(EX + T / 2 - s2 / 2, EY + T / 2 - s2 / 2, s2, s2);
+    if (gd.side) {
+      g.save();
+      g.setLineDash([3, 4]);
+      line([gd.end ? gd.path[gd.path.length - 1] : gd.path[0], ...gd.side]);
+      g.restore();
+    }
   }
   g.restore();
   // укрытия: Ш — шкаф, П — портьера
@@ -108,7 +144,7 @@ export function drawPlan(g, CW, CH, o) {
     g.fillText(h.kind === "wardrobe" ? "Ш" : "П", X + T * 0.23, Y + T * 0.24);
   }
   // охранник свернёт с маршрута в ближайшие такты: путь оранжевым пунктиром и «!»
-  if (o.showGuards && !(sim.caught || sim.won))
+  if (showG && !(sim.caught || sim.won))
     lv.guards.forEach((gd, k) => {
       const fut = [0, 1, 2].map((d) => guardPos(lv, sim, k, t + d).i);
       if (fut.every((c) => gd.path.includes(c))) return;
@@ -197,11 +233,71 @@ export function drawPlan(g, CW, CH, o) {
     g.stroke();
     g.restore();
   }
-  for (const c of lv.cams) {
+  // камеры с номером — тем же, что у монитора в фургоне; взломаны — бледные
+  lv.cams.forEach((c, k) => {
     const [X, Y] = at(c.i);
+    g.globalAlpha = sim.camOff ? 0.4 : 1;
     emoji(g, "📹", X + T / 2, Y + T / 2, T * 0.62);
+    g.globalAlpha = 1;
+    g.fillStyle = "#FFD23F";
+    g.font = `bold ${Math.max(9, Math.round(T * 0.32))}px "PT Mono", monospace`;
+    g.textAlign = "right";
+    g.textBaseline = "top";
+    g.fillText(String(k + 1), X + T - 2, Y + 1);
+  });
+  // лазерный барьер (сетка) и щиток 🎛️
+  if (lv.gate >= 0) {
+    const [X, Y] = at(lv.gate),
+      on = !sim.gateOff;
+    g.save();
+    g.fillStyle = on ? "rgba(255,40,40,.35)" : "rgba(255,40,40,.08)";
+    g.fillRect(X + 1, Y + 1, T - 2, T - 2);
+    g.strokeStyle = "#FF3B3B";
+    g.lineWidth = Math.max(2, T * 0.08);
+    if (on) {
+      g.shadowColor = "#FF3B3B";
+      g.shadowBlur = 12;
+    } else g.setLineDash([3, 4]);
+    for (let k = 1; k < 4; k++) {
+      g.beginPath();
+      g.moveTo(X + (k * T) / 4, Y + 2);
+      g.lineTo(X + (k * T) / 4, Y + T - 2);
+      g.stroke();
+      g.beginPath();
+      g.moveTo(X + 2, Y + (k * T) / 4);
+      g.lineTo(X + T - 2, Y + (k * T) / 4);
+      g.stroke();
+    }
+    g.restore();
   }
-  if (o.showGuards) {
+  if (lv.panel >= 0) {
+    const [X, Y] = at(lv.panel);
+    g.globalAlpha = sim.gateOff ? 0.45 : 1;
+    emoji(g, "🎛️", X + T / 2, Y + T / 2, T * 0.62);
+    g.globalAlpha = 1;
+  }
+  // щиток видеонаблюдения (с дела №11): вор подключается, штурман вводит пароль
+  if (lv.cctv >= 0) {
+    const [X, Y] = at(lv.cctv);
+    g.globalAlpha = sim.camOff ? 0.45 : 1;
+    emoji(g, "📟", X + T / 2, Y + T / 2, T * 0.62);
+    g.globalAlpha = 1;
+  }
+  // охрана в тени: только номер в начале маршрута
+  if (!showG)
+    lv.guards.forEach((gd, gi) => {
+      const [X, Y] = at(gd.path[0]);
+      g.fillStyle = "#FFB84D";
+      g.beginPath();
+      g.arc(X + T / 2, Y + T / 2, T * 0.3, 0, 6.283);
+      g.fill();
+      g.fillStyle = "#2A0000";
+      g.font = `bold ${Math.round(T * 0.38)}px "PT Mono", monospace`;
+      g.textAlign = "center";
+      g.textBaseline = "middle";
+      g.fillText(String(gi + 1), X + T / 2, Y + T / 2 + 1);
+    });
+  if (showG) {
     const gCatch = sim.caught === "guard" ? whoCaught(lv, sim) : -1;
     lv.guards.forEach((gd, gi) => {
       const { i } = guardPos(lv, sim, gi, t),
@@ -243,6 +339,8 @@ export function drawPlan(g, CW, CH, o) {
       emoji(g, "💂", X + T / 2, Y + T / 2, T * 0.72);
     });
   }
+  // кофейные пятна (с дела №8): под ними штурман ничего не видит
+  for (const st of lv.stains || []) coffeeStain(g, st, ox, oy, T, o.showAll);
   if (o.showStart && o.start != null) {
     const [X, Y] = at(o.start);
     g.save();
@@ -307,4 +405,135 @@ export function drawPlan(g, CW, CH, o) {
     g.fill();
     g.restore();
   }
+}
+
+// кофейное пятно: неровная лужица с тёмным ободком, бликом, брызгами и следом от донышка кружки.
+// Форма своя у каждого пятна, но постоянная; клетки под пятном закрыты целиком. see — тренировка, пятно полупрозрачное
+function coffeeStain(g, st, ox, oy, T, see) {
+  const X = ox + st.x0 * T,
+    Y = oy + st.y0 * T,
+    w = st.w * T,
+    h = st.h * T,
+    cx = X + w / 2,
+    cy = Y + h / 2;
+  let seed = (st.x0 * 7919 + st.y0 * 104729 + st.w * 31) | 0;
+  const rnd = () => {
+    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+    return seed / 0x7fffffff;
+  };
+  // край: «квадратный круг» (закрывает углы клеток) с волнами наружу
+  const ph = [rnd() * 6.28, rnd() * 6.28, rnd() * 6.28],
+    edge = new Path2D();
+  for (let i = 0; i <= 72; i++) {
+    const a = (i / 72) * 6.2832,
+      c = Math.cos(a),
+      sn = Math.sin(a),
+      sq = 1 / Math.pow(Math.abs(c) ** 8 + Math.abs(sn) ** 8, 1 / 8),
+      wob =
+        1.04 +
+        0.04 * (1 + Math.sin(3 * a + ph[0])) +
+        0.02 * (1 + Math.sin(5 * a + ph[1])) +
+        0.01 * (1 + Math.sin(11 * a + ph[2]));
+    const px = cx + c * sq * (w / 2) * wob,
+      py = cy + sn * sq * (h / 2) * wob;
+    i ? edge.lineTo(px, py) : edge.moveTo(px, py);
+  }
+  edge.closePath();
+  g.save();
+  g.globalAlpha = see ? 0.55 : 1;
+  // брызги вокруг
+  for (let k = 0, n = 5 + Math.floor(rnd() * 4); k < n; k++) {
+    const a = rnd() * 6.2832,
+      d = 0.56 + rnd() * 0.14,
+      r = T * (0.08 + rnd() * 0.14);
+    const dx = cx + Math.cos(a) * w * d,
+      dy = cy + Math.sin(a) * h * d;
+    g.fillStyle = "#3b210d";
+    g.beginPath();
+    g.ellipse(dx, dy, r * 1.25, r, a, 0, 6.2832);
+    g.fill();
+    g.fillStyle = "rgba(255,230,190,.28)";
+    g.beginPath();
+    g.arc(dx - r * 0.35, dy - r * 0.35, r * 0.3, 0, 6.2832);
+    g.fill();
+  }
+  // сама лужица: в середине светлее, к краю темнее
+  const R = Math.max(w, h) * 0.65,
+    gr = g.createRadialGradient(cx - w * 0.1, cy - h * 0.1, 2, cx, cy, R);
+  gr.addColorStop(0, "#6a4220");
+  gr.addColorStop(0.6, "#4e2d13");
+  gr.addColorStop(1, "#331b09");
+  g.fillStyle = gr;
+  g.fill(edge);
+  g.save();
+  g.clip(edge);
+  // кофейное кольцо: краска собирается у края
+  g.strokeStyle = "rgba(28,13,4,.6)";
+  g.lineWidth = T * 0.45;
+  g.stroke(edge);
+  // разводы посветлее
+  for (let k = 0; k < 3; k++) {
+    const bx = cx + (rnd() - 0.5) * w * 0.6,
+      by = cy + (rnd() - 0.5) * h * 0.6,
+      br = T * (0.5 + rnd() * 0.6),
+      bg = g.createRadialGradient(bx, by, 1, bx, by, br);
+    bg.addColorStop(0, "rgba(140,90,45,.35)");
+    bg.addColorStop(1, "rgba(140,90,45,0)");
+    g.fillStyle = bg;
+    g.fillRect(bx - br, by - br, br * 2, br * 2);
+  }
+  // след от донышка кружки: кольцо, частью вылезает за край
+  const mr = Math.min(w, h) * 0.36,
+    mx = cx + (rnd() - 0.5) * w * 0.35,
+    my = cy + (rnd() - 0.5) * h * 0.35;
+  g.restore();
+  g.strokeStyle = "rgba(30,14,4,.7)";
+  g.lineWidth = Math.max(1.5, T * 0.09);
+  g.beginPath();
+  g.arc(mx, my, mr, rnd() * 6.28, rnd() * 6.28 + 5.2);
+  g.stroke();
+  g.strokeStyle = "rgba(30,14,4,.3)";
+  g.lineWidth = Math.max(1, T * 0.04);
+  g.beginPath();
+  g.arc(mx, my, mr * 0.86, 0, 6.2832);
+  g.stroke();
+  // глянцевый блик сверху слева
+  g.save();
+  g.clip(edge);
+  const hx = cx - w * 0.22,
+    hy = cy - h * 0.24,
+    hg = g.createRadialGradient(hx, hy, 1, hx, hy, Math.min(w, h) * 0.3);
+  hg.addColorStop(0, "rgba(255,240,215,.32)");
+  hg.addColorStop(1, "rgba(255,240,215,0)");
+  g.fillStyle = hg;
+  g.beginPath();
+  g.ellipse(hx, hy, w * 0.3, h * 0.14, -0.5, 0, 6.2832);
+  g.fill();
+  g.strokeStyle = "rgba(255,245,225,.45)";
+  g.lineWidth = Math.max(1, T * 0.05);
+  g.lineCap = "round";
+  g.beginPath();
+  g.ellipse(cx, cy, w * 0.38, h * 0.36, 0, 3.6, 4.3);
+  g.stroke();
+  g.restore();
+  g.strokeStyle = "rgba(22,10,2,.85)";
+  g.lineWidth = 1.5;
+  g.stroke(edge);
+  g.restore();
+}
+
+// клик по схеме (u, v — координаты на экране планшета 0..1, v снизу вверх) → комната под ним или -1.
+// Стена и проём рядом с комнатой считаются ею: так проще попасть пальцем
+export function planRoom(lv, CW, CH, u, v) {
+  const W = lv.W,
+    H = lv.H,
+    T = Math.floor(Math.min(CW / W, CH / H)),
+    ox = Math.floor((CW - T * W) / 2),
+    oy = Math.floor((CH - T * H) / 2),
+    fx = (u * CW - ox) / T,
+    fy = ((1 - v) * CH - oy) / T;
+  if (fx < 0 || fy < 0 || fx >= W || fy >= H) return -1;
+  const x = Math.min(W - 2, 2 * Math.floor(fx / 2) + 1),
+    y = Math.min(H - 2, 2 * Math.floor(fy / 2) + 1);
+  return y * W + x;
 }
