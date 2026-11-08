@@ -315,7 +315,11 @@
       if (pos.site === 'M') { R.contact = mkContact('mid', 'M', pos.d, pos, 0); e.res = 'mid'; s.step = 'fight'; }
       else { R.ctrlMid = true; e.res = 'midfree'; s.step = 'plan2'; }
     } else if (pos.site === route) { R.contact = mkContact('entry', route, pos.d, pos, split); e.res = 'contact'; s.step = 'fight'; }
-    else if (pos.site === 'M') { e.res = 'rotate'; plantBomb(s, route, 1); return; }
+    else if (pos.site === 'M') {
+      // CT с мида слышит T и успевает на ротацию: встреча на входе, но T уже на точке (+1)
+      R.contact = mkContact('entry', route, 1, null, 0); R.contact.rot = true; R.contact.posName = 'ротация с мида';
+      e.res = 'rotcontact'; s.step = 'fight';
+    }
     else { e.res = 'plant'; plantBomb(s, route, 0); return; }
     checkClock(s);
   }
@@ -352,6 +356,7 @@
     if (ctx.hold) parts.push({ l: 'Держит угол', v: 2 });
     if (ctx.posB) parts.push({ l: 'Позиция', v: ctx.posB });
     if (ctx.split) parts.push({ l: 'Сплит через мид', v: ctx.split });
+    if (ctx.first) parts.push({ l: 'Первым на точке', v: 1 });
     if (w.perk === 'peek' && ctx.act === 'peek') parts.push({ l: 'M4A4: магазин', v: 1 });
     if (w.perk === 'hold' && ctx.act === 'hold') parts.push({ l: 'M4A1-S: точность', v: 1 });
     if (w.perk === 'awp' && ctx.act === 'peek') parts.push({ l: 'AWP на выходе', v: -1 });
@@ -394,11 +399,12 @@
     let after = null;  // что делать, если оба живы
     if (c.type === 'retake') {
       if (b === 'back') { e.out = 'save'; endRound(s, t, 'save'); return; }
+      // Пост-плант как в CS: T сидит под углом и стреляет в того, кто сел на бомбу.
+      // Дефьюз идёт, только когда CT закрыл угол T дымом, а T остался сидеть. Вышел T в дым → ловит дефьюзера.
       if (a === 'hold' && b === 'hold') { e.out = 'standoff'; }
-      else if (a === 'hold' && b === 'defuse') {
-        if (burned[ct]) { e.out = 'defstop'; }
-        else { R.bomb.prog++; e.out = 'defprog'; }
-      } else duel = { chase: null };
+      else if (b === 'defuse' && burned[ct]) { e.out = 'defstop'; }
+      else if (b === 'defuse' && a === 'hold' && util[ct] === 'sm') { R.bomb.prog++; e.out = 'defprog'; }
+      else duel = { chase: null };
     } else {
       if (a === 'back' && b === 'back') { e.out = 'bothback'; after = 'replan'; }
       else if (a === 'back') { e.out = 'tback'; after = 'replan'; if (b === 'peek' && c.dist < 2) duel = { chase: ct }; }
@@ -412,7 +418,7 @@
       let dist = c.dist; if ((smoke[0] || smoke[1]) && dist === 2) dist = 1;
       const ctx = [0, 1].map(k => {
         const o = 1 - k;
-        const holdOK = act[k] === 'hold' && act[o] === 'peek' && !smoke[o] && !burned[k];
+        const holdOK = act[k] === 'hold' && (act[o] === 'peek' || act[o] === 'defuse') && !smoke[o] && !burned[k];
         let posB = 0;
         if (act[k] === 'hold' && !smoke[o] && !burned[k]) {
           if (c.type === 'retake' && k === t) posB = c.posB;
@@ -420,7 +426,7 @@
         }
         return {
           act: act[k], oppAct: act[o], dist, card: cards[k], hold: holdOK, posB,
-          split: (k === t && c.type !== 'retake') ? c.split : 0,
+          split: (k === t && c.type !== 'retake') ? c.split : 0, first: k === t && !!c.rot,
           flashed: util[o] === 'fl', defusing: act[k] === 'defuse', smokeDef: act[k] === 'defuse' && smoke[k],
           retreating: duel.chase != null && duel.chase !== k, burned: burned[k]
         };
@@ -575,9 +581,9 @@
         const m = MAPS[s.map], wpn = W[weaponOf(s, k)];
         if (side === 'T') {
           if (s.step === 'plan2') return { r: rnd() < 0.5 ? 'A' : 'B' };
-          return { r: pickW(rnd, [['A', 38], ['B', 38], ['M', 24]]) };
+          return { r: pickW(rnd, [['A', 35], ['B', 35], ['M', 30]]) };
         }
-        const site = pickW(rnd, s.step === 'plan2' ? [['A', 42], ['B', 42], ['M', 16]] : [['A', 36], ['B', 36], ['M', 28]]);
+        const site = pickW(rnd, s.step === 'plan2' ? [['A', 42], ['B', 42], ['M', 16]] : [['A', 28], ['B', 28], ['M', 44]]);
         const cands = m.ct.filter(p => p.site === site);
         let best = cands[0], bv = -99;
         for (const p of cands) { const v = wpn.pow[p.d] + p.b + rnd() * 2.5; if (v > bv) { bv = v; best = p; } }
@@ -630,18 +636,19 @@
     let a, u = null;
     if (c.type === 'retake') {
       if (side === 'T') {
-        a = pickW(rnd, [['hold', 58], ['peek', 42]]);
+        // сидеть на бомбе выгодно; выходить стоит, только чтобы поймать дефьюз под дымом
+        a = pickW(rnd, [['hold', 72], ['peek', 28]]);
         if (a === 'hold' && has('mo') && rnd() < 0.55) u = 'mo';
         else if (a === 'peek' && has('fl') && rnd() < 0.6) u = 'fl';
         else if (has('he') && rnd() < 0.3) u = 'he';
       } else {
         const need = (inv.kit ? 1 : 2) - s.R.bomb.prog, left = s.R.bomb.left;
-        const hopeless = hp < 35 && left <= need;
+        const hopeless = (hp < 35 || !has('sm') && !has('fl')) && left <= need && rnd() < 0.6;
         if (hopeless && rnd() < 0.5) a = 'back';
-        else a = pickW(rnd, [['defuse', left <= need ? 45 : 30], ['peek', 40], ['hold', left > need ? 25 : 8]]);
-        if (a === 'peek' && has('fl') && rnd() < 0.7) u = 'fl';
-        else if ((a === 'defuse' || a === 'peek') && has('sm') && rnd() < 0.6) u = 'sm';
-        else if (has('he') && rnd() < 0.3) u = 'he';
+        else if (has('sm')) { a = pickW(rnd, [['defuse', 50], ['peek', 35], ['hold', left > need ? 15 : 4]]); if (a === 'defuse') u = 'sm'; }
+        else a = pickW(rnd, [['peek', 70], ['hold', left > need ? 22 : 6], ['defuse', 8]]);
+        if (!u && a === 'peek' && has('fl') && rnd() < 0.8) u = 'fl';
+        else if (!u && has('he') && rnd() < 0.3) u = 'he';
       }
     } else if (side === 'T') {
       const time = CLOCK - s.R.moment;

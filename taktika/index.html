@@ -413,11 +413,11 @@ body.bomb.hurry .vign { animation-duration: .55s; }
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="engine.js?v=3"></script>
+<script src="engine.js?v=4"></script>
 <script>
 'use strict';
-const BUILD = 'kst-2';
-const SOLO_OK = ['kst-1', 'kst-2']; // движок тот же, старые сохранения с ботом подходят
+const BUILD = 'kst-3';
+const SOLO_OK = ['kst-3']; // правила пост-планта поменялись, старые сохранения не переигрываются
 const APP = 'kst';
 const SB_URL = 'https://ulfqprrjdyycznobirxw.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVsZnFwcnJqZHl5Y3pub2Jpcnh3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM3OTg4NTMsImV4cCI6MjEwOTM3NDg1M30.zIjRlMNnqg59jZRprHcCoIkoBiIis45vw5vP4bhF_tc';
@@ -828,7 +828,7 @@ function viewPlant(bar) {
   let h = situ('💣', `Бомба на ${site}! Где держишь?`, `CT придёт её разминировать. До взрыва <b>${S.R.bomb.left} ${plural(S.R.bomb.left, 'ход', 'хода', 'ходов')}</b>. Выбери угол: ${esc(w.name)} сильнее там, где число больше.`);
   h += `<div class="grid2" style="margin-top:8px">`;
   for (const p of opts) h += `<button class="tile${D.p === p.id ? ' on' : ''}" data-pp="${p.id}" style="--c:var(--t);padding:14px 12px"><div class="tt"><span>${esc(p.name)}</span>${p.b ? `<span class="chip plus">+${p.b}</span>` : ''}</div><div class="row">${distChip(p.d)}</div><div class="ts">${esc(w.name)}: сила ${w.pow[p.d] + p.b}</div></button>`;
-  h += `</div><div class="note">Держишь угол, а CT выходит: тебе +2. Но если он дефьюзит, а ты стоишь, дефьюз идёт. Тут и блеф.</div>`;
+  h += `</div><div class="note">Сидишь под углом: CT выходит или садится на бомбу — тебе +2, а дефьюзящему −2. Разминировать он сможет, только закинув дым, пока ты сидишь. Тогда выходи в дым и лови его.</div>`;
   bar.sum = D.p ? 'Держишь бомбу отсюда' : 'Выбери позицию';
   if (D.p) bar.go = () => submit({ p: D.p });
   return h;
@@ -842,12 +842,15 @@ function outcomes(a) {
   const T = {};
   if (c.type === 'retake') {
     if (side === 'T') {
-      T.hold = { hold: ['Никто не стреляет, бомба тикает', 'good'], peek: ['Перестрелка, тебе +2', 'good'], defuse: [`Он продвинет дефьюз (осталось ${need})`, 'bad'], back: ['Он сейвится, раунд твой', 'good'] };
-      T.peek = { hold: ['Перестрелка, у него +2 (это фейк)', 'bad'], peek: ['Перестрелка на равных', 'mid'], defuse: ['Ловишь на дефьюзе: у него −2', 'good'], back: ['Он сейвится, раунд твой', 'good'] };
+      T.hold = { hold: ['Никто не стреляет, бомба тикает', 'good'], peek: ['Перестрелка, тебе +2', 'good'], defuse: ['Сел на бомбу под прицелом: тебе +2, ему −2. Но под дымом дефьюз пройдёт', 'good'], back: ['Он сейвится, раунд твой', 'good'] };
+      T.peek = { hold: ['Перестрелка, у него +2', 'bad'], peek: ['Перестрелка на равных', 'mid'], defuse: ['Ловишь на дефьюзе: у него −2 (под дымом на равных)', 'good'], back: ['Он сейвится, раунд твой', 'good'] };
     } else {
       T.hold = { hold: ['Никто не стреляет, бомба тикает', 'bad'], peek: ['Перестрелка, тебе +2', 'good'] };
       T.peek = { hold: ['Перестрелка, у него +2', 'bad'], peek: ['Перестрелка на равных', 'mid'] };
-      T.defuse = { hold: [need <= 1 ? 'Разминировал, раунд твой!' : `Дефьюз +1 (нужно ещё ${need - 1})`, 'good'], peek: ['Перестрелка, у тебя −2', 'bad'] };
+      const sm = D.u === 'sm';
+      T.defuse = sm
+        ? { hold: [need <= 1 ? 'Под дымом разминировал, раунд твой!' : `Под дымом дефьюз +1 (нужно ещё ${need - 1})`, 'good'], peek: ['Он лезет в дым: перестрелка на равных', 'mid'] }
+        : { hold: ['Сел под его прицел: ему +2, тебе −2. Нужен дым!', 'bad'], peek: ['Перестрелка, у тебя −2', 'bad'] };
       T.back = { hold: ['Раунд отдан, оружие сохранишь', 'mid'], peek: ['Раунд отдан, оружие сохранишь', 'mid'] };
     }
   } else {
@@ -864,6 +867,7 @@ function myPower(a, cardIdx) {
   const hand = S.deck[me].hand;
   if (cardIdx != null && hand[cardIdx]) parts.push(['карта', K.cardValue(hand[cardIdx], { act: a, oppAct: 'peek', dist: c.dist })]);
   if (side === 'T' && c.type !== 'retake' && c.split) parts.push(['сплит', c.split]);
+  if (side === 'T' && c.rot) parts.push(['первым на точке', 1]);
   if (a === 'hold') { const pb = (side === 'CT' && c.type !== 'retake') || (side === 'T' && c.type === 'retake') ? c.posB : 0; if (pb) parts.push(['позиция', pb]); }
   if (w.perk === 'peek' && a === 'peek') parts.push(['M4A4', 1]);
   if (w.perk === 'hold' && a === 'hold') parts.push(['M4A1-S', 1]);
@@ -881,12 +885,14 @@ function viewFight(bar) {
   let title, text;
   if (c.type === 'retake') {
     const need = (S.inv[K.ctSeat(S)].kit ? 1 : 2) - S.R.bomb.prog;
-    if (side === 'T') { title = `Держишь бомбу на ${c.site}`; text = `Ты на ${pos}, ${d}. CT пришёл на ретейк: ему нужно разминировать ${need} ${plural(need, 'раз', 'раза', 'раз')}. Угадай: он выйдет или будет дефьюзить?`; }
-    else { title = `Ретейк ${c.site}`; text = `T держит бомбу с ${pos}, ${d}. Тебе нужно разминировать <b>${need} ${plural(need, 'раз', 'раза', 'раз')}</b> до взрыва. Дефьюз под его выходом опасен.`; }
+    if (side === 'T') { title = `Держишь бомбу на ${c.site}`; text = `Ты на ${pos}, ${d}. CT пришёл на ретейк. Сидишь под углом — убьёшь того, кто сядет на бомбу. Но если он закинет дым, дефьюз пройдёт: тогда лучше выйти в дым.`; }
+    else { title = `Ретейк ${c.site}`; text = `T держит бомбу с ${pos}, ${d}. Нужно разминировать <b>${need} ${plural(need, 'раз', 'раза', 'раз')}</b> до взрыва. Сесть на бомбу под его прицелом — почти смерть: закинь дым или сначала выбей его.`; }
   } else if (c.type === 'mid') { title = 'Встреча на миде'; text = side === 'T' ? `CT держит мид с ${pos}, ${d}. Пробьёшься: мид твой.` : `T идёт через мид. Ты на ${pos}, ${d}.`; }
   else {
     title = side === 'T' ? `Заход на ${c.site}` : `T заходит на ${c.site}`;
-    text = side === 'T' ? `CT ждал тебя на ${pos}, ${d}.${c.ex ? '' : ' Он держит угол.'} Нужно его убить или выгнать, чтобы поставить бомбу.` : `Ты на ${pos}, ${d}. T пытается зайти. Убей его или тяни время.`;
+    text = c.rot
+      ? (side === 'T' ? `CT стоял на миде, услышал тебя и прибежал на ${c.site}. Ты первым на точке: +1. Убей его или выгони, чтобы поставить бомбу.` : `Ты прибежал с мида на ${c.site}, ${d}. T уже на точке (у него +1). Убей его или тяни время.`)
+      : side === 'T' ? `CT ждал тебя на ${pos}, ${d}.${c.ex ? '' : ' Он держит угол.'} Нужно его убить или выгнать, чтобы поставить бомбу.` : `Ты на ${pos}, ${d}. T пытается зайти. Убей его или тяни время.`;
   }
   let h = situ(c.type === 'retake' ? '💣' : '⚔️', title + (c.ex ? ` · обмен ${c.ex + 1}` : ''), text);
   h += `<div class="mu"><div class="side"><div class="wn">${wIcon(K.weaponOf(S, me))}${esc(w.name)}</div><div class="pw">сила <b>${w.pow[c.dist]}</b> ${d}</div><div class="mini-hp${S.hp[me] <= 40 ? ' low' : ''}"><span style="width:${S.hp[me]}%"></span></div></div><div class="vs">VS</div>
@@ -895,7 +901,7 @@ function viewFight(bar) {
     hold: c.type === 'retake' && side === 'T' ? '+2, если выйдет' : '+2, если он выйдет',
     peek: 'Идёшь на него сам',
     back: c.type === 'retake' ? 'Раунд отдан, оружие с тобой' : side === 'T' ? 'Сменить точку' : (c.type === 'mid' ? 'Отдать мид' : 'Отдать точку'),
-    defuse: S.inv[me].kit ? 'С китом хватит 1 раза' : 'Нужно 2 раза'
+    defuse: (S.inv[me].kit ? 'С китом 1 раз' : 'Нужно 2 раза') + (S.inv[me].nades.sm ? ' · с дымом' : ' · нужен дым')
   };
   h += `<div class="sec">1. Действие<b>оба выбирают тайно</b></div><div class="acts" style="--n:${acts.length}">` + acts.map(a => `<button class="act${D.a === a ? ' on' : ''}" data-act="${a}" style="--c:${a === 'back' ? 'var(--muted)' : a === 'defuse' ? 'var(--ok)' : 'var(--side)'}">${ACT_IC[a]}<b>${actName(a, side, c.type)}</b><small>${hint[a]}</small></button>`).join('') + `</div>`;
   if (D.a) {
@@ -1011,6 +1017,7 @@ function pagePlan(e, batch) {
     mid: ['ВСТРЕЧА НА МИДЕ', 'mid', `Перестрелка на миде, ${K.DIST[e.posD].toLowerCase()}.`],
     midfree: ['МИД ВЗЯТ', iAmT ? 'good' : 'mid', iAmT ? 'CT стоял на точке. Теперь выбери, куда сплит.' : 'Ты слышишь T на миде. Он выйдет на A или B со сплитом.'],
     rotate: ['БОМБА ЗАЛОЖЕНА', iAmT ? 'good' : 'mid', iAmT ? `CT был на миде и прибежит быстро: до взрыва ${K.BOMB + 1} ${plural(K.BOMB + 1, 'ход', 'хода', 'ходов')}.` : `T поставил на ${e.route}. Ты с мида, у тебя ${K.BOMB + 1} ${plural(K.BOMB + 1, 'ход', 'хода', 'ходов')} на ретейк.`],
+    rotcontact: ['РОТАЦИЯ', 'mid', iAmT ? `CT стоял на миде и успел на ${e.route}. Встреча на входе, но ты первым на точке: +1.` : `Ты услышал T и прибежал с мида на ${e.route}. Встреча на входе, у него +1: он уже на точке.`],
     plant: ['БОМБА ЗАЛОЖЕНА', iAmT ? 'good' : 'bad', iAmT ? `Точка ${e.route} пустая. +$300 за установку. До взрыва ${K.BOMB} хода.` : `Ты стоял не там. T поставил на ${e.route}, у тебя ${K.BOMB} хода на ретейк.`]
   }[e.res];
   const html = `<div class="rv-eyebrow">${e.t === 'plan2' ? 'Выход с мида' : 'Вскрытие плана'}</div>
@@ -1021,7 +1028,7 @@ function pagePlan(e, batch) {
   return { html, delay: 650, fx: el => { sfx.flip(); later(300, sfx.flip); later(750, () => { goAll(el, '.stamp, .late'); if (planted) { sfx.beep(); later(260, sfx.beep); } else if (R[1] === 'bad') sfx.lose(); else sfx.tick(); }); } };
 }
 function pagePost(e) {
-  return { html: `<div class="rv-eyebrow">Ретейк</div><div class="rv-title">T держит бомбу с «${esc(e.posName)}»</div><p class="rtext" style="text-align:left">Дистанция ${K.DIST[e.d].toLowerCase()}. Каждый ход: выйти на него, держать угол (фейк-дефьюз) или дефьюзить.</p>${btnNext()}`, fx: () => sfx.beep() };
+  return { html: `<div class="rv-eyebrow">Ретейк</div><div class="rv-title">T держит бомбу с «${esc(e.posName)}»</div><p class="rtext" style="text-align:left">Дистанция ${K.DIST[e.d].toLowerCase()}. T сидит под углом и стреляет в того, кто сядет на бомбу. CT: выбить его или дефьюзить под дымом. T: сидеть или выйти в дым.</p>${btnNext()}`, fx: () => sfx.beep() };
 }
 function pageFight(e, batch) {
   const t = e.tS, N = names(), duel = !!e.pow, shots = e.shots || [];
@@ -1071,7 +1078,7 @@ function pageFight(e, batch) {
   }
   const OUT = {
     standoff: ['ОБА ДЕРЖАТ', e.ctype === 'retake' ? 'Никто не вышел. Бомба тикает.' : 'Никто не высунулся. Ход сгорел.'],
-    defprog: ['ДЕФЬЮЗ', me === t ? 'Ты держал угол, а он начал разминировать!' : 'Он не вышел, ты режешь провода.'],
+    defprog: ['ДЕФЬЮЗ', me === t ? 'Он закинул дым на бомбу и режет провода, а ты сидел.' : 'Дым закрыл его угол, ты режешь провода.'],
     defstop: ['ДЕФЬЮЗ СБИТ', 'Огонь сбил разминирование.'],
     bothback: ['ОБА ОТОШЛИ', 'Заново решаете, кто куда.'],
     tback: ['T ОТОШЁЛ', 'T меняет план. Время идёт.'],
@@ -1185,8 +1192,8 @@ $('#roomPill').onclick = showRoomPanel;
 $('#buildTag').textContent = BUILD;
 $('#rulesBody').innerHTML = `
 <h4>Цель</h4><ul><li>1 на 1, до 8 побед. 7 раундов за одну сторону, потом смена. Раунды 1 и 8 пистолетные ($800). При 7:7 решающий раунд, обоим по $10 000.</li><li><b>T</b> побеждает, если убил CT или бомба взорвалась. <b>CT</b> побеждает, если убил T до установки, разминировал или время вышло.</li></ul>
-<h4>Ходы и время</h4><ul><li>В раунде <b>5 ходов</b> (полоска ⏱ под картой). План — 1 ход, каждая перестрелка — 1 ход. Не поставил T бомбу за 5 ходов → победа CT.</li><li>После установки свой таймер: <b>4 хода до взрыва</b> (5, если CT стоял на миде). Дефьюз: 2 хода без кита, 1 с китом.</li></ul>
-<h4>Раунд по шагам</h4><ul><li><b>Закупка</b> (тайно): оружие, броня, гранаты, кит, разминка (+1 карта прицела).</li><li><b>План</b> (тайно): T идёт на A, B или через мид. CT встаёт на позицию (точки на карте).</li><li>CT угадал точку → перестрелка. Не угадал → бомба стоит, ретейк. CT на миде → бомба стоит, но у CT +1 ход. T прошёл мид → снова выбор A/B со сплитом +1.</li></ul>
+<h4>Ходы и время</h4><ul><li>В раунде <b>5 ходов</b> (полоска ⏱ под картой). План — 1 ход, каждая перестрелка — 1 ход. Не поставил T бомбу за 5 ходов → победа CT.</li><li>После установки свой таймер: <b>4 хода до взрыва</b>. Дефьюз: 2 хода без кита, 1 с китом.</li><li>T на бомбе сильнее, как в CS: держит угол — и CT выходит, и сел дефьюзить → T +2, дефьюзящему −2. Дефьюз проходит, только если CT закинул дым, а T остался сидеть. Вышел T в дым → ловит дефьюзера на равных.</li></ul>
+<h4>Раунд по шагам</h4><ul><li><b>Закупка</b> (тайно): оружие, броня, гранаты, кит, разминка (+1 карта прицела).</li><li><b>План</b> (тайно): T идёт на A, B или через мид. CT встаёт на позицию (точки на карте).</li><li>CT угадал точку → перестрелка. Не угадал → бомба стоит, ретейк. CT на миде → успевает на ротацию: встреча на входе, у T +1 (он первым на точке). T прошёл мид → снова выбор A/B со сплитом +1.</li></ul>
 <h4>Перестрелка</h4><ul><li>Оба тайно выбирают действие, гранату и карту прицела. Под действиями видно, что будет против каждого ответа.</li><li><b>Сила</b> = оружие на дистанции + карта + бонусы. Держишь угол, а он вышел: +2.</li><li>Разница 3+ → убийство. 1–2 → попадание. Ровно → оба попали.</li><li>Хэдшот-карта: победил = в голову. AK, Deagle, Tec-9, Five-SeveN, SSG, AWP убивают и в шлем. AWP убивает любым попаданием.</li><li>Оба держат → никто не стреляет, ход сгорел. Отходишь, а он выходит, и не далеко → стреляет в спину.</li><li>Флешка −2 ему. Дым гасит его угол, далеко → средне. Молотов бьёт того, кто стоит или дефьюзит. HE −35 HP.</li></ul>
 <h4>Деньги</h4><ul><li>Победа $3250 ($3500 за взрыв или дефьюз). Поражения подряд: $1400 → $1900 → … → $3400.</li><li>За убийство: винтовка и пистолет $300, ПП $600, дробовик $900, AWP $100. Установка +$300.</li><li>Выжил → оружие остаётся. Убил вплотную или на средней → можешь подобрать его оружие.</li></ul>`;
 
