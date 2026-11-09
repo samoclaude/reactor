@@ -134,6 +134,7 @@ const FILES = [
   "cough2",
   "cough3",
   "heart",
+  "timer_music", // не петля фона: свой проигрыватель (setTimerMusic), стартует с начала за минуту до конца
   ...LOOPS,
 ];
 const files = {},
@@ -353,11 +354,12 @@ const clockMix = () =>
     2500 + 8000 * clockV,
     clockPan,
   );
-// виолончель напряжения: у вора и у штурмана, громче и ярче, когда охрана ближе
+// виолончель напряжения: у вора и у штурмана, громче и ярче, когда охрана ближе;
+// пока играет музыка таймера — вдвое тише, чтобы две музыки не спорили
 const celloMix = () =>
   setLoop(
     "cello",
-    inside() || where === "van" ? 0.3 * tense : 0,
+    inside() || where === "van" ? 0.3 * tense * (tm ? 0.5 : 1) : 0,
     500 + 2500 * tense,
     0,
     0.4,
@@ -411,6 +413,63 @@ export function setTension(k) {
   play("heart", { v: 0.2 + 0.4 * k, lp: 700 });
   nextBeat = t + 60 / (65 + 75 * k);
 }
+
+/* ---------- музыка таймера: «Orchestral Suspense Loop 1» (Freesound CC0), 36 тактов по 120 ударов = 72 с.
+   За минуту до конца попытки вступает с начала: тихие струны 0–24 с — один раз, дальше по кругу волны 24–72 с.
+   К нулю громче. Слышат оба, у штурмана — в самом фургоне, не через рацию ---------- */
+const TM_FROM = 60, // за сколько секунд до конца вступает
+  TM_V0 = 0.22, // громкость на минуте (файл громкий, как музыка меню, а она играет на MUSIC_V)
+  TM_V1 = 0.35; // у нуля
+let tm = null; // играет: { s — запись, g — громкость, v — к какой громкости идём, at — когда вступила }; null — тишина
+// раз в кадр: left — секунд до конца таймера (null — нет попытки или таймера, попытка кончилась), frozen — пауза
+export function setTimerMusic(left, frozen) {
+  if (!actx) return;
+  left = num(left, null); // null и NaN — музыки нет
+  const t = actx.currentTime;
+  if (left == null) {
+    if (!tm) return;
+    // гаснет за полсекунды, потом запись останавливается: следующая попытка начнёт её с начала
+    tm.g.gain.cancelScheduledValues(t);
+    tm.g.gain.setTargetAtTime(0, t, 0.12);
+    try {
+      tm.s.stop(t + 0.6);
+    } catch (e) {}
+    tm = null;
+    celloMix();
+    return;
+  }
+  if (!tm) {
+    if (left > TM_FROM || frozen || !bufs.timer_music) return;
+    const s = actx.createBufferSource(),
+      g = actx.createGain();
+    s.buffer = bufs.timer_music;
+    s.loop = true;
+    // стык петли — не ровно 24 и 72 с (там скачок волны, щелчок каждые 48 с), а рядом, где отсчёты
+    // совпадают (искал по раскодированному ffmpeg файлу, номера отсчётов при 44,1 кГц)
+    s.loopStart = 1058309 / 44100; // 23,998 с
+    s.loopEnd = 3175326 / 44100; // 72,003 с
+    g.gain.value = 0;
+    s.connect(g);
+    g.connect(master); // общая громкость и выключение звука — через master
+    s.start(t);
+    s.onended = () => g.disconnect();
+    tm = { s, g, v: 0, at: t };
+    celloMix();
+  }
+  // от TM_V0 на минуте до TM_V1 у нуля; на паузе — тишина, а запись играет дальше
+  const k = 1 - Math.max(0, Math.min(1, left / TM_FROM)),
+    v = frozen ? 0 : TM_V0 + (TM_V1 - TM_V0) * k;
+  if (Math.abs(v - tm.v) < 0.003) return;
+  tm.g.gain.setTargetAtTime(v, t, frozen ? 0.15 : 0.5);
+  tm.v = v;
+}
+// для проверки из консоли (__g.A.timerMusicInfo()): null — тишина, иначе к какой громкости идёт и секунда записи (после 72 — снова с 24)
+export function timerMusicInfo() {
+  if (!tm || !actx) return null;
+  const e = actx.currentTime - tm.at;
+  return { v: tm.v, sec: +(e < 72 ? e : 24 + ((e - 24) % 48)).toFixed(1) };
+}
+
 // гром после молнии (at — через сколько секунд): в здании и фургоне глухой.
 // Близкая молния (гром раньше 0,8 с) — сразу сухой треск разряда, потом раскат; треск глушим слабее, иначе выйдет просто удар
 export function sfxThunder(at = 0) {

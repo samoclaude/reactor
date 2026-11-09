@@ -116,6 +116,7 @@
 - `page` — «Singular Page Turn» (Flem0527) — https://freesound.org/s/630019/
 - `van_radio` — «Foley_Object_Small_Radio_Interference_Loop_Mono_01» (Nox_Sound) — https://freesound.org/s/561849/
 - `menu_music` — музыка в меню, «SHADY» (MadGravityStudio) — https://freesound.org/s/789664/ (CC0; петля ровно 32 такта, 0–72,45 с, стерео)
+- `timer_music` — «Orchestral Suspense Loop 1» (awrmacd) — https://freesound.org/s/387223/ (CC0; кусок 0–72 с, по громкости как музыка меню)
 - В `radio_talk` щелчки рации — «Radio Sign Off / Squelch» (см. `squelch`)
 
 ## Голос охранника и дежурного (ElevenLabs, 06.11.2026)

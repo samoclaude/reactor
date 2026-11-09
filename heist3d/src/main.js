@@ -32,7 +32,7 @@ import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js"
 import { GTAOPass } from "three/addons/postprocessing/GTAOPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 
-const BUILD = "3d-0.3"; // версия игры: менять при каждой выкладке (и ?v= модулей в index.html)
+const BUILD = "3d-0.4"; // версия игры: менять при каждой выкладке (и ?v= модулей в index.html)
 const TICK_MS = 1300; // длина такта: столько охранник идёт из клетки в клетку
 const APP = "heist3d";
 const $ = (s) => document.querySelector(s);
@@ -3617,6 +3617,24 @@ function frame(now) {
       !!sim &&
       (pz === "full" || (mode === "solo" && inGame() && !$("#menu").hidden));
   document.body.classList.toggle("paused", frozen);
+  // музыка таймера: за минуту до конца идущей попытки (не сценка и не итоги). На паузе (и в отсчёте 3-2-1) стихает;
+  // конец попытки, «Ещё раз», следующее дело, выход — гаснет, следующая попытка начнёт её с начала
+  const tmLeft = timerLeft();
+  A.setTimerMusic(
+    inGame() &&
+      s0 &&
+      s0.t0 &&
+      sim &&
+      !sim.caught &&
+      !sim.won &&
+      !cuts.active &&
+      tmLeft != null &&
+      $("#caught").hidden &&
+      $("#won").hidden
+      ? tmLeft / 1000
+      : null,
+    frozen || !!pauseAt,
+  );
   if (photoWant && lv && !cuts.active && !$("#brief").hidden) takeBriefPhoto();
   if (shotReq && now >= shotReq.at && !frozen && !cuts.active) takeShot();
   A.setAmbience(
@@ -3836,6 +3854,7 @@ window.__g = {
   },
   G,
   W,
+  A, // звук: например, __g.A.timerMusicInfo()
   startSolo,
   setCase,
   pushEv,
