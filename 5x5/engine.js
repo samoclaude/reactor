@@ -806,20 +806,86 @@
       A: [[38, 10, 29, 5], [40, 3, 29, 5], [32, 11, 29, 4], [38, 15, 34, 7], [34, 3, 28, 11]],
       B: [[4, 10, 13, 8], [6, 4, 13, 8], [12, 10, 13, 4], [5, 14, 10, 6], [3, 7, 13, 8]]
     },
-    retake: { A: [[27, 5], [25, 15], [28, 3]], B: [[16, 7], [15, 3], [16, 8]] }
+    retake: { A: [[27, 5], [25, 15], [28, 3]], B: [[16, 7], [15, 3], [16, 8]] },
+    // «Все на A / B»: пять позиций на точке
+    ct5: {
+      A: [[40, 13, 38, 30], [31, 10, 26, 15], [37, 8, 38, 24], [30, 4, 27, 12], [34, 11, 38, 24]],
+      B: [[11, 3, 5, 13], [15, 3, 5, 11], [4, 9, 5, 15], [12, 8, 5, 13], [8, 10, 5, 14]]
+    },
+    // сейв: где прятаться
+    saveT: [[13, 43], [29, 43], [13, 35], [23, 44], [17, 44]],
+    saveCT: { A: [[16, 6], [22, 1], [14, 3], [19, 8], [17, 2]], B: [[28, 1], [26, 8], [24, 1], [28, 4], [22, 6]], none: [[28, 1], [22, 1], [26, 8], [17, 3], [24, 1]] }
   };
+  // Тактики и команды, из которых выбирает игрок (и бот).
+  const TAC = {
+    T: [
+      { id: 'default', name: 'Дефолт', desc: 'Расходятся по карте, на 4-м ходу заходят туда, где видели меньше CT.' },
+      { id: 'B', name: 'Раш B', desc: 'Четверо через туннели на B, люркер через мид.' },
+      { id: 'midB', name: 'Мид → B', desc: 'Трое через мид и нижние, двое туннелями. Сходятся на B.' },
+      { id: 'long', name: 'Лонг A', desc: 'Четверо через лонг на A, авапер через мид и шорт.' },
+      { id: 'short', name: 'Шорт A', desc: 'Четверо через кэтвок и шорт, авапер давит лонг.' },
+      { id: 'split', name: 'Сплит A', desc: 'Двое с лонга, трое через шорт. Заходят на A с двух сторон.' }
+    ],
+    CT: [
+      { id: 'std', name: '2-1-2', desc: 'Двое на B, авапер на миду, двое на A.', setup: ['B', 'A', 'B', 'M', 'A'] },
+      { id: 'awpA', name: 'AWP на A', desc: 'Двое на B, рифлер на миду, авапер с энтри на A.', setup: ['B', 'A', 'M', 'A', 'B'] },
+      { id: 'stackA', name: 'Стек A', desc: 'Трое на A, авапер на миду, один на B.', setup: ['A', 'B', 'A', 'M', 'A'] },
+      { id: 'stackB', name: 'Стек B', desc: 'Трое на B, авапер на миду, один на A.', setup: ['B', 'B', 'A', 'M', 'B'] }
+    ]
+  };
+  const CALLS = {
+    T: [
+      { id: 'auto', ic: '🤖', name: 'Сами', desc: 'Заходят на точку, когда соберутся на подходе (или с 7-го хода).' },
+      { id: 'wait', ic: '⏸', name: 'Ждём', desc: 'Стоят на подходе и держат углы, пока не скажешь «Заходим».' },
+      { id: 'go', ic: '▶', name: 'Заходим', desc: 'Выход прямо сейчас: гранаты, энтри первым, бомбу несут ставить.' },
+      { id: 'save', ic: '🏳', name: 'Сейв', desc: 'Отходят к своему спавну и прячутся, чтобы сохранить оружие.' }
+    ],
+    CT: [
+      { id: 'auto', ic: '🤖', name: 'Сами', desc: 'Держат позиции. Услышат троих на одной точке — мид и ещё один идут помогать.' },
+      { id: 'hold', ic: '🛡', name: 'Стоим', desc: 'Никто не уходит со своей позиции, что бы ни услышали.' },
+      { id: 'A', ic: '➜', name: 'Все на A', desc: 'Вся команда бежит на A.' },
+      { id: 'B', ic: '➜', name: 'Все на B', desc: 'Вся команда бежит на B.' },
+      { id: 'save', ic: '🏳', name: 'Сейв', desc: 'Прячутся у своего спавна, чтобы сохранить оружие.' }
+    ],
+    TP: [
+      { id: 'auto', ic: '🤖', name: 'Держим бомбу', desc: 'Встают вокруг бомбы и держат углы, откуда придут CT.' },
+      { id: 'save', ic: '🏳', name: 'Сейв', desc: 'Уходят подальше от бомбы и прячутся.' }
+    ],
+    CTP: [
+      { id: 'auto', ic: '🤖', name: 'Ретейк', desc: 'Собираются у точки по двое и заходят вместе, ближний разминирует.' },
+      { id: 'go', ic: '⚡', name: 'Сразу', desc: 'Все бегут к бомбе без ожидания, ближний сразу разминирует.' },
+      { id: 'save', ic: '🏳', name: 'Сейв', desc: 'Не идут к бомбе, прячутся подальше от взрыва.' }
+    ]
+  };
+  // Какие команды доступны стороне сейчас.
+  function callsFor(s, seat) {
+    const side = s.sideOf[seat], pl = s.bomb && s.bomb.st === 'plant';
+    return side === 'T' ? (pl ? CALLS.TP : CALLS.T) : (pl ? CALLS.CTP : CALLS.CT);
+  }
   const near = (u, p, r) => (u.x - p[0] - 0.5) * (u.x - p[0] - 0.5) + (u.y - p[1] - 0.5) * (u.y - p[1] - 0.5) <= r * r;
   const dist = (ax, ay, bx, by) => Math.sqrt((ax - bx) * (ax - bx) + (ay - by) * (ay - by));
+  const endNear = (u, p, r) => { if (!u.route.length) return false; const l = u.route[u.route.length - 1]; return (l[0] - p[0] - 0.5) * (l[0] - p[0] - 0.5) + (l[1] - p[1] - 0.5) * (l[1] - p[1] - 0.5) <= (r || 1.5) * (r || 1.5); };
+  // Автопилот: приказы бойцам стороны seat по плану { tac, call, mask, fresh }.
+  //   tac — тактика (TAC), call — команда (CALLS), mask[i] — боец под автопилотом, fresh[i] — перестроить маршрут заново.
+  // Возвращает 5 приказов (null — не трогать). Видит только то, что знает своя команда (intel).
+  function auto(s, seat, plan, rnd) {
+    rnd = rnd || Math.random; plan = plan || {};
+    const out = [null, null, null, null, null];
+    if (s.over) return out;
+    const o = s.sideOf[seat] === 'T' ? botT(s, seat, rnd, plan) : botCT(s, seat, rnd, plan);
+    for (let i = 0; i < 5; i++) {
+      const u = s.units[seat * 5 + i];
+      if (plan.mask && !plan.mask[i]) continue;
+      if (o[i] && !validOrder(s, u, o[i])) { delete o[i].n; if (!validOrder(s, u, o[i])) o[i] = null; }
+      out[i] = o[i];
+    }
+    return out;
+  }
   function bot(s, seat, rnd) {
     rnd = rnd || Math.random;
     if (s.over) return null;
     if (s.step === 'buy') return botBuy(s, seat, rnd);
-    const o = s.sideOf[seat] === 'T' ? botT(s, seat, rnd) : botCT(s, seat, rnd);
-    for (let i = 0; i < 5; i++) {
-      const u = s.units[seat * 5 + i];
-      if (o[i] && !validOrder(s, u, o[i])) { delete o[i].n; if (!validOrder(s, u, o[i])) o[i] = null; }
-    }
-    return { o };
+    return { o: auto(s, seat, {}, rnd) };
   }
   function botBuy(s, seat, rnd) {
     const side = s.sideOf[seat], b = [];
@@ -871,32 +937,58 @@
       default: return ['long', 'B', 'short', 'mid', 'B'];
     }
   }
-  function botT(s, seat, rnd) {
+  // Встроиться в маршрут с ближайшей точки (если боец уже в пути, не возвращаться на старт).
+  function joinRoute(u, wps) {
+    if (wps.length < 2) return wps.map(p => [p[0], p[1]]);
+    let j = 0, bd = 1e9;
+    for (let k = 0; k < wps.length; k++) { const d = dist(u.x, u.y, wps[k][0] + 0.5, wps[k][1] + 0.5); if (d < bd) { bd = d; j = k; } }
+    if (j + 1 < wps.length && dist(u.x, u.y, wps[j + 1][0] + 0.5, wps[j + 1][1] + 0.5) < dist(wps[j][0], wps[j][1], wps[j + 1][0], wps[j + 1][1])) j++;
+    return wps.slice(j).map(p => [p[0], p[1]]);
+  }
+  const TAC_T = TAC.T.map(t => t.id);
+  function botT(s, seat, rnd, plan) {
     const team = teamOf(s, seat), orders = [null, null, null, null, null];
-    const b = s.bomb, intel = s.intel[seat];
-    let strat = strategyT(s, seat), plan = planT(strat);
-    // «дефолт»: на 4-м ходу выбираем точку, где меньше видели CT
-    let site;
+    const mask = plan.mask || [1, 1, 1, 1, 1], fresh = plan.fresh || [];
+    const b = s.bomb, intel = s.intel[seat], call = plan.call || 'auto';
+    const planted = !!(b && b.st === 'plant');
+    const group = team.filter(u => u.alive && mask[u.slot]);
+    if (!group.length) return orders;
+    // сейв: к своему спавну
+    if (call === 'save') {
+      for (const u of group) {
+        const P = BOT.saveT[u.slot];
+        if (near(u, P, 1.2)) { if (fresh[u.slot] || u.route.length) orders[u.slot] = { p: [], a: null }; continue; }
+        if (fresh[u.slot] || !endNear(u, P, 1)) orders[u.slot] = { p: [[P[0], P[1]]], l: 0, w: 0, a: null };
+      }
+      return orders;
+    }
+    const strat = TAC_T.includes(plan.tac) ? plan.tac : strategyT(s, seat);
+    let pl = planT(strat), site;
     if (strat === 'default') {
-      const seen = Object.values(intel.seen).filter(x => s.time - x.t < 12);
-      const atA = seen.filter(x => x.x >= 27).length, atB = seen.filter(x => x.x < 16).length;
-      site = (s.turn >= 3) ? (atA <= atB ? 'A' : 'B') : null;
-      if (site) plan = site === 'A' ? ['long', 'long', 'short', 'short', 'long'] : ['B', 'B', 'midB', 'midB', 'B'];
-    } else site = BOT.site[plan[0]] || 'A';
-    const routeOf = i => plan[i] === 'mid' ? (site === 'B' ? 'midB' : 'short') : plan[i];
-    // точка взрыва: вся группа у стейджа, или время поджимает
-    const group = team.filter(u => u.alive);
+      // «дефолт»: на 4-м ходу (или по команде «Заходим») выбираем точку, где меньше видели CT, и больше не меняем
+      if (intel.tsite) site = intel.tsite;
+      else if (s.turn >= 3 || call === 'go' || planted) {
+        const seen = Object.values(intel.seen).filter(x => s.time - x.t < 12);
+        const atA = seen.filter(x => x.x >= 27).length, atB = seen.filter(x => x.x < 16).length;
+        site = atA <= atB ? 'A' : 'B';
+        if (s.step === 'turn') intel.tsite = site;
+      } else site = null;
+      if (site) pl = site === 'A' ? ['long', 'long', 'short', 'short', 'long'] : ['B', 'B', 'midB', 'midB', 'B'];
+    } else site = BOT.site[pl[0]] || 'A';
+    const routeOf = i => pl[i] === 'mid' ? (site === 'B' ? 'midB' : 'short') : pl[i];
+    // когда выходить: вся группа у подхода, время поджимает или команда «Заходим»
     const atStage = group.filter(u => near(u, BOT.stage[routeOf(u.slot)], 4)).length;
-    const exec = site && (atStage >= Math.ceil(group.length * 0.6) || s.turn >= 6 || s.clock <= 25 || (b && b.st === 'plant'));
+    let exec = !!site && (atStage >= Math.ceil(group.length * 0.6) || s.turn >= 6 || s.clock <= 25);
+    if (call === 'wait') exec = false;
+    if (call === 'go') exec = !!site;
     const anyEnemyRecent = Object.values(intel.seen).some(x => s.time - x.t < 1.5);
-    for (const u of team) {
-      if (!u.alive) continue;
+    for (const u of group) {
       const i = u.slot;
       const rk = routeOf(i);
-      if (b && b.st === 'plant') {
+      if (planted) {
         const P = BOT.post[b.site][i % 5];
-        if (!near(u, P, 1.2)) orders[i] = { p: [[P[0], P[1]]], l: [P[2] + 0.5, P[3] + 0.5], w: 0 };
-        else if (!u.look) orders[i] = { p: [], l: [P[2] + 0.5, P[3] + 0.5] };
+        if (!near(u, P, 1.2)) { if (fresh[i] || !endNear(u, P, 1)) orders[i] = { p: [[P[0], P[1]]], l: [P[2] + 0.5, P[3] + 0.5], w: 0 }; }
+        else if (!u.look || fresh[i]) orders[i] = { p: [], l: [P[2] + 0.5, P[3] + 0.5] };
         continue;
       }
       if (b && b.st === 'drop') {
@@ -906,8 +998,11 @@
       const carrier = b && b.st === 'carry' && b.carrier === u.id;
       if (!exec) {
         const st = BOT.stage[rk];
-        if (near(u, st, 2.5)) { if (!u.route.length && !u.look) orders[i] = { p: [], l: lookFromStage(rk) }; continue; }
-        if (!u.route.length || s.turn === 0) orders[i] = { p: BOT.route[rk].concat([st]), l: 0, w: rk === 'mid' || (i === 4 && rnd() < 0.5) ? 1 : 0 };
+        if (near(u, st, 2.5)) { if (fresh[i] || (!u.route.length && !u.look)) orders[i] = { p: [], l: lookFromStage(rk), a: null }; continue; }
+        if (!u.route.length || s.turn === 0 || fresh[i] || !endNear(u, st)) {
+          orders[i] = { p: joinRoute(u, BOT.route[rk].concat([st])), l: 0, w: rk === 'mid' || (i === 4 && rnd() < 0.5) ? 1 : 0 };
+          if (fresh[i]) orders[i].a = null;
+        }
         continue;
       }
       // выход на точку
@@ -915,32 +1010,48 @@
       if (carrier) {
         const P = BOT.plant[S];
         const onSite = zoneAt(u.x, u.y) === S;
-        const o = { p: [[P[0] + (i % 2), P[1]]], a: 'plant', l: 0 };
+        const o = { p: [[P[0] + (i % 2), P[1]]], a: 'plant', l: 0, w: 0 };
         if (!onSite && atStage > 1) o.d = 1;
-        if (!(u.act === 'plant' && u.route.length)) orders[i] = o;
+        if (fresh[i] || !(u.act === 'plant' && u.route.length && endNear(u, [P[0] + (i % 2), P[1]], 1))) orders[i] = o;
         continue;
       }
-      const ex = BOT.exec[rk === 'mid' ? (S === 'B' ? 'midB' : 'short') : rk], en = BOT.entry[rk === 'mid' ? (S === 'B' ? 'midB' : 'short') : rk];
+      const ek = rk === 'mid' ? (S === 'B' ? 'midB' : 'short') : rk;
+      const ex = BOT.exec[ek], en = BOT.entry[ek];
       const E = en[i % en.length];
-      const o = { p: [[E[0], E[1]]], l: 0 };
+      const o = { p: [[E[0], E[1]]], l: 0, w: 0 };
       if (ex && near(u, BOT.stage[rk] || [u.x, u.y], 4.5)) {
         const nd = ex[i % ex.length];
         if (u.nades[nd[0]] > 0 && dist(u.x, u.y, nd[1] + 0.5, nd[2] + 0.5) <= NADES[nd[0]].rng) { o.n = { t: nd[0], x: nd[1] + 0.5, y: nd[2] + 0.5, e: 0 }; }
         else if (u.nades.fl > 0 && dist(u.x, u.y, E[0] + 0.5, E[1] + 0.5) <= NADES.fl.rng && !anyEnemyRecent) o.n = { t: 'fl', x: E[0] + 0.5, y: E[1] + 0.5, e: 0 };
         if (o.n) o.d = i === 0 || i === 3 ? 0 : 1;
       }
-      const endOk = u.route.length && near({ x: u.route[u.route.length - 1][0], y: u.route[u.route.length - 1][1] }, E, 0.8);
-      if (!endOk || o.n) orders[i] = o;
+      const endOk = endNear(u, E, 0.8);
+      if (!endOk || o.n || fresh[i]) orders[i] = o;
     }
     return orders;
   }
   function lookFromStage(rk) { return { B: [5.5, 11], long: [38.5, 12], short: [27, 12], midB: [5.5, 12], mid: [19.5, 12] }[rk] || 0; }
-  function botCT(s, seat, rnd) {
+  function botCT(s, seat, rnd, plan) {
     const team = teamOf(s, seat), orders = [null, null, null, null, null];
-    const b = s.bomb, intel = s.intel[seat];
+    const mask = plan.mask || [1, 1, 1, 1, 1], fresh = plan.fresh || [];
+    const b = s.bomb, intel = s.intel[seat], call = plan.call || 'auto';
+    const group = team.filter(u => u.alive && mask[u.slot]);
+    if (!group.length) return orders;
+    const planted = !!(b && b.st === 'plant');
+    // сейв: подальше от бомбы
+    if (call === 'save') {
+      const L = BOT.saveCT[planted ? b.site : 'none'];
+      group.forEach((u, k) => {
+        const P = L[k % L.length];
+        if (near(u, P, 1.2)) { if (fresh[u.slot] || u.route.length) orders[u.slot] = { p: [], a: null }; return; }
+        if (fresh[u.slot] || !endNear(u, P, 1)) orders[u.slot] = { p: [[P[0], P[1]]], l: 0, w: 0, a: null };
+      });
+      return orders;
+    }
+    const T = TAC.CT.find(t => t.id === plan.tac);
     const h = hashStr(s.seed + ':ct:' + s.round + ':' + seat) % 100;
     // расстановка: кто где стоит по умолчанию
-    const setup = h < 50 ? ['B', 'A', 'B', 'M', 'A'] : h < 70 ? ['A', 'B', 'A', 'M', 'A'] : h < 88 ? ['B', 'B', 'A', 'M', 'B'] : ['B', 'A', 'M', 'A', 'B'];
+    const setup = T ? T.setup : h < 50 ? ['B', 'A', 'B', 'M', 'A'] : h < 70 ? ['A', 'B', 'A', 'M', 'A'] : h < 88 ? ['B', 'B', 'A', 'M', 'B'] : ['B', 'A', 'M', 'A', 'B'];
     const slotSpot = (site, i) => { const L = BOT.ct[site]; let k = 0; for (let j = 0; j < i; j++) if (setup[j] === site) k++; return L[k % L.length]; };
     // угроза: кого видели/слышали за последние 6 с
     const recent = Object.values(intel.seen).filter(x => s.time - x.t < 6).concat(intel.heard.filter(x => s.time - x.t < 5 && x.kind === 'step'));
@@ -948,43 +1059,45 @@
     const inA = p => p.x >= 26 && p.y > 1 && !(p.x < 30 && p.y > 24);
     const thB = recent.filter(inB).length, thA = recent.filter(inA).length;
     let rot = null;
-    if (thB >= 3 && thB > thA * 2) rot = 'B'; else if (thA >= 3 && thA > thB * 2) rot = 'A';
-    if (b && b.st === 'plant') {
+    if (call === 'auto') { if (thB >= 3 && thB > thA * 2) rot = 'B'; else if (thA >= 3 && thA > thB * 2) rot = 'A'; }
+    if (planted) {
       // ретейк
       const site = b.site, R = BOT.retake[site];
-      const alive = team.filter(u => u.alive);
-      const ready = alive.filter((u, k) => near(u, R[k % R.length], 3.5)).length;
+      const ready = group.filter((u, k) => near(u, R[k % R.length], 3.5)).length;
       const seenT = Object.values(intel.seen).filter(x => s.time - x.t < 2 && dist(x.x, x.y, b.x, b.y) < 9).length;
-      const go = ready >= Math.min(2, alive.length) || b.t <= 12 || alive.length === 1;
-      const closest = alive.slice().sort((p, q) => dist(p.x, p.y, b.x, b.y) - dist(q.x, q.y, b.x, b.y))[0];
+      const go = call === 'go' || ready >= Math.min(2, group.length) || b.t <= 12 || group.length === 1;
+      const closest = group.slice().sort((p, q) => dist(p.x, p.y, b.x, b.y) - dist(q.x, q.y, b.x, b.y))[0];
       const need = closest ? (closest.kit ? DEF_KIT : DEF_T) : DEF_T;
-      alive.forEach((u, k) => {
+      group.forEach((u, k) => {
         const i = u.slot;
-        if (!go) { const P = R[k % R.length]; if (!near(u, P, 1.5)) orders[i] = { p: [[P[0], P[1]]], l: [b.x, b.y], w: 0 }; return; }
+        if (!go) { const P = R[k % R.length]; if (!near(u, P, 1.5) && (fresh[i] || !endNear(u, P, 1))) orders[i] = { p: [[P[0], P[1]]], l: [b.x, b.y], w: 0, a: null }; return; }
         const deadT = teamOf(s, 1 - seat).every(x => !x.alive);
         const tight = b.t - dist(u.x, u.y, b.x, b.y) / RUN <= need + 1.5;
-        if (u === closest && (seenT === 0 || deadT || tight)) {
-          if (u.act !== 'defuse') orders[i] = { p: [[Math.floor(b.x), Math.floor(b.y)]], a: 'defuse', l: 0 };
+        if (u === closest && (seenT === 0 || deadT || tight || call === 'go')) {
+          if (u.act !== 'defuse' || fresh[i]) orders[i] = { p: [[Math.floor(b.x), Math.floor(b.y)]], a: 'defuse', l: 0, w: 0 };
           return;
         }
         const P = BOT.post[site][(k + 2) % 5];
-        const o = { p: [[P[0], P[1]]], l: [b.x, b.y] };
+        const o = { p: [[P[0], P[1]]], l: [b.x, b.y], w: 0, a: null };
         if (u.nades.sm > 0 && dist(u.x, u.y, b.x, b.y) <= NADES.sm.rng && rnd() < 0.6) o.n = { t: 'sm', x: Q(b.x + 1.5), y: Q(b.y), e: 0 };
         else if (u.nades.fl > 0 && dist(u.x, u.y, b.x, b.y) <= NADES.fl.rng) o.n = { t: 'fl', x: b.x, y: b.y, e: 0 };
         if (o.n && !walk(Math.floor(o.n.x), Math.floor(o.n.y))) { o.n.x = b.x; o.n.y = b.y; }
-        if (!u.route.length || o.n) orders[i] = o;
+        if (!u.route.length || o.n || fresh[i]) orders[i] = o;
       });
       return orders;
     }
-    for (const u of team) {
-      if (!u.alive) continue;
+    const all = call === 'A' || call === 'B' ? call : null;
+    group.forEach((u, k) => {
       const i = u.slot;
-      let site = setup[i];
-      if (rot && (site === 'M' || (site !== rot && i === [0, 1, 2, 3, 4].filter(j => setup[j] !== rot && setup[j] !== 'M').pop()))) site = rot;
-      const P = site === setup[i] ? slotSpot(site, i) : BOT.ct[site][(i + 1) % BOT.ct[site].length];
+      let site = setup[i], P;
+      if (all) { site = all; P = BOT.ct5[all][k % 5]; }
+      else {
+        if (rot && (site === 'M' || (site !== rot && i === [0, 1, 2, 3, 4].filter(j => setup[j] !== rot && setup[j] !== 'M').pop()))) site = rot;
+        P = site === setup[i] ? slotSpot(site, i) : BOT.ct[site][(i + 1) % BOT.ct[site].length];
+      }
       const o = {};
-      if (!near(u, P, 1.0)) { if (!u.route.length || !near({ x: u.route[u.route.length - 1][0], y: u.route[u.route.length - 1][1] }, P, 0.8)) { o.p = [[P[0], P[1]]]; o.l = [P[2] + 0.5, P[3] + 0.5]; } }
-      else if (!u.look) { o.p = []; o.l = [P[2] + 0.5, P[3] + 0.5]; }
+      if (!near(u, P, 1.0)) { if (fresh[i] || !u.route.length || !endNear(u, P, 0.8)) { o.p = [[P[0], P[1]]]; o.l = [P[2] + 0.5, P[3] + 0.5]; if (fresh[i]) { o.w = 0; o.a = null; } } }
+      else if (!u.look || fresh[i]) { o.p = []; o.l = [P[2] + 0.5, P[3] + 0.5]; }
       // гранаты по услышанным T
       const target = recent.filter(x => site === 'B' ? inB(x) : site === 'A' ? inA(x) : true).sort((p, q) => dist(p.x, p.y, u.x, u.y) - dist(q.x, q.y, u.x, u.y))[0];
       if (target && near(u, P, 2)) {
@@ -996,7 +1109,7 @@
         }
       }
       if (Object.keys(o).length) orders[i] = o;
-    }
+    });
     return orders;
   }
 
@@ -1015,7 +1128,7 @@
     VERSION, TICK, TURN, TPT, ROUND_T, BOMB_T, PLANT_T, DEF_T, DEF_KIT, RUN, WALK, FOV_COS, AWARE, SMOKE_R, FIRE_R, HE_R,
     MAP, GW, GH, W, PISTOLS, DEFAULT_PISTOL, NADES, NADE_KEYS, ROLES, NAMES, GEAR, BOT,
     cell, walk, opaque, zoneAt, los, ray, astar, routeFrom, routeLen,
-    create, pending, valid, validOrder, apply, priceItems, itemPrice, preview, bot, replay,
+    create, pending, valid, validOrder, apply, priceItems, itemPrice, preview, bot, auto, callsFor, replay, TAC, CALLS,
     tSeat, ctSeat, teamOf, curW, nadeName, nadePrice, nadeCap, nadeCount, hashStr, mulberry
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.K5 = api;
