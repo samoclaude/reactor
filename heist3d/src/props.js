@@ -240,6 +240,7 @@ function glassify(root) {
         opacity: 0.1,
         depthWrite: false,
         side: THREE.DoubleSide,
+        forceSinglePass: true, // еле видное стекло без записи глубины: обе стороны за один проход, а не два
       });
     o.material = glassM;
     o.castShadow = false;
@@ -765,6 +766,7 @@ const glassMat = () =>
     opacity: 0.14,
     depthWrite: false,
     side: THREE.DoubleSide,
+    forceSinglePass: true, // еле видное стекло без записи глубины: обе стороны за один проход, а не два
   }));
 // люстра по зданию: у музея и офиса люстр нет
 // у люстр банка и ювелирки тени нет: под потолком её почти не видно, а проход теней фонарика рисовал их каждый кадр

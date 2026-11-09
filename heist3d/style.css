@@ -235,6 +235,7 @@ button:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
 .foot { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: #6B5C3E; }
 .foot button { border: 0; background: none; padding: 0; font: inherit; color: inherit; text-decoration: underline; cursor: pointer; }
 
+#menu:not([hidden]) ~ #caught, #menu:not([hidden]) ~ #won { z-index: 19; } /* меню с итогов («В меню») — поверх досье */
 .over { position: fixed; inset: 0; z-index: 25; display: flex; overflow-y: auto; padding: 16px; background: rgba(4,10,20,.72); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
 .card { margin: auto; width: 100%; max-width: 400px; text-align: center; display: flex; flex-direction: column; gap: 12px; align-items: stretch; }
 .card .folder { text-align: left; }
@@ -343,6 +344,16 @@ button:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
   .bf-roleline { grid-template-columns: 1fr; }
   .bf-roleline .bf-role { grid-row: auto; justify-self: start; }
 }
+/* низкий экран (ноутбук 1366×768 с панелями браузера): брифинг и итоги плотнее, низ с кнопкой прилипает к краю экрана */
+@media (max-height: 760px) and (min-width: 701px) {
+  #brief { padding-top: 34px; }
+  .bf { padding: 12px 20px 0; }
+  .bf .big { margin: 0 0 8px; font-size: 32px; }
+  .bf-body { grid-template-columns: 230px 1fr; gap: 18px; }
+  .bf-roleline { margin-top: 10px; padding-top: 10px; }
+  .bf-new { margin-top: 12px; }
+  .bf-foot { position: sticky; bottom: 0; z-index: 3; margin: 8px -20px 0; padding: 8px 20px 10px; border-radius: 0 0 14px 14px; background: var(--manila); }
+}
 
 .update { position: fixed; left: 12px; right: 12px; margin: 0 auto; width: fit-content; top: calc(env(safe-area-inset-top, 0px) + 8px); z-index: 50; display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 14px; border-radius: 10px; background: var(--yellow); color: #1A1400; font-weight: 700; font-size: 13px; box-shadow: 0 10px 24px -8px rgba(0,0,0,.8); max-width: calc(100% - 24px); }
 .update button { border: 0; border-radius: 8px; padding: 8px 12px; background: #1A1400; color: var(--yellow); font: 700 13px var(--font-mono); cursor: pointer; }
@@ -362,7 +373,7 @@ button:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
 html, body { height: 100%; margin: 0; overflow: hidden; background: #020407; }
 #view3d { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; background: #020407; cursor: crosshair; }
 .hud { position: fixed; inset: 0; pointer-events: none; z-index: 5; }
-.hud .bar { position: absolute; top: 0; left: 0; right: 0; pointer-events: auto; background: linear-gradient(#000c, #0000); border: 0; }
+.hud .bar { position: absolute; top: 0; left: 0; right: 0; padding: 6px 12px; pointer-events: auto; background: linear-gradient(#000c, #0000); border: 0; }
 .hud .icon-btn, .hud button { pointer-events: auto; }
 .cross { position: absolute; left: 50%; top: 50%; width: 4px; height: 4px; margin: -2px 0 0 -2px; border-radius: 50%; background: rgba(255,255,255,.55); box-shadow: 0 0 4px #000; }
 .status3d { position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%); max-width: min(760px, 92vw); text-align: center;
@@ -370,6 +381,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; background: #020407; }
 .hint3d { position: absolute; left: 50%; top: 58%; transform: translateX(-50%); font: 13px var(--font-mono); color: #f2e6c8; background: rgba(0,0,0,.45);
   padding: 6px 12px; border-radius: 6px; border: 1px solid rgba(242,230,200,.25); }
 .hint3d b { color: var(--yellow); }
+.hint3d.low { top: auto; bottom: 76px; } /* крупный план: «E или Esc — назад» под панелью */
 .lockhint { position: absolute; z-index: 2; /* поверх большой карты тренировки */ left: 50%; top: 42%; transform: translate(-50%, -50%); font: 15px var(--font-mono); color: #fff; background: rgba(0,0,0,.6);
   padding: 12px 18px; border-radius: 8px; text-align: center; line-height: 1.6; }
 .minimap { position: absolute; right: 12px; top: 56px; width: min(34vw, 420px); aspect-ratio: 1 / 1.1; border-radius: 8px; overflow: hidden;
@@ -435,6 +447,7 @@ body:not(.street-menu) .menu3d { background: rgba(4,10,20,.6); -webkit-backdrop-
 .mfolder .inp { height: 46px; }
 .mfolder .pickcase { padding: 4px 12px; }
 .mfolder .f-col > .lbl:first-child + .note { padding-right: 130px; } /* первая строка не под печатью «СОВ. СЕКРЕТНО» */
+#vSettings > .lbl:first-child { margin-bottom: 12px; } /* и в настройках: «100%» яркости ниже печати */
 .namerow { display: flex; align-items: center; gap: 12px; }
 .namerow .lbl { flex: none; }
 .mfolder .tutrow { display: grid; grid-template-columns: auto 1fr; align-items: baseline; gap: 4px 10px; padding: 8px 12px 10px; }

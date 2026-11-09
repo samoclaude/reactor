@@ -11,6 +11,10 @@ const crewBase = {}; // готовые модели вора и штурмана
 const clips = {};
 const RIGHT_ARM =
   /^(clavicle_r|upperarm_r|lowerarm_r|hand_r|(index|middle|pinky|ring|thumb)_\d\d(_leaf)?_r)$/;
+// доли клипа Walk_Loop, когда пятка встаёт на пол: левая — 0, правая — 0,5.
+// Посчитано по костям foot_l/foot_r (240 точек): тут пятка в самой передней точке и ниже не опускается,
+// дальше полклипа скользит назад на одной высоте — нога стоит на полу
+const STEP_AT = [0, 0.5];
 
 export async function loadGuard() {
   const l = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
@@ -429,8 +433,16 @@ export function makeGuardModel() {
         arm.reset().play();
       }
     },
+    // возвращает, сколько раз нога встала на пол за кадр (0, если не идёт)
     update(dt, speed) {
       walk.timeScale = Math.max(0.2, speed / 1.35);
+      const d = clips.walkBody.duration,
+        t0 = walk.time,
+        t1 = t0 + dt * walk.timeScale; // без зацикливания: большой кадр не теряет шаги
+      let steps = 0;
+      if (walk.isRunning())
+        for (const f of STEP_AT)
+          steps += Math.floor((t1 - f * d) / d) - Math.floor((t0 - f * d) / d);
       mixer.update(dt);
       model.updateMatrixWorld(true);
       model.getWorldQuaternion(q);
@@ -449,6 +461,7 @@ export function makeGuardModel() {
         torch.quaternion.copy(q);
         torch.rotateX(0.12);
       }
+      return steps;
     },
   };
 }

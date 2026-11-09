@@ -16,10 +16,10 @@ const sess = {
 };
 let BUILD = '', toast = () => {};
 // связь с игрой: reset(mode), sync(full), ui(), started(firstOk), hideOverlays(keepBrief), handleCode(rid, val), checkPeerBuild(v),
-// hack(val) — пароль щитка видеонаблюдения от штурмана; pz(from, on, t0, lvl, att) — напарник не готов (пауза): 1 меню, 2 брифинг, 3 сценка; myPz() — то же про меня
+// hack(val) — пароль щитка видеонаблюдения от штурмана; pz(from, on, t0, lvl, att) — напарник не готов (пауза): 1 меню, 2 брифинг, 3 сценка, 4 вор свернул вкладку; myPz() — то же про меня
 let H = {};
 export function initNet(hooks, build, toastFn) { H = hooks; BUILD = build; toast = toastFn; }
-export const net = { on: false, code: null, room: null, ch: null, status: 'off', online: new Set(), presence: null, lastSeen: {}, peerKey: {}, wasStarted: false, everOk: false, errorMsg: '', lastHello: 0, presenceSeen: false, pending: null, timers: {} };
+export const net = { on: false, code: null, room: null, ch: null, status: 'off', online: new Set(), presence: null, lastSeen: {}, peerKey: {}, wasStarted: false, everOk: false, errorMsg: '', lastHello: 0, presenceSeen: false, pending: null, timers: {}, skew: null };
 let sb = null;
 export let myId = null;
 export function rid(n) { const a = 'abcdefghijkmnpqrstuvwxyz23456789', b = new Uint8Array(n); try { crypto.getRandomValues(b); } catch (e) { for (let i = 0; i < n; i++) b[i] = Math.random() * 256; } let s = ''; for (const x of b) s += a[x % a.length]; return s; }
@@ -27,7 +27,8 @@ export const CODE_ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 export function newCode() { const b = new Uint8Array(4); try { crypto.getRandomValues(b); } catch (e) { for (let i = 0; i < 4; i++) b[i] = Math.random() * 256; } let s = ''; for (const x of b) s += CODE_ABC[x % CODE_ABC.length]; return s; }
 const CYR = { 'А': 'A', 'В': 'B', 'Е': 'E', 'К': 'K', 'М': 'M', 'Н': 'H', 'О': 'O', 'Р': 'P', 'С': 'C', 'Т': 'T', 'У': 'Y', 'Х': 'X' };
 export const normCode = s => String(s || '').toUpperCase().replace(/[А-ЯЁ]/g, ch => CYR[ch] || '').replace(/[^A-Z0-9]/g, '').slice(0, 4);
-export function codeFromHash() { const c = normCode(decodeURIComponent(location.hash.slice(1))); return c.length === 4 ? c : null; }
+// битый %-код в ссылке (бывает при копировании из мессенджера) — выкидываем его, а не падаем
+export function codeFromHash() { let h = location.hash.slice(1); try { h = decodeURIComponent(h); } catch (e) { h = h.replace(/%[0-9a-f]{2}/gi, ''); } const c = normCode(h); return c.length === 4 ? c : null; }
 export const myName = () => String(store.get('name', '') || '').trim().slice(0, 12);
 let tabBus = null;
 try { tabBus = new BroadcastChannel(APP + '-tabs'); tabBus.onmessage = e => { const d = e.data || {}; if (d.q === 'who' && myId && d.id === myId) tabBus.postMessage({ a: 'mine', id: myId }); }; } catch (e) {}
@@ -50,7 +51,9 @@ export const mySeat = () => (net.on && net.room && myId) ? net.room.seats.indexO
 // кто вор: место 0 или 1 (сначала тот, кто создал комнату); меняется кнопкой «Поменяться ролями»
 export const thiefSeat = r => (r && r.thief ? 1 : 0);
 export function cmpKey(a, b) { for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return a[i] - b[i]; return 0; }
-export const roomKey = r => [r.lvl, r.att, r.log.length, filled(r), r.rv | 0];
+// версия ролей: больше rv — новее; при равной (нажали одновременно) новее та, где go, потом где thief — одинаково у обоих
+const rolesKey = r => [r.rv | 0, r.go ? 1 : 0, (r.thief | 0) ? 1 : 0];
+export const roomKey = r => [r.lvl, r.att, r.log.length, filled(r), ...rolesKey(r)];
 export const inviteUrl = () => location.origin + location.pathname + location.search + '#' + (net.code || '');
 export function sanitize(s) {
   const fit = (a, f) => [0, 1].map(i => (Array.isArray(a) && a[i] != null) ? f(a[i]) : null);
@@ -77,7 +80,7 @@ export function hello() {
 }
 // Presence is tracked once per join and never updated: re-tracking makes the realtime client drop the key.
 function trackOnce() { if (!net.ch || net.status !== 'ok') return; try { const p = net.ch.track({ on: 1 }); if (p && p.catch) p.catch(() => {}); } catch (e) {} }
-export function ping() { if (!net.ch) return; const r = net.room; if (net.status === 'ok') send('ping', { k: r ? roomKey(r) : null, v: BUILD, pz: H.myPz ? H.myPz() | 0 : 0 }); recomputeOnline(); }
+export function ping() { if (!net.ch) return; const r = net.room; if (net.status === 'ok') send('ping', { k: r ? roomKey(r) : null, v: BUILD, pz: H.myPz ? H.myPz() | 0 : 0, now: Date.now() }); recomputeOnline(); }
 function recomputeOnline() {
   if (!net.ch) return;
   let stt = {}; try { stt = net.ch.presenceState() || {}; } catch (e) {}
@@ -112,7 +115,7 @@ export async function joinRoom(code, room) {
   if (net.on) leaveRoom();
   await getIdentity();
   H.reset('online');
-  Object.assign(net, { on: true, code, room: null, ch: null, status: 'connecting', online: new Set(), presence: null, lastSeen: {}, peerKey: {}, wasStarted: false, everOk: false, errorMsg: '', lastHello: 0, presenceSeen: false, pending: null });
+  Object.assign(net, { on: true, code, room: null, ch: null, status: 'connecting', online: new Set(), presence: null, lastSeen: {}, peerKey: {}, wasStarted: false, everOk: false, errorMsg: '', lastHello: 0, presenceSeen: false, pending: null, skew: null });
   if (room) { room.code = code; room.host = myId; room.seats[0] = myId; room.names[0] = myName() || null; net.room = room; }
   else { const snap = store.get('room:' + code, null); if (snap && snap.code === code && Array.isArray(snap.seats)) net.room = sanitize(snap); }
   if (codeFromHash() !== code) { try { history.replaceState(null, '', '#' + code); } catch (e) { try { location.hash = code; } catch (e2) {} } }
@@ -175,6 +178,8 @@ function onMsg(m) {
     case 'ping': {
       net.peerKey[m.from] = Array.isArray(m.k) ? m.k : null;
       if (H.pz) H.pz(m.from, m.pz | 0);
+      // разница часов вора и моих: задержка сети её занижает — берём наибольшую, понемногу забывая старую
+      if (r && +m.now && r.seats[thiefSeat(r)] === m.from) { const d = +m.now - Date.now(); net.skew = net.skew == null ? d : Math.max(d, net.skew - 200); }
       if (!Array.isArray(m.k)) { if (r && r.seats.includes(myId)) send('state', { room: r }); break; }
       if (!r) { hello(); break; }
       const c = cmpKey(m.k.map(x => x | 0), roomKey(r));
@@ -211,7 +216,7 @@ function onMsg(m) {
     // пауза: напарник открыл или закрыл меню; вор после паузы присылает сдвинутое начало попытки
     case 'pz': if (H.pz) H.pz(m.from, m.on | 0, +m.t0 || 0, m.lvl | 0, m.att | 0); break;
     case 'roles': {
-      if (!r || (m.rv | 0) <= (r.rv | 0)) break;
+      if (!r || cmpKey(rolesKey(m), rolesKey(r)) <= 0) break;
       r.thief = (m.thief | 0) ? 1 : 0; r.rv = m.rv | 0; r.go = m.go ? 1 : 0; saveRoom();
       H.sync(); if (H.roles) H.roles(); refreshOnline();
       break;
@@ -241,7 +246,7 @@ function adoptState(s0) {
   let ch = false;
   s.seats.forEach((x, i) => { if (x && !r.seats[i]) { r.seats[i] = x; ch = true; } });
   s.names.forEach((x, i) => { if (x && !r.names[i]) { r.names[i] = x; ch = true; } });
-  if ((s.rv | 0) > (r.rv | 0)) { r.thief = s.thief; r.rv = s.rv; r.go = s.go; ch = true; if (H.roles) setTimeout(H.roles); }
+  if (cmpKey(rolesKey(s), rolesKey(r)) > 0) { r.thief = s.thief; r.rv = s.rv; r.go = s.go; ch = true; if (H.roles) setTimeout(H.roles); }
   const c = cmpKey([s.lvl, s.att, s.log.length], [r.lvl, r.att, r.log.length]);
   if (c > 0) {
     const sameAtt = s.lvl === r.lvl && s.att === r.att && r.log.every((x, i) => s.log[i] === x);
@@ -297,7 +302,9 @@ export function renderRoomPanel() {
   else if (mySeat() < 0) txt = 'Жду, пока меня пустят…';
   else if (!bothIn(r)) txt = 'Отправь напарнику ссылку или код и созвонитесь. Кликни по карточке, чтобы поменяться ролями.';
   else if (!r.go) txt = 'Оба на месте. Решите, кто вор, и жмите «Начинаем».';
-  else txt = `Дело №${r.lvl + 1}. Комната живёт, пока в ней кто-то есть.`;
+  else txt = 'Комната живёт, пока в ней кто-то есть.';
+  // номер дела комнаты — всегда, ещё до «Начинаем»: и создателю, и тому, кто зашёл по ссылке
+  if (r && !err) { const nm = H.caseName ? H.caseName(r.lvl + 1) : ''; txt = `Дело №${r.lvl + 1}${nm ? ' · ' + nm : ''}. ${txt}`; }
   note.textContent = txt; note.classList.toggle('err', err);
   $('#btnRoomClose').hidden = !(r && started(r));
   const n2 = $('#inName2'); if (document.activeElement !== n2) n2.value = myName();

@@ -2,7 +2,7 @@
 // Камера плавно наезжает на предмет, курсор свободен, кнопки нажимаются мышью (raycaster).
 import * as THREE from "three";
 import { DCOL, WCOL, GLYPHS } from "./logic.js";
-import { glowSprite } from "./world.js";
+import { glowSprite, glowTexture } from "./world.js";
 
 /* ---------- символы сейфа: свои значки вместо букв (букву легко назвать, значок — нет) ----------
    В логике у символа прежний идентификатор (буква из GLYPHS), рисуется — значок из линий в квадрате 100×100.
@@ -136,6 +136,21 @@ function rounded(w, h, d, r, b = 0.002) {
   g.translate(0, 0, -(d - 2 * b) / 2);
   roundCache.set(k, g);
   return g;
+}
+// панель или записка прошлой попытки ушла со сцены: освободить свои геометрии, материалы и холсты.
+// Общие бруски из roundCache, пятно свечения (glowTexture) и общую геометрию спрайтов не трогаем — ими пользуются другие
+export function disposePanel(obj) {
+  const shared = new Set(roundCache.values()),
+    glow = glowTexture();
+  obj.traverse((o) => {
+    if (o.geometry && !o.isSprite && !shared.has(o.geometry))
+      o.geometry.dispose();
+    const m = o.material;
+    if (!m) return;
+    for (const t of new Set([m.map, m.emissiveMap]))
+      if (t && t.isCanvasTexture && t !== glow) t.dispose();
+    m.dispose();
+  });
 }
 // подпись на кнопке: прозрачная картинка поверх лица, светится сама
 function faceLabel(w, h, draw) {
@@ -1178,7 +1193,7 @@ export class Closeup {
     if (this.onMove) this.onMove(true, target.kind); // звук: вор наклоняется к панели
   }
   exit() {
-    if (!this.active) return;
+    if (!this.active || this.leaving) return; // уже выходим: таймер или вторая клавиша не дёргают камеру
     if (!this.leaving && this.onMove) this.onMove(false, this.active.kind); // выпрямляется
     if (!this.leaving && this.onExit) this.onExit(); // вернуть мышь вору
     this.leaving = true;

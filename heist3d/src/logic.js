@@ -115,7 +115,9 @@ export function themeOf(place) { for (const k in THEMES) if (THEMES[k].places.in
 const levelCache = new Map();
 function getLevel(seed, L) {
   const k = seed + '|' + L;
-  if (!levelCache.has(k)) { let lv = null; for (let tr = 0; tr < 230 && !lv; tr++) lv = tryGen(seed, L, tr, tr >= 200 ? (tr >= 218 ? 2 : 1) : 0); if (lv) addHides(lv); levelCache.set(k, lv); }
+  // до 1500 строгих попыток: на деле №10 попытка удаётся с вероятностью ~0,9%, в 200 не укладывался каждый шестой код (1 охранник вместо 3),
+  // на №9 — каждый двадцатый; в 1500 — ~1 код из миллиона (замер на 4000 кодов и расчёт); упрощённые — как раньше, с tr 200
+  if (!levelCache.has(k)) { let lv = null; for (let tr = 0; tr < 1500 && !lv; tr++) lv = tryGen(seed, L, tr, 0); for (let tr = 200; tr < 230 && !lv; tr++) lv = tryGen(seed, L, tr, tr >= 218 ? 2 : 1); if (lv) addHides(lv); levelCache.set(k, lv); }
   return levelCache.get(k);
 }
 function bfs(lv, src, blocked, doorOpen) {

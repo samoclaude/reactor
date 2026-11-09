@@ -12,8 +12,21 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=PT+Mono&family=Russo+One&display=swap">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@500&display=block&text=%D1%AE%D1%A6%C6%9B%D1%AC%D1%AA%D2%A8%D1%BE%D2%8A%D1%A2%D3%AC%D2%BE%D1%A8%D2%94%D3%83%D2%80%D2%B4%D3%A0%D1%BA%CE%BE%D4%84%D4%88%D4%8E%D2%B8%D3%BE0123456789">
 <link rel="stylesheet" href="style.css?v=11">
+<!-- ?v= у модулей — чтобы браузер не брал старые из кэша: менять при каждой выкладке (вместе с BUILD в main.js) -->
 <script type="importmap">
-{ "imports": { "three": "./vendor/three/three.module.js", "three/addons/": "./vendor/three/addons/" } }
+{ "imports": { "three": "./vendor/three/three.module.js", "three/addons/": "./vendor/three/addons/",
+  "./src/audio.js": "./src/audio.js?v=3d-0.3",
+  "./src/closeup.js": "./src/closeup.js?v=3d-0.3",
+  "./src/guard.js": "./src/guard.js?v=3d-0.3",
+  "./src/logic.js": "./src/logic.js?v=3d-0.3",
+  "./src/net.js": "./src/net.js?v=3d-0.3",
+  "./src/plan.js": "./src/plan.js?v=3d-0.3",
+  "./src/props.js": "./src/props.js?v=3d-0.3",
+  "./src/runner.js": "./src/runner.js?v=3d-0.3",
+  "./src/scenes.js": "./src/scenes.js?v=3d-0.3",
+  "./src/street.js": "./src/street.js?v=3d-0.3",
+  "./src/van.js": "./src/van.js?v=3d-0.3",
+  "./src/world.js": "./src/world.js?v=3d-0.3" } }
 </script>
 </head>
 <body>
@@ -166,6 +179,7 @@
     </div>
     <div class="bf-foot">
       <p class="note" data-rs="note"></p>
+      <button class="btn alt rs-menu" type="button">В меню</button>
       <button class="btn red" id="btnRetry">Ещё раз (коды сменятся)</button>
     </div>
   </div>
@@ -183,6 +197,7 @@
     </div>
     <div class="bf-foot">
       <p class="note" data-rs="note"></p>
+      <button class="btn alt rs-menu" type="button">В меню</button>
       <button class="btn y" id="btnNext">Следующее дело</button>
     </div>
   </div>
@@ -199,6 +214,6 @@
 <div class="update" id="update" hidden><span id="updateText">Вышла новая версия игры</span><button id="btnUpdate">Обновить</button></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script type="module" src="src/main.js?v=1"></script>
+<script type="module" src="src/main.js?v=3d-0.3"></script>
 </body>
 </html>

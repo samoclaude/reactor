@@ -773,6 +773,7 @@ const coneMat = () =>
     depthWrite: false,
     blending: THREE.AdditiveBlending,
     side: THREE.DoubleSide,
+    forceSinglePass: true, // сложение цвета: обе стороны за один проход, а не два
     uniforms: {
       col: { value: new THREE.Color(0xfff0d0) },
       op: { value: 0.11 },
@@ -1515,6 +1516,7 @@ void main(){
     depthWrite: false,
     blending: THREE.AdditiveBlending,
     side: THREE.DoubleSide,
+    forceSinglePass: true, // сложение цвета: обе стороны за один проход, а не два
     uniforms: { time: { value: 0 }, flash: { value: 0 }, amp: { value: 1 } },
     vertexShader:
       "varying vec2 vUv; varying vec3 vN, vV, vW; void main(){ vUv = uv; vec4 mv = modelViewMatrix * vec4(position, 1.); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); vW = (modelMatrix * vec4(position, 1.)).xyz; gl_Position = projectionMatrix * mv; }",
@@ -1732,6 +1734,7 @@ export function buildWindow(x, z, yaw, M, seed = 0, style = "curtain") {
       blending: THREE.AdditiveBlending,
       depthWrite: false,
       side: THREE.DoubleSide,
+      forceSinglePass: true, // сложение цвета: обе стороны за один проход, а не два
     }),
   );
   g.add(patch);
@@ -2089,6 +2092,7 @@ export function buildSkylight(cx, cz, M) {
         blending: THREE.AdditiveBlending,
         depthWrite: false,
         side: THREE.DoubleSide,
+        forceSinglePass: true, // сложение цвета: обе стороны за один проход, а не два
       }),
     ),
   );

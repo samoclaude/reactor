@@ -38,6 +38,10 @@
 (Claude, 06.11.2026), без чужих ассетов и текстур, сжаты gltf-transform meshopt. Скрипты укрытий, фургона и улицы — в `tools/models/`.
 `street` — особняк, ограда, ворота, фонари, деревья, кусты, урна, скамейка, гидрант; `van_ext` с 06.11 — с задними створками и рабочим местом штурмана внутри.
 У `book_encyclopedia_set_01`, `Chandelier_01`, `lion_head`, `security_camera_02` геометрия упрощена в Blender (Decimate) ради скорости.
+Для новых зданий (08.11.2026, тоже скрипты Blender 4.5, без чужих ассетов): банк и офис — `atm`, `cooler`, `flag`, `printer`, `aquarium`, `tv`,
+`sofa_modern`, `whiteboard`, `bicycle`, `floorlamp`, `locker`, `deposit` (`tools/models/props_city.py`); ювелирка и музей — `showcase`, `necklace`,
+`crown`, `peacock`, `scales`, `jeweler`, `telescope`, `masks`, `globe` (`tools/models/props_luxe.py`); фасады музея, банка, офиса и ювелирки — `facades`
+(`tools/models/facades.py`).
 
 ## Охранник (CC0, Quaternius)
 - Universal Base Characters (`Superhero_Male_FullBody`) — https://quaternius.itch.io/universal-base-characters
@@ -76,6 +80,7 @@
 - `wind` — «Wind window strong gusts cold» (TRP) — https://freesound.org/s/574562/
 - `thunder1` — «Thunder strike» (AyaDrevis) — https://freesound.org/s/652690/
 - `thunder2` — «Short_Thunder_Mid» (SholeColtis) — https://freesound.org/s/683421/
+- `thunder_crack` — «Close lightning strike 2018 07 07» (csengeri) — https://freesound.org/s/434359/ (кусок 2,0–3,0 с)
 - `car_dry`, `car_wet` (вместе с «car arriving at the crossways on a wet street», launemax — https://freesound.org/s/249916/) — «CarArriveAndStop» (jmdh) — https://freesound.org/s/136536/
 - `car_snow` — «Renault Duster coming to snow, engine stop» (semenov_nick) — https://freesound.org/s/380718/
 - `car_away` — «Car_StartDriveAway» (kbnevel) — https://freesound.org/s/119829/

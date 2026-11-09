@@ -13,6 +13,7 @@ import {
   makeNote,
   makeWirePanel,
   makeCctvBox,
+  disposePanel,
   glyphSVG,
 } from "./closeup.js";
 import * as N from "./net.js";
@@ -28,9 +29,10 @@ import { Cutscenes, fitFov } from "./scenes.js";
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
+import { GTAOPass } from "three/addons/postprocessing/GTAOPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 
-const BUILD = "3d-0.2";
+const BUILD = "3d-0.3"; // версия игры: менять при каждой выкладке (и ?v= модулей в index.html)
 const TICK_MS = 1300; // длина такта: столько охранник идёт из клетки в клетку
 const APP = "heist3d";
 const $ = (s) => document.querySelector(s);
@@ -116,6 +118,9 @@ const QUALITY = {
     lasers: 2,
     guardLight: true,
     bloom: true, // свечение лазеров, ламп и фонарей (постобработка)
+    ao: true, // мягкие тени в углах и под мебелью (GTAO)
+    lampShadows: 1, // столько ближайших ламп с тенью (слоты пула постоянные)
+    gloss: true, // полированный камень пола блестит сильнее
   },
 };
 let qName = QUALITY[store.get("quality", "smooth")]
@@ -222,8 +227,17 @@ function makePools() {
     scene.remove(l);
     l.dispose();
   }
-  lampPool = Array.from({ length: Q.lamps }, () => {
+  lampPool = Array.from({ length: Q.lamps }, (_, i) => {
     const l = new THREE.PointLight(0xffb060, 0, 7, 2);
+    // «Максимум»: у первых слотов (ближайшие лампы) тень. Тень не включаем и не выключаем на ходу —
+    // это пересобрало бы все шейдеры; у погасшего слота просто не обновляем карту
+    if (i < (Q.lampShadows || 0)) {
+      l.castShadow = true;
+      l.shadow.mapSize.set(512, 512);
+      l.shadow.bias = -0.004;
+      l.shadow.normalBias = 0.03;
+      l.shadow.camera.near = 0.4; // сам светильник (ближе 0,4 м к точке света) тень не бросает
+    }
     scene.add(l);
     return l;
   });
@@ -234,8 +248,9 @@ function makePools() {
   });
 }
 
-// «Максимум»: кадр рисуется через постобработку со свечением
-let composer = null;
+// «Максимум»: кадр рисуется через постобработку — мягкие тени в углах (GTAO) и свечение
+let composer = null,
+  gtao = null;
 function renderMain() {
   if (!Q.bloom) {
     renderer.render(scene, camera);
@@ -243,7 +258,30 @@ function renderMain() {
   }
   if (!composer) {
     composer = new EffectComposer(renderer);
+    // глубина кадра — в текстуру: по ней GTAO считает углы без второго прохода сцены
+    for (const rt of [composer.renderTarget1, composer.renderTarget2])
+      rt.depthTexture = new THREE.DepthTexture(rt.width, rt.height);
     composer.addPass(new RenderPass(scene, camera));
+    gtao = new GTAOPass(
+      scene,
+      camera,
+      innerWidth,
+      innerHeight,
+      { depthTexture: composer.readBuffer.depthTexture },
+      // радиус 0,8 м: стык стены с полом и мебель у пола; scale — насколько темнеет угол
+      {
+        radius: 0.8,
+        distanceExponent: 1.5,
+        thickness: 2,
+        scale: 1.8,
+        samples: 12,
+      },
+    );
+    gtao.blendIntensity = 0.9;
+    // AO считаем в половину разрешения: его всё равно размывают, а работы вчетверо меньше
+    const aoSize = gtao.setSize.bind(gtao);
+    gtao.setSize = (w, h) => aoSize(Math.ceil(w / 2), Math.ceil(h / 2));
+    composer.addPass(gtao);
     composer.addPass(
       new UnrealBloomPass(
         new THREE.Vector2(innerWidth, innerHeight),
@@ -256,6 +294,16 @@ function renderMain() {
     composer.setPixelRatio(renderer.getPixelRatio());
     composer.setSize(innerWidth, innerHeight);
   }
+  // RenderPass рисует в readBuffer: глубину берём оттуда (буферы меняются местами)
+  // меняем только текстуру глубины: setGBuffer каждый кадр заново искал бы шейдеры (needsUpdate)
+  const depth = composer.readBuffer.depthTexture;
+  if (gtao.depthTexture !== depth) {
+    gtao.depthTexture = depth;
+    gtao.gtaoMaterial.uniforms.tDepth.value = depth;
+    gtao.pdMaterial.uniforms.tDepth.value = depth;
+    gtao.depthRenderMaterial.uniforms.tDepth.value = depth;
+  }
+  gtao.enabled = !!Q.ao;
   composer.render();
 }
 function resize() {
@@ -272,6 +320,10 @@ function resize() {
     van.cam.aspect = w / h;
     van.cam.updateProjectionMatrix();
   }
+  fitMini();
+}
+// холст мини-карты — по размеру блока (у скрытого блока размера нет)
+function fitMini() {
   const mc = $("#mini"),
     r = mc.getBoundingClientRect(),
     d = Math.min(2, devicePixelRatio || 1);
@@ -289,6 +341,7 @@ function applyQuality() {
     flash.shadow.map = null;
   }
   makePools();
+  if (level) glossFloor();
   if (level)
     for (const o of level.guards) {
       o.spot.visible = Q.guardLight;
@@ -299,6 +352,8 @@ function applyQuality() {
   resize();
 }
 addEventListener("resize", resize);
+// блок карты показывают позже (тренировка, обучение) — тогда и подгоняем холст, иначе он 300×150 и сплюснут
+new ResizeObserver(fitMini).observe($("#mini"));
 
 /* ======================= уровень в 3D ======================= */
 const M = W.makeMaterials(null);
@@ -331,6 +386,7 @@ runner.onBump = () => A.sfxBump();
 
 function disposeGroup(g) {
   g.traverse((o) => {
+    if (o.isLight) o.dispose(); // фонарь охранника: освободить карту тени
     if (o.geometry) o.geometry.dispose();
     if (o.material && !Object.values(M).includes(o.material)) {
       (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) =>
@@ -403,6 +459,13 @@ function buildGem(lv) {
   return { group: g, gem, glow };
 }
 
+// «Максимум»: полированный камень пола (мрамор, терраццо) глаже — резче блики ламп и фонаря.
+// Шероховатость — просто число в шейдере, пересборки нет
+function glossFloor() {
+  const x = (W.LOOKS[cuts.lot && cuts.lot.id] || W.LOOKS.mansion).floor[3];
+  if (!x || x.rough == null || x.rough > 0.3) return; // паркет, ковролин — как были
+  M.floor.roughness = Q.gloss ? x.rough * 0.55 : x.rough;
+}
 // за окном фургона — здание дела
 function vanStreet(theme) {
   if (!van) return;
@@ -423,6 +486,7 @@ function buildLevel(lv) {
   W.applyLook(M, theme);
   A.setFloor(look.step);
   cuts.lot = { id: theme, name: lv.name }; // сценки и фото брифинга — у этого здания
+  glossFloor();
   vanStreet(theme);
   const shell = W.buildShell(lv, R, M);
   group.add(shell.group);
@@ -725,6 +789,7 @@ let solo = null,
   cur = { safe: null, door: null, panel: null, cctv: null };
 let lastCaughtKey = "",
   lastWonKey = "",
+  playedKey = "", // попытка, которую на этой странице видели до победы
   briefedKey = "",
   tickAt = 0,
   lastT = -1,
@@ -809,7 +874,26 @@ function sync(full) {
   if (again && $("#brief").hidden && $("#menu").hidden) arrive();
 }
 function placeRunner() {
-  const [x, z] = W.cellXZ(lv, sim.pos);
+  let [x, z] = W.cellXZ(lv, sim.pos);
+  // центр клетки занят (столик с запиской) — ближайшая свободная точка той же клетки
+  if (level && !runner.free(level.R, x, z)) {
+    const [x0, z0, x1, z1] = cellRect(lv, sim.pos);
+    let best = null;
+    for (let d = 0.15; d < 2.6 && !best; d += 0.15)
+      for (let a = 0; a < 16 && !best; a++) {
+        const px = x + d * Math.cos((a * Math.PI) / 8),
+          pz = z + d * Math.sin((a * Math.PI) / 8);
+        if (
+          px > x0 &&
+          px < x1 &&
+          pz > z0 &&
+          pz < z1 &&
+          runner.free(level.R, px, pz)
+        )
+          best = [px, pz];
+      }
+    if (best) [x, z] = best;
+  }
   runner.place(x, z, W.yawOf(sim.face));
 }
 function pushEv(e) {
@@ -992,6 +1076,19 @@ function advanceTicks() {
   const tk = Math.floor((Date.now() - s.t0) / TICK_MS);
   if (tk > sim.t) pushEv("T" + tk.toString(36));
 }
+// вор отстал от часов больше чем на 3 такта, а паузы у него не было (вышел из комнаты и вернулся, вкладка упала —
+// у штурмана тем временем пауза «не на связи»; или кадр завис на секунды): это время не считаем, как паузу, —
+// иначе охрана разом прыгнет на десятки тактов, а таймер уйдёт. Свёрнутая вкладка сюда не доходит: это обычная
+// пауза (visibilitychange, myPz 4). Новое начало попытки штурман получит с ближайшим событием T
+function catchUp() {
+  const s = src();
+  if (!amWriter() || blind() || !live() || !s.t0 || window.__freeze) return;
+  const lag = Math.floor((Date.now() - s.t0) / TICK_MS) - sim.t;
+  if (lag > 3) {
+    s.t0 += (lag - 1) * TICK_MS;
+    saveSrc();
+  }
+}
 function trackCell() {
   if (!amWriter() || !live()) return;
   const c = W.cellAt(lv, runner.pos.x, runner.pos.z);
@@ -1035,13 +1132,18 @@ function penaltyMs() {
         1000
     : 0;
 }
+// t0 ставит вор по своим часам, а часы у двоих могут расходиться на секунды:
+// штурман добавляет разницу (вор минус я, из его ping). Только для показа времени
+const clockSkew = () =>
+  mode === "online" && !amWriter() ? N.net.skew || 0 : 0;
 function timerLeft() {
   const s = src();
   if (!s || !lv || !lv.limit) return null;
   if (!s.t0) return limitMs();
   // на паузе время стоит: считаем от начала попытки, каким оно было в начале паузы
   const used =
-    pauseAt && pauseT0 ? pauseAt - pauseT0 : (menuAt || Date.now()) - s.t0;
+    (pauseAt && pauseT0 ? pauseAt - pauseT0 : (menuAt || Date.now()) - s.t0) +
+    clockSkew();
   return limitMs() - used - penaltyMs();
 }
 let lastClockSec = -1;
@@ -1100,14 +1202,22 @@ addEventListener("pagehide", () => {
       at: pauseAt || Date.now(),
     });
 });
-// я не готов играть (как peerPz): после переподключения брифинг и сценка тоже ставят паузу напарнику
+// вор свернул вкладку или окно: кадров до возвращения не будет, такты стоят — сразу пауза у обоих
+// (у себя время стоит с этой минуты, напарнику — pz 4). Вернулся — обычный отсчёт 3-2-1
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden && mode === "online" && amWriter())
+    updatePause(performance.now());
+});
+// я не готов играть (как peerPz): после переподключения брифинг и сценка тоже ставят паузу напарнику;
+// 4 — вор свернул вкладку
 function myPz() {
   if (mode !== "online" || !inGame() || !sim || sim.caught || sim.won) return 0;
+  if (document.hidden && amWriter()) return 4;
   return !$("#menu").hidden ? 1 : !$("#brief").hidden ? 2 : cuts.active ? 3 : 0;
 }
 // можно двигаться и что-то делать: игра идёт и не на паузе
 const live = () => playing() && !pauseAt;
-// почему пауза: link — моя связь, peer — напарник пропал, me — я в меню, menu — напарник в меню;
+// почему пауза: link — моя связь, peer — напарник пропал, me — я в меню (вор — или свернул вкладку), menu — напарник в меню;
 // "" — играем, null — пауза тут ни при чём (не онлайн, брифинг, сценка, конец попытки)
 function pauseWhy() {
   const r = N.net.room;
@@ -1126,8 +1236,25 @@ function pauseWhy() {
   const pid = r.seats[1 - Math.max(0, N.mySeat())];
   if (N.net.status !== "ok") return "link";
   if (!pid || !N.net.online.has(pid)) return "peer";
-  if (!$("#menu").hidden) return "me";
+  if (!$("#menu").hidden || (document.hidden && amWriter())) return "me";
   return peerPz ? "menu" : "";
+}
+// щелчок рации, когда связь (своя или напарника) пропала и вернулась. Пока ни разу не играли вдвоём на связи
+// (первое подключение, перезагрузка) — молча; связь мигает — звук не чаще раза в 1,5 с
+let linkUp = null, // null — ещё не играли на связи (сброс в resetGame), true — на связи, false — нет
+  linkSfxAt = -1e9;
+function linkSfx(why, now) {
+  if (why == null) return; // не онлайн, сценка, конец попытки — пауза ни при чём
+  const up = why !== "link" && why !== "peer";
+  if (linkUp == null) {
+    if (why === "") linkUp = true;
+    return;
+  }
+  if (up === linkUp || now - linkSfxAt < 1500) return;
+  linkUp = up;
+  linkSfxAt = now;
+  if (up) A.sfxLinkBack();
+  else A.sfxLinkLost();
 }
 // раз в кадр: full — пауза, count — отсчёт перед продолжением, "" — играем
 function updatePause(now) {
@@ -1155,6 +1282,7 @@ function updatePause(now) {
     N.send("pz", { on: mine });
   }
   const why = pauseWhy();
+  linkSfx(why, now);
   // кадр завис (строится фургон, сборка шейдеров) — отсчёт ждёт, чтобы его было видно
   if (resumeAt && now - pauseLast > 300) resumeAt += now - pauseLast;
   pauseLast = now;
@@ -1202,7 +1330,7 @@ function renderPause(why, now) {
                 "Время стоит, охрана замерла. Продолжим сами, как только связь вернётся.",
               ]
             : [
-                `${nm} ${["", "в меню", "читает брифинг", "смотрит заставку"][peerPz] || "в меню"}`,
+                `${nm} ${["", "в меню", "читает брифинг", "смотрит заставку", "свернул игру"][peerPz] || "в меню"}`,
                 "Пауза у обоих: время стоит, охрана замерла. Продолжим, когда напарник вернётся в игру.",
               ];
       h = `<div class="folder pz-card"><div class="stamp">ПАУЗА</div><b>${t}</b><p>${p}</p><small>Esc — меню</small></div>`;
@@ -1297,7 +1425,8 @@ const TUT_LASER =
 let tutDone = store.get("tut", {}),
   tutS = null, // { k, i — шаг, at — когда показан, moved — метров, sneak — секунд крадучись, laser — до какого времени подсказка про лазер, att }
   tutHtml = "",
-  tutPending = null; // что сделать после обучения: создать комнату или войти в неё
+  tutPending = null, // что сделать после обучения: создать комнату или войти в неё
+  tutRoom = ""; // позвали по ссылке: код комнаты (пока ждёт обучение, своя комната и другой код скрыты)
 function tutFinish(k) {
   tutDone[k] = 1;
   store.set("tut", tutDone);
@@ -1322,9 +1451,10 @@ function startTutorial(kind) {
   sync(true);
 }
 // перед игрой вдвоём — обучение за обе роли (или «Я уже умею»)
-function tutGate(act) {
+function tutGate(act, room) {
   if (tutDone.runner && tutDone.nav) return act();
   tutPending = act;
+  tutRoom = room || "";
   openMenu();
   showTab("play");
   renderTutRow(true);
@@ -1334,12 +1464,19 @@ function renderTutRow(gate) {
   if (gate != null) row.classList.toggle("gate", gate);
   $("#btnTutRunner").classList.toggle("done", !!tutDone.runner);
   $("#btnTutNav").classList.toggle("done", !!tutDone.nav);
-  $("#tutNote").textContent = row.classList.contains("gate")
-    ? "Перед игрой вдвоём пройди обучение за обе роли: по паре минут на каждую."
-    : tutDone.runner && tutDone.nav
-      ? "Пройдено. Можно повторить."
-      : "Пара минут за каждую роль — и вдвоём не придётся объяснять кнопки.";
+  const inv = row.classList.contains("gate") && tutRoom;
+  $("#tutNote").textContent = inv
+    ? `Тебя позвали в комнату ${tutRoom}. Сначала пройди обучение за обе роли (по паре минут на каждую) или нажми «Я уже умею» — и сразу в комнату.`
+    : row.classList.contains("gate")
+      ? "Перед игрой вдвоём пройди обучение за обе роли: по паре минут на каждую."
+      : tutDone.runner && tutDone.nav
+        ? "Пройдено. Можно повторить."
+        : "Пара минут за каждую роль — и вдвоём не придётся объяснять кнопки.";
   $("#btnTutSkip").hidden = !row.classList.contains("gate");
+  // позвали по ссылке: своя комната или другой код перебили бы приглашение
+  $("#btnCreate").hidden = !!inv;
+  $("#vMain .join").hidden = !!inv;
+  $("#btnCaseRoom").hidden = !!inv;
 }
 // после победы в обучении: следующая роль, игра вдвоём (если ждали) или меню
 function tutNext() {
@@ -1352,6 +1489,7 @@ function tutNext() {
   openMenu();
   const act = tutPending;
   tutPending = null;
+  tutRoom = "";
   renderTutRow(false);
   if (act) act();
 }
@@ -1506,10 +1644,14 @@ $("#tut").addEventListener("click", (e) => {
   const b = e.target.closest("button[data-a]");
   if (!b || !tutS) return;
   if (b.dataset.a === "skip") {
-    // выйти из обучения в меню (пройденным не считается)
+    // выйти из обучения в меню (пройденным не считается); отложенное «создать комнату» забыть, приглашение по ссылке — оставить
     solo = null;
     resetGame("idle");
     openMenu();
+    if (!tutRoom) {
+      tutPending = null;
+      renderTutRow(false);
+    }
   } else tutS.at = -1e9; // «Дальше»: шаг без условия — сразу следующий
 });
 $("#btnTutRunner").addEventListener("click", () => {
@@ -1525,6 +1667,7 @@ $("#btnTutSkip").addEventListener("click", () => {
   tutFinish("nav");
   const act = tutPending;
   tutPending = null;
+  tutRoom = "";
   renderTutRow(false);
   if (act) act();
 });
@@ -1683,6 +1826,7 @@ const NEWS = {
     r: "Проход перекрыт лазерным барьером. Его можно отключить — штурман знает как. Батарейки слабее: фонарик светит тусклее и ближе.",
     n: "Лазерный барьер: сквозь него не пройти. Как отключить — лист «Щиток».",
   },
+  9: same("Третий охранник", "Охранников теперь трое."),
   10: {
     t: "Взлом камер",
     r: "Здание больше, а пеленга нет: штурман не найдёт тебя на схеме. Одна камера смотрит в проход всегда. В здании есть чем отключить камеры — найди, штурман подскажет.",
@@ -1771,7 +1915,8 @@ function ui() {
   else
     st = sim.gem
       ? '<b class="y">💎 у тебя.</b> Теперь к выходу (служебная дверь, у неё зелёная палочка)'
-      : "Тренировка: видно всё. Найди 💎 и уйди через служебную дверь";
+      : (tutKind() ? "Обучение" : "Тренировка: видно всё") +
+        ". Найди 💎 и уйди через служебную дверь";
   $("#status").innerHTML = st;
   // документы штурмана: какой лист нужен прямо сейчас
   const nearDoor = lv.door >= 0 && !sim.open && G.adjCell(lv, sim.pos, lv.door);
@@ -1812,7 +1957,11 @@ function ui() {
     // цифры — на момент поимки; фото — через 0,35 с (охранник успел повернуться, лучи лазеров видны)
     const tl0 = timerLeft(),
       used0 =
-        tl0 != null && s.t0 ? limitMs() - tl0 : s.t0 ? Date.now() - s.t0 : null;
+        tl0 != null && s.t0
+          ? limitMs() - tl0
+          : s.t0
+            ? Date.now() + clockSkew() - s.t0
+            : null;
     lastResult.fail = { why, used: used0 };
     shotReq = {
       at: performance.now() + 350,
@@ -1830,15 +1979,24 @@ function ui() {
     }, 2600);
   }
   if (!sim.caught) $("#caught").hidden = true;
+  if (!sim.won) playedKey = ak;
   if (sim.won && lastWonKey !== ak) {
     lastWonKey = ak;
     runner.unlock();
     if (tutKind()) tutFinish(tutKind());
     $("#btnNext").textContent = tutKind() ? tutNextLabel() : "Следующее дело";
-    // прогресс и рекорд пары: онлайн вдвоём и «вором вслепую»; тренировка не считается
+    // прогресс: онлайн вдвоём и «вором вслепую»; рекорд пары — только онлайн
+    // (вслепую время идёт и пока пишешь Claude, с живой игрой не сравнить); тренировка не считается
+    // победили до перезагрузки страницы (открыли сразу итоги) — сколько шли, не знаем: время не пишем
     const tlW = timerLeft(),
       msW =
-        tlW != null && s.t0 ? limitMs() - tlW : s.t0 ? Date.now() - s.t0 : 0;
+        playedKey !== ak
+          ? 0
+          : tlW != null && s.t0
+            ? limitMs() - tlW
+            : s.t0
+              ? Date.now() + clockSkew() - s.t0
+              : 0;
     lastResult.win = { used: msW || null, best: null, fresh: false };
     if (online || blind()) {
       const r0 = N.net.room,
@@ -1849,8 +2007,8 @@ function ui() {
         online && r0 ? pairKey(r0.names[0], r0.names[1]) : null,
       );
       const best = bestOf(s.lvl + 1);
-      lastResult.win.best = best;
-      lastResult.win.fresh = !!best && (!old || best.ms < old.ms);
+      lastResult.win.best = online ? best : null;
+      lastResult.win.fresh = online && !!best && (!old || best.ms < old.ms);
     }
     shotReq = {
       at: performance.now() + 100,
@@ -2558,6 +2716,9 @@ $("#btnRetry").addEventListener("click", () => {
   A.ensureAudio();
   restartLevel();
 });
+// «В меню» на итогах: меню встаёт поверх досье, «Вернуться к делу» — снова итоги
+for (const b of document.querySelectorAll(".rs-menu"))
+  b.addEventListener("click", openMenu);
 $("#btnNext").addEventListener("click", () => {
   A.ensureAudio();
   // дело пройдено — стопка фото провалов больше не нужна
@@ -2592,15 +2753,21 @@ const CASE_TITLES = {
   9: "Лазерный барьер",
   10: "Трое охранников",
   11: "Взлом камер",
+  12: "Тишина в эфире",
   13: "Охрана в тени",
+  14: "Шаги в темноте",
   15: "Самый большой дом",
+  16: "Четверо на смене",
   17: "Жёсткий таймер",
   18: "Каждый шаг на счету",
+  19: "Без права на ошибку",
+  20: "Генеральная репетиция",
   21: "Высшая лига",
 };
 const caseTitle = (n) => CASE_TITLES[n] || "Дело №" + n;
-// открыты пройденные вдвоём (или вором вслепую) дела и следующее; старый номер тренировки тоже считается открытым
-let openMax = Math.max(1, store.get("openMax", 0) | 0, trainLvl);
+// открыты пройденные вдвоём (или вором вслепую) дела и следующее; старый номер тренировки — только
+// если openMax ещё не записан (переход со старой версии), дальше тренировка прогресс не даёт
+let openMax = Math.max(1, store.get("openMax", 0) | 0 || trainLvl);
 store.set("openMax", openMax); // сразу запомнить: иначе выбор меньшего дела после перезагрузки «закроет» остальные
 const pairKey = (a, b) =>
   [a || "?", b || "?"].sort((x, y) => (x < y ? -1 : x > y ? 1 : 0)).join(" и ");
@@ -2654,7 +2821,8 @@ function renderCases() {
   if (!grid) return;
   let h = "";
   for (let n = 1; n <= CASES; n++) {
-    const open = n <= openMax,
+    // выбранное открыто всегда: до него дошли тренировкой («Следующее дело»), пройденным не считается
+    const open = n <= openMax || n === trainLvl,
       done = n < openMax,
       b = bestOf(n),
       sel = n === trainLvl;
@@ -2670,7 +2838,10 @@ function renderCases() {
     d.guards ? `охрана: ${d.guards}` : "без охраны",
     d.cams ? `камер: ${d.cams}` : "",
     `лазеров: ${d.lasers}`,
-    d.gate ? "барьер" : d.safe ? "сейф" : d.lock ? "кодовая дверь" : "",
+    d.lock && "кодовая дверь",
+    d.safe && "сейф",
+    d.gate && "барьер",
+    d.cctv && "щиток камер",
   ].filter(Boolean);
   $("#caseInfo").innerHTML =
     `<b>№${n} · ${esc(caseTitle(n))}</b><p>${parts.join(" · ")}</p>` +
@@ -2691,6 +2862,11 @@ $("#btnCaseSolo").addEventListener("click", () => {
 $("#caseGrid").addEventListener("click", (e) => {
   const b = e.target.closest("button.case");
   if (!b || b.disabled) return;
+  // в комнате дело уже выбрано: выбор тут поменял бы только подсветку
+  if (N.net.on && N.net.room)
+    return toast(
+      `В комнате — дело №${N.net.room.lvl + 1}. Другое: выйди и создай новую комнату`,
+    );
   setCase(+b.dataset.n);
 });
 $("#pickCase").addEventListener("click", () => showTab("cases"));
@@ -2795,6 +2971,8 @@ $("#menu").addEventListener("click", (e) => {
 let menuOpenedAt = 0;
 function escMenu() {
   if (!inGame() || cuts.active || closeup.active || !$("#menu").hidden) return;
+  // брифинг и итоги лежат поверх меню: под ними оно открылось бы невидимым (на итогах есть кнопка «В меню»)
+  if (!$("#brief").hidden || !$("#caught").hidden || !$("#won").hidden) return;
   menuOpenedAt = performance.now();
   openMenu();
 }
@@ -2858,7 +3036,17 @@ const doJoin = () => {
 };
 $("#btnJoin").addEventListener("click", doJoin);
 inCode.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") doJoin();
+  if (e.key === "Enter") return doJoin();
+  // буква по клавише, а не по раскладке: на русской раскладке клавиша T — это T, а не «Е».
+  // Вставка из буфера (Ctrl/Cmd+V) — как раньше, через input
+  const m = /^(?:Key([A-Z])|Digit(\d))$/.exec(e.code);
+  if (!m || e.ctrlKey || e.metaKey || e.altKey || e.isComposing) return;
+  e.preventDefault();
+  const a = inCode.selectionStart,
+    b = inCode.selectionEnd;
+  if (inCode.value.length - (b - a) >= 4) return;
+  inCode.setRangeText(m[1] || m[2], a, b, "end");
+  inCode.dispatchEvent(new Event("input"));
 });
 $("#btnShare").addEventListener("click", N.shareInvite);
 $("#btnLeave").addEventListener("click", () => {
@@ -2868,7 +3056,7 @@ $("#btnLeave").addEventListener("click", () => {
 $("#btnRoomClose").addEventListener("click", () => closeMenu());
 addEventListener("hashchange", () => {
   const c = N.codeFromHash();
-  if (c && (!N.net.on || N.net.code !== c)) tutGate(() => N.joinRoom(c));
+  if (c && (!N.net.on || N.net.code !== c)) tutGate(() => N.joinRoom(c), c);
 });
 $("#btnMenu").addEventListener("click", () => {
   if (!$("#menu").hidden) {
@@ -3098,7 +3286,10 @@ function updateWorld(now, dt, quiet) {
     } else if (o.gm) o.gm.setState("walk");
     o.yaw = angLerp(o.yaw, wantYaw, 1 - Math.exp(-dt * 7));
     o.group.rotation.y = o.yaw;
-    if (o.gm) o.gm.update(dt, gi === gCatch ? 0 : Math.max(speed, 0.6));
+    // сколько раз нога в анимации встала на пол за кадр
+    const fall = o.gm
+      ? o.gm.update(dt, gi === gCatch ? 0 : Math.max(speed, 0.6))
+      : 0;
     // луч фонаря ровно до конца зоны обзора: в стену не проходит
     const vis = G.ray(lv, c1.i, c1.face, lv.vr || 2),
       endC = vis.length ? vis[vis.length - 1] : c1.i,
@@ -3111,10 +3302,13 @@ function updateWorld(now, dt, quiet) {
     o.cone.scale.set(1, 1, len / (((lv.vr || 2) * W.SPAN) / 2 + 0.4));
     const near = o.group.position.distanceTo(tmpV.set(cam.x, 0, cam.z)) < 16;
     o.spot.intensity = near ? 30 : 0;
+    if (o.spot.castShadow) o.spot.shadow.autoUpdate = near; // погасшему фонарю карта тени не нужна
     o.spot.distance = len + 2;
-    // шаги охраны слышны с направлением
+    // шаги охраны слышны с направлением: когда нога встаёт на пол (стоит на месте или целится — тихо);
+    // модели нет — по пройденному пути
     o.walked = (o.walked || 0) + speed * dt;
-    if (o.walked > 0.7 && !quiet) {
+    const stepNow = o.gm ? fall > 0 && speed > 0.3 : o.walked > 0.7;
+    if (stepNow && !quiet) {
       o.walked = 0;
       const dx = o.group.position.x - cam.x,
         dz = o.group.position.z - cam.z,
@@ -3225,6 +3419,7 @@ function updateWorld(now, dt, quiet) {
       l.color.set(p.col || 0xffb060);
       l.intensity = p.k || 3.2;
     } else l.intensity = 0;
+    if (l.castShadow) l.shadow.autoUpdate = l.intensity > 0; // погасшей лампе карта тени не нужна
   });
   W.tickWindows(now / 1000, bolt.f);
   if (L0.cctv && L0.cctv.box)
@@ -3375,7 +3570,9 @@ async function prefetchThemes() {
 function rebuildPartial() {
   if (!level || !level.partial || runner.closeup) return;
   // посреди попытки не трогаем: сбросились бы набранный код и провода щитка, а у новой модели свой упор в растре
-  if (sim && sim.t > 0 && !sim.caught && !sim.won) return;
+  // попытка уже началась (есть t0), даже если первый такт ещё не прошёл: после зависания такты догнали бы разом
+  const s = src();
+  if (sim && (sim.t > 0 || (s && s.t0)) && !sim.caught && !sim.won) return;
   if (!W.lookReady(level.theme) || !P.themePropsReady(level.theme)) return;
   const att = level.att;
   buildLevel(lv);
@@ -3436,7 +3633,10 @@ function frame(now) {
               : "city",
     weather,
   );
-  bolt.f = lightning(now, weather === "storm" && (cuts.active || !!lv));
+  bolt.f = lightning(
+    now,
+    weather === "storm" && !frozen && (cuts.active || !!lv), // на паузе грома нет
+  );
   cuts.flash = bolt.f;
   if (van) {
     van.rain.uniforms.flash.value = bolt.f;
@@ -3465,8 +3665,15 @@ function frame(now) {
     renderer.render(scene, camera);
     return;
   }
+  catchUp();
   tickClock();
-  if (frozen) return;
+  if (frozen) {
+    // пауза: виолончель, гул лазера и часы стихают
+    A.setTension(0);
+    A.setHum(0, 0);
+    A.setClock(0, 0);
+    return;
+  }
   advanceTicks();
   const r = role(),
     swapping = now < bat.swapUntil,
@@ -3594,7 +3801,7 @@ Promise.all([
     $("#loading").hidden = true;
     prefetchThemes();
     const c0 = N.codeFromHash();
-    if (c0) tutGate(() => N.joinRoom(c0));
+    if (c0) tutGate(() => N.joinRoom(c0), c0);
     else openMenu();
   });
 // для проверок скриптом (Playwright)
@@ -3676,9 +3883,17 @@ function attemptProps(att) {
   L0.att = att;
   codeBuf = "";
   noteOpen = false; // новая попытка — записка снова на столе
+  // и дверь хранилища снова закрыта, в растре тоже (кадр откроет её, если по логике попытки она открыта)
+  if (L0.door && L0.doorFree) {
+    L0.doorFree = false;
+    L0.doorAng = 0;
+    const r = cellRect(L0.lv, L0.lv.door);
+    W.blockRect(L0.R, r[0], r[1], r[2], r[3], 2);
+  }
   if (L0.safe && cur.safe) {
     if (L0.safe.panel) {
       L0.safe.group.remove(L0.safe.panel.group);
+      disposePanel(L0.safe.panel.group);
     }
     const p = makeSafePanel(cur.safe.shown, cur.safe.maxStrikes);
     p.group.position.copy(L0.safe.padLocal);
@@ -3687,7 +3902,10 @@ function attemptProps(att) {
     L0.safe.panel = p;
   }
   if (L0.note && cur.door) {
-    if (L0.note.card) L0.note.group.remove(L0.note.card.mesh);
+    if (L0.note.card) {
+      L0.note.group.remove(L0.note.card.mesh);
+      disposePanel(L0.note.card.mesh);
+    }
     const d = cur.door,
       lines =
         d.type === "digits"
@@ -3716,12 +3934,18 @@ function attemptProps(att) {
   }
   dispBuf = [];
   if (L0.door && cur.door) {
-    if (L0.door.keypad) L0.door.pad.remove(L0.door.keypad.group);
+    if (L0.door.keypad) {
+      L0.door.pad.remove(L0.door.keypad.group);
+      disposePanel(L0.door.keypad.group);
+    }
     L0.door.keypad = makeKeypad(cur.door);
     L0.door.pad.add(L0.door.keypad.group);
   }
   if (L0.panel && cur.panel) {
-    if (L0.panel.box) L0.group.remove(L0.panel.box.group);
+    if (L0.panel.box) {
+      L0.group.remove(L0.panel.box.group);
+      disposePanel(L0.panel.box.group);
+    }
     const p = makeWirePanel(cur.panel),
       sp = L0.panel.spot;
     p.group.position.set(sp.x, 1.35, sp.z);
@@ -3730,7 +3954,10 @@ function attemptProps(att) {
     L0.panel.box = p;
   }
   if (L0.cctv && cur.cctv) {
-    if (L0.cctv.box) L0.group.remove(L0.cctv.box.group);
+    if (L0.cctv.box) {
+      L0.group.remove(L0.cctv.box.group);
+      disposePanel(L0.cctv.box.group);
+    }
     const p = makeCctvBox(cur.cctv, lv.cams.length),
       sp = L0.cctv.spot;
     p.group.position.set(sp.x, 1.45, sp.z);
@@ -3874,8 +4101,18 @@ function updateInteract(canMove) {
   const pk = $("#peek");
   pk.hidden = !hideNow;
   if (hideNow) pk.className = "peek " + hideNow.kind;
-  hint.hidden = !interact;
+  // в крупном плане — как выйти (у укрытия свой тост)
+  const cu =
+    closeup.active && !closeup.leaving && closeup.active.kind !== "hide"
+      ? closeup.active.kind
+      : "";
+  hint.classList.toggle("low", !!cu);
+  hint.hidden = !interact && !cu;
   if (interact) hint.innerHTML = interact.text;
+  else if (cu)
+    hint.innerHTML =
+      (cu === "note" ? "" : "кликай по кнопкам · ") +
+      "<b>E</b> или <b>Esc</b> — назад";
   if (runner.closeup && closeup.active && !closeup.leaving && !playing())
     closeup.exit();
   updateNoteCard();
@@ -3967,6 +4204,7 @@ function updateInventory() {
     .join("");
 }
 function handleCode(rid, val) {
+  if (pauseAt) return; // на паузе и в отсчёте после неё код не принимается
   const s = src();
   if (
     !s ||
@@ -3989,6 +4227,7 @@ const rid5 = () =>
     .replace(/[^a-z0-9]/g, "a")
     .padEnd(5, "a");
 closeup.onPress = (t, btn) => {
+  if (pauseAt) return; // на паузе (и в отсчёте) кнопки панелей не нажимаются
   A.ensureAudio();
   if (t.kind === "door") {
     const kp = level.door.keypad,
@@ -4089,6 +4328,19 @@ function hackSubmit() {
   else {
     const s = src();
     N.send("hack", { lvl: s.lvl, att: s.att, val });
+    // ответ — событие v или y от вора; нет его за 4 с (вор на паузе, сообщение потерялось) — сказать
+    const hs = sim.hstrikes | 0;
+    clearTimeout(lapSt.wait);
+    lapSt.wait = setTimeout(() => {
+      if (
+        lapSt.msg === "ПРОВЕРКА…" &&
+        sim &&
+        sim.plugged &&
+        !sim.camOff &&
+        (sim.hstrikes | 0) === hs
+      )
+        lapMsg("НЕТ ОТВЕТА — ВВЕДИ ЕЩЁ РАЗ", "#ffb35a", 4000);
+    }, 4000);
   }
 }
 // клавиатура ноутбука: цифры, Backspace, Enter. Перехватываем раньше всех: у вора 3 и 4 — батарейки и записка,
@@ -4122,6 +4374,7 @@ addEventListener(
 $("#lapClose").addEventListener("click", () => ($("#lapUI").hidden = true));
 addEventListener("keydown", (e) => {
   if (e.target && e.target.tagName === "INPUT") return;
+  if (e.repeat) return; // удержание клавиши: E не закрывает крупный план, R не тратит вторую батарейку
   if (e.code === "KeyE") {
     if (closeup.active && !closeup.leaving) {
       if (closeup.active.kind === "hide") tryEv("u");
@@ -4153,7 +4406,13 @@ addEventListener("keydown", (e) => {
     !closeup.active
   )
     swapBattery(performance.now());
-  if (e.code === "Digit4" && hasNote() && !sim.open && live()) {
+  if (
+    e.code === "Digit4" &&
+    role() !== "nav" &&
+    hasNote() &&
+    !sim.open &&
+    live()
+  ) {
     noteOpen = !noteOpen;
     A.sfxNote(0, !noteOpen);
   }
@@ -4177,11 +4436,11 @@ function docHtml(id, want) {
   if (id === "memo")
     return `<h3>📋 Памятка штурмана</h3><ul>
     <li>Схема показывает мир <b>на такт вперёд</b>: где охрана будет после следующего шага. Лазеры и камеры — <b>как сейчас</b>, как у вора. ${lv.hide ? "<b>Охрана в тени:</b> на плане только маршруты, где охранники — во вкладке «Охрана»." : "Бледный 💂 — где он сейчас."} Такт — чуть больше секунды, охрана шагает сама.</li>
-    <li>Вор <b>видит</b> охранника, если тот перед ним, но не знает, куда охранник свернёт. ${lv.L >= 1 ? "<b>Лучей лазеров вор не видит</b> — только огоньки на стойках: горит ли луч, знаешь только ты. " : ""}Зону обзора камер он не видит. Говори ему «стой… жди такт… пошёл».</li>${lv.guards.length ? `<li><b style="color:#FFA640">!</b> и оранжевый пунктир — охранник скоро свернёт с маршрута: заглянет в соседнюю комнату или пойдёт на шум. Обычные шаги вора охрана слышит на ${G.HEAR} клетки по проходам, а когда он крадётся (Shift), не слышит. Охранник рядом — скажи «крадись».</li>` : ""}${(lv.hides || []).length ? `<li><b style="color:#AA78FF">Ш</b> — шкаф, <b style="color:#AA78FF">П</b> — портьера: вор прячется клавишей E, пока он там, охрана и камеры его не видят.</li>` : ""}
+    <li>Вор <b>видит</b> охранника, если тот перед ним, но не знает, куда охранник свернёт. ${lv.L >= 1 ? "<b>Лучей лазеров вор не видит</b> — только огоньки на стойках: горит ли луч, знаешь только ты. " : ""}Зону обзора камер он не видит. Говори ему «стой… жди такт… пошёл».</li>${lv.guards.length ? `<li>${lv.hide ? "Охранник иногда сворачивает с маршрута: заглядывает в соседнюю комнату или идёт на шум — когда, смотри во вкладке «Охрана»." : `<b style="color:#FFA640">!</b> и оранжевый пунктир — охранник скоро свернёт с маршрута: заглянет в соседнюю комнату или пойдёт на шум.`} Обычные шаги вора охрана слышит на ${G.HEAR} клетки по проходам, а когда он крадётся (Shift), не слышит. Охранник рядом — скажи «крадись».</li>` : ""}${(lv.hides || []).length ? `<li><b style="color:#AA78FF">Ш</b> — шкаф, <b style="color:#AA78FF">П</b> — портьера: вор прячется клавишей E, пока он там, охрана и камеры его не видят.</li>` : ""}
     <li>Вор ходит свободно и смотрит мышью, поэтому <b>спрашивай, куда он смотрит</b>, и говори «налево/направо» от его лица.</li>
     <li>Значок ориентира прижат к той стороне стены, где он висит (светлая черта): <b>с другой стороны стены его нет</b>. Видит вор картину — он в той комнате, куда она смотрит.${lv.L >= 2 ? " Ориентиры бывают одинаковые — спроси, что ещё рядом." : ""}</li>
     <li><b style="color:#C4302B">━</b> лазер горит всегда · <b style="color:#B0158C">━</b> мигает через такт (пунктир — выключен прямо сейчас: вору можно идти, пока не загорелся).</li>
-    <li>💂 видит на ${lv.vr} клетки вперёд, 📹 — на ${lv.camr}: камера поворачивается между двумя проходами — 2 такта прямо, 2 такта в боковую дверь (оранжевая зона на схеме — куда смотрит прямо сейчас). Номер камеры — как у монитора. Вор видит, куда повёрнута её голова, но не знает, как далеко она видит.</li>
+    <li>💂 видит на ${lv.vr} клетки вперёд, 📹 — до ${lv.camr}: камера поворачивается между двумя проходами — 2 такта прямо, 2 такта в боковую дверь (оранжевая зона на схеме — куда смотрит прямо сейчас). Номер камеры — как у монитора. Вор видит, куда повёрнута её голова, но не знает, как далеко она видит.</li>
     ${lv.stains.length ? "<li>☕ Под пятном план не виден — спрашивай вора.</li>" : ""}
     <li>Штрафы таймера: неверный код −10 с, сейф −15 с, щиток −20 с.</li>
     <li>📡 Пеленг — красная кнопка у рации: ${lv.pings ? `показывает вора на 3 секунды (${lv.pings} за попытку)` : "на этом деле его нет"}.</li></ul>`;
@@ -4257,7 +4516,7 @@ function docHtml(id, want) {
       : sim.plugged
         ? `Вор подключился — набирай пароль на ноутбуке.${sim.hstrikes ? ` Ошибок: ${sim.hstrikes} из 2.` : ""}`
         : "Ноутбук ждёт, пока вор воткнёт шнур в щиток 📟.";
-    return `<h3>📟 Щиток видеонаблюдения</h3><p>Одна камера смотрит в проход <b>всегда</b> (на плане её обзор не гаснет). Выключить её можно только взломом: вор находит щиток 📟 и втыкает шнур, а ты на ноутбуке вводишь пароль. Тогда <b>все камеры</b> выключатся до конца попытки, а на мониторах появится видео из особняка.</p>
+    return `<h3>📟 Щиток видеонаблюдения</h3><p>Одна камера смотрит в проход <b>всегда</b> (на плане её обзор не гаснет). Выключить её можно только взломом: вор находит щиток 📟 и втыкает шнур, а ты на ноутбуке вводишь пароль. Тогда <b>все камеры</b> выключатся до конца попытки, а на мониторах появится видео из здания.</p>
       <p>На щитке наклейка: <b>модель</b> и <b>серийный номер</b> из 6 цифр — спроси у вора. Пароль — 4 цифры, по правилу модели:</p>
       <div class="rule"><ol>
         <li><b>VX-480</b> — последние 4 цифры серийного номера задом наперёд.</li>
@@ -4316,6 +4575,7 @@ function resetGame(m) {
   lvKey = "";
   briefedKey = "";
   peerPz = 0;
+  linkUp = null; // новая комната: первое подключение — без щелчка рации
   lapSt.buf = "";
   $("#lapUI").hidden = true;
   hideOverlays();
@@ -4337,6 +4597,7 @@ N.initNet(
       sync(true);
     },
     hideOverlays,
+    caseName: (n) => CASE_TITLES[n] || "",
     handleCode,
     hack: hackCheck,
     checkPeerBuild: (v) => {

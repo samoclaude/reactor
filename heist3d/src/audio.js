@@ -97,14 +97,13 @@ const FILES = [
   "paper",
   "thunder1",
   "thunder2",
+  "thunder_crack",
   "car_dry",
   "car_wet",
   "car_snow",
   "car_away",
   "van_open",
   "van_close",
-  "walk_street",
-  "walk_snow",
   "run_street",
   "run_snow",
   "battery_swap",
@@ -412,19 +411,29 @@ export function setTension(k) {
   play("heart", { v: 0.2 + 0.4 * k, lp: 700 });
   nextBeat = t + 60 / (65 + 75 * k);
 }
-// гром после молнии: в особняке и фургоне глухой
+// гром после молнии (at — через сколько секунд): в здании и фургоне глухой.
+// Близкая молния (гром раньше 0,8 с) — сразу сухой треск разряда, потом раскат; треск глушим слабее, иначе выйдет просто удар
 export function sfxThunder(at = 0) {
-  const o = { house: [0.5, 500], van: [0.6, 1200], street: [0.7, 16000] }[
-    where
-  ];
-  if (o)
-    play(Math.random() < 0.5 ? "thunder1" : "thunder2", {
-      v: o[0],
-      lp: o[1],
-      at,
-      rate: 0.9 + Math.random() * 0.2,
+  const o = {
+    house: [0.5, 500, 1500],
+    van: [0.6, 1200, 2500],
+    street: [0.7, 16000, 16000],
+  }[inside() ? "house" : where];
+  if (!o) return;
+  if (at < 0.8)
+    play("thunder_crack", {
+      v: o[0] * 1.3,
+      lp: o[2],
+      rate: 0.95 + Math.random() * 0.1,
       local: true,
     });
+  play(Math.random() < 0.5 ? "thunder1" : "thunder2", {
+    v: o[0],
+    lp: o[1],
+    at,
+    rate: 0.9 + Math.random() * 0.2,
+    local: true,
+  });
 }
 
 /* ---------- сценки: звуки запускает сама сценка по своему времени (scenes.js, cues) ---------- */
@@ -645,6 +654,14 @@ export const sfxPingFail = () =>
   play("button", { v: 0.35, rate: 0.8, local: true });
 // напарник подключился — щелчок рации
 export const sfxPing = () => play("squelch", { v: 0.4, local: true });
+// онлайн: связь пропала (своя или напарника) — рация трещит и отключается (щелчок ниже);
+// вернулась — щелчок рации, как при подключении напарника, чуть звонче
+export const sfxLinkLost = () => {
+  play("radio", { v: 1, off: 0.15, dur: 0.7, fadeOut: 0.3, local: true });
+  play("squelch", { v: 0.35, rate: 0.8, at: 0.35, local: true });
+};
+export const sfxLinkBack = () =>
+  play("squelch", { v: 0.45, rate: 1.1, local: true });
 export const sfxFolder = () => play("paper", { v: 0.5, local: true });
 export const sfxPage = (v = 0.6) =>
   play("page", { v, rate: 0.9 + Math.random() * 0.2, local: true });
