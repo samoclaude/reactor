@@ -32,7 +32,7 @@ import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js"
 import { GTAOPass } from "three/addons/postprocessing/GTAOPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 
-const BUILD = "3d-0.4"; // версия игры: менять при каждой выкладке (и ?v= модулей в index.html)
+const BUILD = "3d-0.5"; // версия игры: менять при каждой выкладке (и ?v= модулей в index.html)
 const TICK_MS = 1300; // длина такта: столько охранник идёт из клетки в клетку
 const APP = "heist3d";
 const $ = (s) => document.querySelector(s);
